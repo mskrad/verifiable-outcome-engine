@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verifiable Outcome Engine – Spec</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Evidence & Spec</h1>
+      <div class="nav">
+        <a href="/play.html">Demo</a>
+        <a href="/verify.html">Verify</a>
+        <a href="/spec.html">Spec</a>
+      </div>
+    </header>
+    <main>
+      <div class="card">
+        <h3>Accepted Evidence Summary</h3>
+        <pre id="summary">loading...</pre>
+      </div>
+
+      <div class="card">
+        <h3>Blessed Signatures</h3>
+        <pre id="blessed">loading...</pre>
+      </div>
+
+      <div class="card">
+        <h3>Legacy Artifact Appendix</h3>
+        <pre id="artifact">loading...</pre>
+      </div>
+    </main>
+
+    <script>
+      async function load() {
+        const res = await fetch("/api/spec");
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "failed to load spec");
+        document.getElementById("summary").textContent = JSON.stringify(
+          json.summary || {},
+          null,
+          2
+        );
+        document.getElementById("blessed").textContent = JSON.stringify(
+          json.blessed || {},
+          null,
+          2
+        );
+        document.getElementById("artifact").textContent = JSON.stringify(
+          {
+            compiled: json.compiled || {},
+            metrics: json.metrics || {},
+          },
+          null,
+          2
+        );
+      }
+
+      load().catch((e) => {
+        document.getElementById("summary").textContent = String(e);
+        document.getElementById("blessed").textContent = String(e);
+        document.getElementById("artifact").textContent = String(e);
+      });
+    </script>
+  </body>
+</html>

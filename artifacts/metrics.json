@@ -1,0 +1,22 @@
+{
+  "schema_version": "outcome_runtime_metrics_v1",
+  "compiled_spec_hash": "fe077796a7e7b5987907b6760f1f10a70eee3ec3a93faa3784b898450e341306",
+  "gamespec_hash": "6a89d290bf699eb7becd5d1584819ca61f0f4a304a6374750cd3a6a99eb99423",
+  "scale_k_2048": 2158,
+  "scale_den": 2048,
+  "target_rtp": 0.95,
+  "audit": {
+    "spins": 200000,
+    "input_amount": 3.0,
+    "total_input_amount": 600000.0,
+    "total_win": 570019.1567,
+    "rtp": 0.950032,
+    "delta": 0.000032,
+    "hit_rate": 0.594125,
+    "max_win": 16.8594
+  },
+  "notes": [
+    "Metrics were produced by CompiledRtpAuditApp for the frozen compiled artifact.",
+    "Use this file as reference values for technical demo, not as a product KPI source."
+  ]
+}

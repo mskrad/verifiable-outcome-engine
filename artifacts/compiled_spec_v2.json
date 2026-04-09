@@ -1,0 +1,13 @@
+{
+  "version": "compiled_spec_v2",
+  "source": "docs/gamespec/demo_5x3_v1.json",
+  "gamespec_hash": "6a89d290bf699eb7becd5d1584819ca61f0f4a304a6374750cd3a6a99eb99423",
+  "compiled_spec_hash": "fe077796a7e7b5987907b6760f1f10a70eee3ec3a93faa3784b898450e341306",
+  "compiled_at": "2026-01-06T15:21:28.189Z",
+  "canonical_gamespec": "{\"betConfig\":{\"max\":1000000000,\"min\":1000},\"id\":\"demo_5x3_v1\",\"layout\":{\"cols\":5,\"reelCount\":5,\"rows\":3},\"mathProfile\":\"demo_fixed_paytable\",\"paylines\":[[0,0,0,0,0],[1,1,1,1,1],[2,2,2,2,2]],\"paytable\":{\"lines\":[[0,0,0,20000,50000,100000],[0,0,0,15000,30000,60000],[0,0,0,10000,20000,40000],[0,0,0,30000,70000,120000],[0,0,0,20000,50000,80000]],\"scale\":10000,\"scatter\":4,\"wild\":3},\"reels\":[[0,1,2,3],[1,0,2,3],[0,0,1,2],[2,1,0,3],[1,2,0,3]],\"symbols\":[{\"id\":0,\"name\":\"A\"},{\"id\":1,\"name\":\"B\"},{\"id\":2,\"name\":\"C\"},{\"id\":3,\"name\":\"WILD\"},{\"id\":4,\"name\":\"SCAT\"}]}",
+  "compiled_blob_b64": "VzNTMgIDBQUDBAMAbggAAAAIAAAEAAABAgMEAAEAAgMEAAAAAQIEAAIBAAMEAAECAAMAAAAAAAEBAQEBAgICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgTgAAAAAAAFDDAAAAAAAAoIYBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACYOgAAAAAAADB1AAAAAAAAYOoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQJwAAAAAAACBOAAAAAAAAQJwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwdQAAAAAAAHARAQAAAAAAwNQBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgTgAAAAAAAFDDAAAAAAAAgDgBAAAAAAA=",
+  "paytable_scale_num": 2158,
+  "paytable_scale_den": 2048,
+  "paytable_scale": 1.0537109375,
+  "target_rtp": 0.95
+}

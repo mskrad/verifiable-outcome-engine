@@ -1,0 +1,70 @@
+{
+  "schema_version": "outcome_public_reference_summary_v1",
+  "canonical_program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "default_rpc_url": "https://api.devnet.solana.com",
+  "reference_scope": [
+    "standalone replay verification by signature",
+    "accepted devnet blessed signatures",
+    "reviewer-oriented public evidence bundle"
+  ],
+  "accepted_sources_summary": [
+    {
+      "id": "execution_contract_v0_1_0",
+      "status": "frozen",
+      "summary": "Canonical outcome-core baseline after accepted packages 1 and 2."
+    },
+    {
+      "id": "bounded_package_1",
+      "status": "accepted",
+      "summary": "Outcome-only state, PDA, instruction, event, and deterministic math surfaces."
+    },
+    {
+      "id": "bounded_package_2",
+      "status": "accepted",
+      "summary": "Replay verifier by signature plus bounded localnet smoke and negative coverage."
+    },
+    {
+      "id": "devnet_gate",
+      "status": "accepted",
+      "summary": "Two active blessed outcome-core devnet signatures replay to MATCH / OK."
+    },
+    {
+      "id": "broader_coverage",
+      "status": "accepted",
+      "summary": "Multi-runtime isolation, authority matrix, and repeated resolve consistency."
+    },
+    {
+      "id": "adapters_package",
+      "status": "accepted",
+      "summary": "Adapter evidence remains docs-only and is not exported as public code."
+    }
+  ],
+  "accepted_source_of_truth_files": [
+    "docs/outcome_runtime/outcome_devnet_blessed_signatures.json",
+    "docs/specs/outcome_replay_contract_v1.md",
+    "docs/outcome_runtime/outcome_bounded_package_1_report.md",
+    "docs/outcome_runtime/outcome_bounded_package_2_report.md",
+    "docs/outcome_runtime/outcome_devnet_gate_report.md",
+    "docs/outcome_runtime/outcome_broader_coverage_report.md",
+    "docs/outcome_runtime/outcome_adapters_package_report.md"
+  ],
+  "packaging_validation": {
+    "status": "accepted",
+    "commit": "4a297ca",
+    "scope": "narrow packaging sync",
+    "runtime_sanity_commands": [
+      "cd reference-slot && yarn install",
+      "cd reference-slot && yarn -s replay --help"
+    ]
+  },
+  "authoritative_files_in_package": [
+    "artifacts/outcome_devnet_blessed_signatures.json",
+    "artifacts/outcome_idl.json",
+    "artifacts/EXPECTED_TX_EXAMPLES.md"
+  ],
+  "notes": [
+    "This package is reviewer-oriented and does not export examples/*, core/contracts/*, or agent-instructions/*.",
+    "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
+    "Narrow packaging acceptance is anchored to commit 4a297ca and standalone package sanity only."
+  ]
+}

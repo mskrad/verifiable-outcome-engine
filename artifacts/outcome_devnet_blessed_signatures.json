@@ -1,0 +1,36 @@
+{
+  "schema_version": "outcome_core_devnet_blessed_sigs_v1",
+  "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "rpc_url": "https://api.devnet.solana.com",
+  "updated_utc": "2026-03-30T18:26:03Z",
+  "entries": [
+    {
+      "id": "outcome_core_devnet_sig_1",
+      "signature": "3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "d5a06b25163399079d071f1efddb6772",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "f6150d16407e764efd55bdb3482aa82fc32726eb53c1e7da02994da20b55ace2",
+      "source": "engineer_devnet_setup_2026-03-30",
+      "updated_utc": "2026-03-30T18:26:03Z",
+      "notes": "Produced via existing outcome smoke helper on devnet after canonical deploy."
+    },
+    {
+      "id": "outcome_core_devnet_sig_2",
+      "signature": "KMsg6dqUWWNoYfNs6FZhVFWyC76MJN5U8vN61FeeVjTHAZrS9vyAJYDykxUQftvVyrJhV2phSCMXZV41LDbnE8q",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "0adfed6e7b0a3a2343fdda14ae6222e2",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "598c5fd6d661520a368c24dc8cd2aab6059a5959c322049d666cd4ac729d6b82",
+      "source": "engineer_devnet_setup_2026-03-30",
+      "updated_utc": "2026-03-30T18:26:03Z",
+      "notes": "Produced via existing outcome smoke helper on devnet after canonical deploy."
+    }
+  ]
+}
