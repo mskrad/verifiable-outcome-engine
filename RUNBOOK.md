@@ -3,11 +3,12 @@
 ## 1) Install + launch
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 yarn install
-cp .env.example .env
 yarn web
 ```
+
+Optional: copy `.env.example` to `.env` to override defaults. Not required — server starts without it.
 
 ## 2) Open pages
 
@@ -28,7 +29,7 @@ yarn web
 ## 4) CLI equivalent
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
   --sig 3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1 \

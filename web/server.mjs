@@ -9,8 +9,6 @@ const __dirname = path.dirname(__filename);
 
 const REF_ROOT = path.resolve(__dirname, "..");
 const STATIC_DIR = path.join(__dirname, "public");
-const DEFAULT_COMPILED_PATH = path.join(REF_ROOT, "artifacts", "compiled_spec_v2.json");
-const DEFAULT_METRICS_PATH = path.join(REF_ROOT, "artifacts", "metrics.json");
 const DEFAULT_BLESSED_PATH = path.join(
   REF_ROOT,
   "artifacts",
@@ -110,7 +108,7 @@ function findTsNodeBin() {
   if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
   const localBin = path.join(REF_ROOT, "node_modules", ".bin", "ts-node");
   if (fs.existsSync(localBin)) return localBin;
-  throw new Error("ts-node not found. Run `yarn install` in reference-slot or set TS_NODE_BIN.");
+  throw new Error("ts-node not found. Run `yarn install` in the repository root or set TS_NODE_BIN.");
 }
 
 function loadBlessedSignatures() {
@@ -198,16 +196,10 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "GET" && pathname === "/api/spec") {
-      const compiled = JSON.parse(fs.readFileSync(DEFAULT_COMPILED_PATH, "utf8"));
-      const metrics = fs.existsSync(DEFAULT_METRICS_PATH)
-        ? JSON.parse(fs.readFileSync(DEFAULT_METRICS_PATH, "utf8"))
-        : null;
       json(res, 200, {
         ok: true,
         summary: loadSummary(),
         blessed: loadBlessedSignatures(),
-        compiled,
-        metrics,
       });
       return;
     }
@@ -243,8 +235,8 @@ async function handleApi(req, res, pathname) {
   } catch (error) {
     json(res, 500, {
       ok: false,
-      error: error.message || String(error),
-      details: error.details || null,
+      error: error?.message || String(error),
+      details: error?.details || undefined,
     });
   }
 }
@@ -252,7 +244,7 @@ async function handleApi(req, res, pathname) {
 loadEnvFile();
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || "/", "http://127.0.0.1");
+  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   if (url.pathname.startsWith("/api/")) {
     await handleApi(req, res, url.pathname);
     return;
@@ -261,6 +253,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 const port = Number(process.env.PORT || 8787);
-server.listen(port, "127.0.0.1", () => {
-  console.log(`[outcome-runtime:web] listening on http://127.0.0.1:${port}`);
+server.listen(port, () => {
+  console.log(`verifiable-outcome-engine web listening on http://127.0.0.1:${port}`);
 });

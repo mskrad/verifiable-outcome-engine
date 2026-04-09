@@ -4,7 +4,7 @@
   "default_rpc_url": "https://api.devnet.solana.com",
   "reference_scope": [
     "standalone replay verification by signature",
-    "accepted devnet blessed signatures",
+    "operator-side resolve command",
     "reviewer-oriented public evidence bundle"
   ],
   "accepted_sources_summary": [
@@ -29,9 +29,9 @@
       "summary": "Two active blessed outcome-core devnet signatures replay to MATCH / OK."
     },
     {
-      "id": "broader_coverage",
+      "id": "operator_packaging",
       "status": "accepted",
-      "summary": "Multi-runtime isolation, authority matrix, and repeated resolve consistency."
+      "summary": "Operator-side resolve is bundled without monorepo-only runtime paths."
     },
     {
       "id": "adapters_package",
@@ -40,31 +40,36 @@
     }
   ],
   "accepted_source_of_truth_files": [
-    "docs/outcome_runtime/outcome_devnet_blessed_signatures.json",
-    "docs/specs/outcome_replay_contract_v1.md",
-    "docs/outcome_runtime/outcome_bounded_package_1_report.md",
-    "docs/outcome_runtime/outcome_bounded_package_2_report.md",
-    "docs/outcome_runtime/outcome_devnet_gate_report.md",
-    "docs/outcome_runtime/outcome_broader_coverage_report.md",
-    "docs/outcome_runtime/outcome_adapters_package_report.md"
+    "README.md",
+    "RUNBOOK.md",
+    "DEMO_RUNBOOK.md",
+    "artifacts/outcome_devnet_blessed_signatures.json",
+    "artifacts/EXPECTED_TX_EXAMPLES.md",
+    "artifacts/outcome_idl.json",
+    "scripts/replay_verify.ts",
+    "scripts/resolve_operator.ts"
   ],
   "packaging_validation": {
     "status": "accepted",
-    "commit": "4a297ca",
-    "scope": "narrow packaging sync",
+    "commit": "local-sync",
+    "scope": "standalone functional sync",
     "runtime_sanity_commands": [
-      "cd reference-slot && yarn install",
-      "cd reference-slot && yarn -s replay --help"
+      "yarn install",
+      "yarn -s replay --help",
+      "yarn -s resolve:operator --help"
     ]
   },
   "authoritative_files_in_package": [
     "artifacts/outcome_devnet_blessed_signatures.json",
     "artifacts/outcome_idl.json",
-    "artifacts/EXPECTED_TX_EXAMPLES.md"
+    "artifacts/EXPECTED_TX_EXAMPLES.md",
+    "scripts/replay_verify.ts",
+    "scripts/resolve_operator.ts"
   ],
   "notes": [
-    "This package is reviewer-oriented and does not export examples/*, core/contracts/*, or agent-instructions/*.",
+    "This repository is the standalone hackathon repo and the reviewer/runtime flow runs from repo root.",
     "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
-    "Narrow packaging acceptance is anchored to commit 4a297ca and standalone package sanity only."
+    "Legacy compiled spec and metrics appendix files are not part of the active standalone runtime surface.",
+    "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows."
   ]
 }

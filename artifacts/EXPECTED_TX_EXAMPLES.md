@@ -26,7 +26,7 @@ Historical localnet signatures are intentionally excluded from this public evide
 Replay command:
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
   --sig 3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1 \
@@ -44,7 +44,7 @@ yarn -s replay \
 Replay command:
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
   --sig KMsg6dqUWWNoYfNs6FZhVFWyC76MJN5U8vN61FeeVjTHAZrS9vyAJYDykxUQftvVyrJhV2phSCMXZV41LDbnE8q \

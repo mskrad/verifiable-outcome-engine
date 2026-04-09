@@ -25,11 +25,6 @@
         <h3>Blessed Signatures</h3>
         <pre id="blessed">loading...</pre>
       </div>
-
-      <div class="card">
-        <h3>Legacy Artifact Appendix</h3>
-        <pre id="artifact">loading...</pre>
-      </div>
     </main>
 
     <script>
@@ -47,20 +42,11 @@
           null,
           2
         );
-        document.getElementById("artifact").textContent = JSON.stringify(
-          {
-            compiled: json.compiled || {},
-            metrics: json.metrics || {},
-          },
-          null,
-          2
-        );
       }
 
       load().catch((e) => {
         document.getElementById("summary").textContent = String(e);
         document.getElementById("blessed").textContent = String(e);
-        document.getElementById("artifact").textContent = String(e);
       });
     </script>
   </body>

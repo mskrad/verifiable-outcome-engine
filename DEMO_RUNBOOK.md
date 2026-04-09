@@ -5,7 +5,7 @@ Purpose: show Verifiable Outcome Engine as a raffle / winner-selection proof sce
 ## 1) Install
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 yarn install
 ```
 
@@ -40,3 +40,29 @@ Expected terminal lines:
 - `verification_reason : OK`
 
 If devnet RPC is unavailable, retry later or use another active signature from `artifacts/outcome_devnet_blessed_signatures.json`.
+
+---
+
+## Optional: Live Resolve Path
+
+To generate a fresh on-chain outcome and verify it in one flow (requires funded devnet wallet):
+
+```bash
+# Step 1 — resolve a new outcome on-chain, capture signature
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
+ANCHOR_WALLET=~/.config/solana/id.json \
+yarn -s resolve:operator \
+  --url https://api.devnet.solana.com \
+  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --json
+
+# Step 2 — replay the returned signature
+yarn -s replay \
+  --sig <signature> \
+  --url https://api.devnet.solana.com \
+  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+```
+
+Expected: `verification_result : MATCH` / `verification_reason : OK`
+
+This path demonstrates the full operator cycle: commit rules on-chain → resolve → independently verify.

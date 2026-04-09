@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "replay": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/replay_verify.ts",
+    "resolve:operator": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/resolve_operator.ts",
     "web": "node web/server.mjs"
   },
   "dependencies": {

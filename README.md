@@ -43,7 +43,7 @@ That scenario is a concrete demo target. The verifier is the reusable part: reso
 CLI example:
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 yarn install
 
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
@@ -67,11 +67,12 @@ Short demo runbook:
 The package also includes a small reviewer-facing web surface:
 
 ```bash
-cd outcome-runtime-reference
+cd verifiable-outcome-engine
 yarn install
-cp .env.example .env
 yarn web
 ```
+
+Optional: copy `.env.example` to `.env` to override defaults (port, RPC URL, program ID). Not required — the server starts with built-in defaults.
 
 Open:
 
@@ -92,11 +93,60 @@ Packaged evidence:
 - evidence summary:
   - `artifacts/public_evidence_summary.json`
 
-The packaged evidence is derived from:
+For this standalone hackathon repo, the reviewer-facing source of truth is the bundled evidence set in this repository:
 
-- `docs/outcome_runtime/outcome_devnet_blessed_signatures.json`
-- `docs/specs/outcome_replay_contract_v1.md`
-- outcome reports under `docs/outcome_runtime/`
+- `artifacts/outcome_devnet_blessed_signatures.json`
+- `artifacts/EXPECTED_TX_EXAMPLES.md`
+- `artifacts/public_evidence_summary.json`
+- `artifacts/outcome_idl.json`
+
+## Operator Reference: Live Resolve
+
+For operators or reviewers who want to generate a fresh on-chain outcome and then replay it, the package includes a operator resolve script.
+
+This path is optional. The default reviewer flow uses included devnet signatures.
+
+### What it does
+
+`resolve:operator` runs a full operator cycle on-chain:
+
+1. Submits a compiled artifact (outcome rules) to the program.
+2. Initializes an outcome runtime.
+3. Resolves the outcome — the program selects a result using on-chain randomness.
+4. Returns the transaction signature.
+
+The returned signature can be passed directly to `yarn replay` to verify the result.
+
+### Requirements
+
+- Solana wallet keypair (`~/.config/solana/id.json` or `--wallet <PATH>`)
+- Funded account on the target cluster
+- RPC access to devnet or a local validator
+
+### Run
+
+```bash
+# Against devnet (requires funded wallet)
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
+ANCHOR_WALLET=~/.config/solana/id.json \
+yarn -s resolve:operator \
+  --url https://api.devnet.solana.com \
+  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --json
+```
+
+Output includes `signature`. Pass it to the verifier:
+
+```bash
+yarn -s replay \
+  --sig <signature from above> \
+  --url https://api.devnet.solana.com \
+  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+```
+
+Expected: `verification_result : MATCH` / `verification_reason : OK`
+
+Result files are written to `tmp/resolve-operator/` by default. Use `--out-dir <DIR>` to override.
 
 ## Boundaries
 
@@ -104,7 +154,8 @@ This package is:
 
 - a hackathon-facing verifier reference,
 - a standalone replay-by-signature surface,
-- a reviewer path for included devnet evidence.
+- a reviewer path for included devnet evidence,
+- the standalone hackathon repo for Verifiable Outcome Engine.
 
 This package is not:
 
@@ -116,4 +167,4 @@ This package is not:
 - a fee implementation claim,
 - a product rollout claim.
 
-Historical localnet signatures are excluded from public verification examples. Verification claims here are limited to transaction signature plus public RPC data for the included devnet evidence.
+The ecosystem monorepo continues separately and is not required to run this repository. Historical localnet signatures are excluded from public verification examples. Verification claims here are limited to transaction signature plus public RPC data for the included devnet evidence.

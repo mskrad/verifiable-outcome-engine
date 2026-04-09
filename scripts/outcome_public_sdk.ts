@@ -52,14 +52,6 @@ export function publicEvidenceSummaryPath(): string {
   );
 }
 
-export function compiledSpecPath(): string {
-  return path.join(REFERENCE_ROOT, "artifacts", "compiled_spec_v2.json");
-}
-
-export function metricsPath(): string {
-  return path.join(REFERENCE_ROOT, "artifacts", "metrics.json");
-}
-
 export function deriveProgramConfigPda(programId: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("outcome_program_config")],
@@ -102,6 +94,16 @@ export function deriveOutcomeConfigPda(
   )[0];
 }
 
+export function deriveOutcomeVaultPda(
+  programId: PublicKey,
+  runtimeId: Buffer
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("outcome_vault"), runtimeId],
+    programId
+  )[0];
+}
+
 export function deriveOutcomeResolutionPda(
   programId: PublicKey,
   runtimeId: Buffer,
@@ -111,4 +113,8 @@ export function deriveOutcomeResolutionPda(
     [Buffer.from("outcome_resolution"), runtimeId, u64le(resolveId)],
     programId
   )[0];
+}
+
+export function resolveOperatorOutputDir(): string {
+  return path.join(REFERENCE_ROOT, "tmp", "resolve-operator");
 }
