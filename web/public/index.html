@@ -1,26 +1,64 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verifiable Outcome Engine</title>
-    <link rel="stylesheet" href="/app.css" />
-  </head>
-  <body>
-    <header>
-      <h1>Verifiable Outcome Engine</h1>
-      <div class="nav">
-        <a href="/play.html">Demo</a>
-        <a href="/verify.html">Verify</a>
-        <a href="/spec.html">Spec</a>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifiable Outcome Engine</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div>Verifiable Outcome Engine</div>
+        <span class="logo-sub">Solana · Devnet</span>
       </div>
-    </header>
-    <main>
-      <div class="card">
-        <p>
-          Any on-chain outcome — independently verifiable from a transaction signature.
-        </p>
+    </a>
+    <nav class="nav">
+      <a href="/play.html">Demo</a>
+      <a href="/verify.html">Verify</a>
+      <a href="/spec.html">Spec</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-badge">⚙ Developer Infrastructure</div>
+      <h1>Any outcome.<br/>Independently verifiable.</h1>
+      <p>
+        Take any transaction signature from a resolved on-chain outcome —
+        replay it locally from public RPC data and get <strong style="color:#14f195">MATCH / OK</strong>.
+        No trust required.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/play.html">▶ Try Demo</a>
+        <a class="btn btn-secondary" href="/verify.html">Verify a Signature</a>
       </div>
-    </main>
-  </body>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h4>Pre-committed Rules</h4>
+        <p>Outcome spec is locked on-chain before resolution. Operator can't change rules after the fact.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎲</div>
+        <h4>On-chain Randomness</h4>
+        <p>Randomness is derived from the resolution transaction itself — not controlled by the operator.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔁</div>
+        <h4>Deterministic Replay</h4>
+        <p>Given the same inputs, replay always produces the same result. Anyone can verify independently.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📦</div>
+        <h4>Standalone Package</h4>
+        <p>No monorepo dependencies. Clone, install, verify. Works from public devnet RPC alone.</p>
+      </div>
+    </div>
+  </main>
+</body>
 </html>

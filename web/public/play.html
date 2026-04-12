@@ -1,70 +1,107 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verifiable Outcome Engine – Demo</title>
-    <link rel="stylesheet" href="/app.css" />
-  </head>
-  <body>
-    <header>
-      <h1>Verifiable Outcome Engine</h1>
-      <div class="nav">
-        <a href="/play.html">Demo</a>
-        <a href="/verify.html">Verify</a>
-        <a href="/spec.html">Spec</a>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifiable Outcome Engine – Demo</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div>Verifiable Outcome Engine</div>
+        <span class="logo-sub">Solana · Devnet</span>
       </div>
-    </header>
-    <main>
-      <div class="card">
-        <h3>Active Devnet Signatures</h3>
-        <p>
-          Each signature below is a live devnet outcome. Pick one and open the Verify
-          page — you will get <strong>MATCH / OK</strong> from public RPC data alone.
-        </p>
-      </div>
+    </a>
+    <nav class="nav">
+      <a href="/play.html" class="active">Demo</a>
+      <a href="/verify.html">Verify</a>
+      <a href="/spec.html">Spec</a>
+    </nav>
+  </header>
 
-      <div class="card">
-        <h3>Active Blessed Signatures</h3>
-        <div id="sigList">loading...</div>
-      </div>
-    </main>
+  <main>
+    <div class="card">
+      <h3>Active Devnet Signatures</h3>
+      <p>
+        Each signature below is a live resolved outcome on Solana devnet.
+        Pick one — you will get <strong style="color:#14f195">MATCH / OK</strong> from public RPC data alone.
+      </p>
+    </div>
 
-    <script>
-      async function load() {
-        const healthRes = await fetch("/api/health");
-        const health = await healthRes.json();
-        const sigRes = await fetch("/api/blessed-signatures");
-        const sigJson = await sigRes.json();
-        if (!sigJson.ok) throw new Error(sigJson.error || "failed to load signatures");
-        const active = (sigJson.data.entries || []).filter((entry) => entry.status === "active");
-        const items = active
-          .map(
-            (entry) => `
-              <div class="card" style="margin-top: 12px;">
-                <div><b>signature:</b> ${entry.signature}</div>
-                <div><b>runtime_id:</b> ${entry.runtime_id}</div>
-                <div><b>resolve_id:</b> ${entry.resolve_id}</div>
-                <div><b>compiled_artifact_hash:</b> ${entry.compiled_artifact_hash}</div>
-                <div><b>expected:</b> ${entry.verification_result} / ${entry.verification_reason}</div>
-                <p>
-                  <a href="/verify.html?sig=${encodeURIComponent(entry.signature)}&rpc=${encodeURIComponent(
-                    health.rpc || sigJson.data.rpc_url
-                  )}&programId=${encodeURIComponent(health.program_id || sigJson.data.program_id)}">
-                    Open in Verify
-                  </a>
-                </p>
-              </div>
-            `
-          )
-          .join("");
-        document.getElementById("sigList").innerHTML =
-          items || "<p>No active blessed signatures found.</p>";
+    <div id="sigList">
+      <div class="loading"><div class="spinner"></div> Loading signatures…</div>
+    </div>
+  </main>
+
+  <script>
+    const EXPLORER = 'https://explorer.solana.com/tx';
+    const CLUSTER  = 'devnet';
+
+    async function load() {
+      const [healthRes, sigRes] = await Promise.all([
+        fetch('/api/health'),
+        fetch('/api/blessed-signatures'),
+      ]);
+      const health  = await healthRes.json();
+      const sigJson = await sigRes.json();
+      if (!sigJson.ok) throw new Error(sigJson.error || 'failed to load signatures');
+
+      const active = (sigJson.data.entries || []).filter(e => e.status === 'active');
+      if (!active.length) {
+        document.getElementById('sigList').innerHTML =
+          '<div class="card"><p>No active blessed signatures found.</p></div>';
+        return;
       }
 
-      load().catch((error) => {
-        document.getElementById("sigList").textContent = String(error);
+      const rpc       = health.rpc       || sigJson.data.rpc_url;
+      const programId = health.program_id || sigJson.data.program_id;
+
+      const html = active.map((entry, i) => {
+        const verifyUrl   = `/verify.html?sig=${encodeURIComponent(entry.signature)}&rpc=${encodeURIComponent(rpc)}&programId=${encodeURIComponent(programId)}`;
+        const explorerUrl = `${EXPLORER}/${entry.signature}?cluster=${CLUSTER}`;
+        const shortSig    = entry.signature.slice(0, 20) + '…' + entry.signature.slice(-12);
+
+        return `
+        <div class="sig-card">
+          <div class="sig-card-header">
+            <span class="sig-number">Signature #${i + 1}</span>
+            <span class="badge-match">✓ MATCH / OK</span>
+          </div>
+
+          <div class="sig-hash" title="${entry.signature}">${entry.signature}</div>
+
+          <div class="sig-meta">
+            <div class="sig-meta-row">runtime_id <br/><span>${entry.runtime_id}</span></div>
+            <div class="sig-meta-row">resolve_id <br/><span>${entry.resolve_id}</span></div>
+            <div class="sig-meta-row" style="grid-column:1/-1">artifact_hash <br/><span>${entry.compiled_artifact_hash}</span></div>
+          </div>
+
+          <div class="sig-actions">
+            <a class="btn btn-primary" href="${verifyUrl}">▶ Verify Now</a>
+            <a class="btn btn-ghost ext" href="${explorerUrl}" target="_blank" rel="noopener">Explorer</a>
+            <button class="btn btn-ghost" onclick="copy('${entry.signature}', this)">Copy Sig</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      document.getElementById('sigList').innerHTML = html;
+    }
+
+    function copy(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied';
+        setTimeout(() => btn.textContent = orig, 1500);
       });
-    </script>
-  </body>
+    }
+
+    load().catch(err => {
+      document.getElementById('sigList').innerHTML =
+        `<div class="card"><p style="color:var(--red)">${err}</p></div>`;
+    });
+  </script>
+</body>
 </html>

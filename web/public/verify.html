@@ -1,111 +1,180 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Verifiable Outcome Engine – Verify</title>
-    <link rel="stylesheet" href="/app.css" />
-  </head>
-  <body>
-    <header>
-      <h1>Verify Outcome</h1>
-      <div class="nav">
-        <a href="/play.html">Demo</a>
-        <a href="/verify.html">Verify</a>
-        <a href="/spec.html">Spec</a>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifiable Outcome Engine – Verify</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div>Verifiable Outcome Engine</div>
+        <span class="logo-sub">Solana · Devnet</span>
       </div>
-    </header>
-    <main>
-      <div class="card">
-        <div class="grid2">
-          <div>
-            <label for="cluster">Cluster</label>
-            <select id="cluster">
-              <option value="devnet">devnet</option>
-              <option value="localnet">localnet</option>
-            </select>
-          </div>
-          <div>
-            <label for="rpc">RPC URL</label>
-            <input id="rpc" value="https://api.devnet.solana.com" />
-          </div>
-          <div>
-            <label for="programId">Program ID</label>
-            <input
-              id="programId"
-              value="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
-            />
-          </div>
+    </a>
+    <nav class="nav">
+      <a href="/play.html">Demo</a>
+      <a href="/verify.html" class="active">Verify</a>
+      <a href="/spec.html">Spec</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="card">
+      <h3>Verify Outcome</h3>
+      <p>Paste any resolved outcome transaction signature to replay and verify it independently.</p>
+
+      <div class="grid2">
+        <div>
+          <label>Cluster</label>
+          <select id="cluster">
+            <option value="devnet">devnet</option>
+            <option value="localnet">localnet</option>
+          </select>
         </div>
-        <label for="sig">Transaction signature</label>
-        <input id="sig" placeholder="paste tx signature" />
-        <button id="btnReplay">Verify</button>
+        <div>
+          <label>RPC URL</label>
+          <input id="rpc" value="https://api.devnet.solana.com" />
+        </div>
       </div>
 
+      <label>Program ID</label>
+      <input id="programId" value="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq" />
+
+      <label>Transaction Signature</label>
+      <input id="sig" placeholder="Paste tx signature…" />
+
+      <button id="btnReplay">▶ Run Verification</button>
+    </div>
+
+    <div id="resultSection" style="display:none">
+      <div id="resultBanner"></div>
+
       <div class="card">
-        <h3>Verification Result</h3>
-        <div id="status"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <h3 style="margin:0">Raw Output</h3>
+          <button class="btn btn-ghost" id="btnCopyJson">Copy JSON</button>
+        </div>
         <pre id="out"></pre>
       </div>
-    </main>
 
-    <script>
-      const outEl = document.getElementById("out");
-      const statusEl = document.getElementById("status");
-      const params = new URLSearchParams(location.search);
-      const sigParam = params.get("sig");
-      const rpcParam = params.get("rpc");
-      const programIdParam = params.get("programId");
-      if (sigParam) document.getElementById("sig").value = sigParam;
-      if (rpcParam) document.getElementById("rpc").value = rpcParam;
-      if (programIdParam) document.getElementById("programId").value = programIdParam;
+      <div id="explorerLink" style="display:none;margin-top:4px"></div>
+    </div>
+  </main>
 
-      async function loadDefaults() {
-        try {
-          const res = await fetch("/api/health");
-          const json = await res.json();
-          if (json.ok && json.program_id && !programIdParam) {
-            document.getElementById("programId").value = json.program_id;
-          }
-          if (json.ok && json.rpc && !rpcParam) {
-            document.getElementById("rpc").value = json.rpc;
-          }
-        } catch (_) {
-          // optional health bootstrap
-        }
+  <script>
+    const EXPLORER = 'https://explorer.solana.com/tx';
+    const outEl    = document.getElementById('out');
+    const params   = new URLSearchParams(location.search);
+
+    const sigParam       = params.get('sig');
+    const rpcParam       = params.get('rpc');
+    const programIdParam = params.get('programId');
+    if (sigParam)       document.getElementById('sig').value       = sigParam;
+    if (rpcParam)       document.getElementById('rpc').value       = rpcParam;
+    if (programIdParam) document.getElementById('programId').value = programIdParam;
+
+    async function loadDefaults() {
+      try {
+        const res  = await fetch('/api/health');
+        const json = await res.json();
+        if (json.ok && json.program_id && !programIdParam)
+          document.getElementById('programId').value = json.program_id;
+        if (json.ok && json.rpc && !rpcParam)
+          document.getElementById('rpc').value = json.rpc;
+      } catch (_) {}
+    }
+    loadDefaults();
+
+    if (sigParam) {
+      window.addEventListener('load', () => {
+        document.getElementById('btnReplay').click();
+      });
+    }
+
+    document.getElementById('btnReplay').onclick = async () => {
+      const btn       = document.getElementById('btnReplay');
+      const sig       = document.getElementById('sig').value.trim();
+      const rpc       = document.getElementById('rpc').value.trim();
+      const programId = document.getElementById('programId').value.trim();
+      const cluster   = document.getElementById('cluster').value;
+
+      if (!sig) { alert('Transaction signature is required.'); return; }
+
+      btn.disabled    = true;
+      btn.textContent = 'Replaying…';
+      document.getElementById('resultSection').style.display = 'none';
+
+      try {
+        const res  = await fetch('/api/replay', {
+          method:  'POST',
+          headers: { 'content-type': 'application/json' },
+          body:    JSON.stringify({ cluster, rpc, programId, signature: sig }),
+        });
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || 'replay failed');
+
+        const replay = json.replay || {};
+        showResult(replay, sig, cluster);
+      } catch (e) {
+        showError(String(e));
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '▶ Run Verification';
       }
-      loadDefaults();
+    };
 
-      document.getElementById("btnReplay").onclick = async () => {
-        try {
-          const sig = document.getElementById("sig").value.trim();
-          const rpc = document.getElementById("rpc").value.trim();
-          const programId = document.getElementById("programId").value.trim();
-          if (!sig) throw new Error("signature is required");
-          statusEl.textContent = "Replaying...";
-          outEl.textContent = "";
-          const res = await fetch("/api/replay", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              cluster: document.getElementById("cluster").value,
-              rpc,
-              programId,
-              signature: sig,
-            }),
-          });
-          const json = await res.json();
-          if (!json.ok) throw new Error(json.error || "replay failed");
-          const replay = json.replay || {};
-          statusEl.textContent = `${replay.verification_result || "UNKNOWN"} / ${
-            replay.verification_reason || "UNKNOWN"
-          }`;
-          outEl.textContent = JSON.stringify(replay, null, 2);
-        } catch (e) {
-          statusEl.textContent = "ERROR";
-          outEl.textContent = String(e);
-        }
-      };
-    </script>
-  </body>
+    function showResult(replay, sig, cluster) {
+      const isMatch  = replay.verification_result === 'MATCH';
+      const section  = document.getElementById('resultSection');
+      const banner   = document.getElementById('resultBanner');
+      const explorer = document.getElementById('explorerLink');
+
+      banner.innerHTML = `
+        <div class="result-banner ${isMatch ? 'match' : 'mismatch'}">
+          <div class="result-icon">${isMatch ? '✅' : '❌'}</div>
+          <div>
+            <div class="result-label">${replay.verification_result} / ${replay.verification_reason}</div>
+            <div class="result-sub">${isMatch
+              ? 'Outcome replayed successfully — computation matches on-chain record.'
+              : 'Replay result does not match on-chain record.'}</div>
+          </div>
+        </div>`;
+
+      outEl.textContent = JSON.stringify(replay, null, 2);
+
+      const explorerUrl = `${EXPLORER}/${sig}?cluster=${cluster}`;
+      explorer.innerHTML = `<a class="btn btn-ghost ext" href="${explorerUrl}" target="_blank" rel="noopener" style="margin-bottom:16px">View on Solana Explorer</a>`;
+      explorer.style.display = 'block';
+
+      section.style.display = 'block';
+    }
+
+    function showError(msg) {
+      const section = document.getElementById('resultSection');
+      const banner  = document.getElementById('resultBanner');
+      banner.innerHTML = `
+        <div class="result-banner mismatch">
+          <div class="result-icon">⚠️</div>
+          <div>
+            <div class="result-label">ERROR</div>
+            <div class="result-sub">${msg}</div>
+          </div>
+        </div>`;
+      outEl.textContent = msg;
+      document.getElementById('explorerLink').style.display = 'none';
+      section.style.display = 'block';
+    }
+
+    document.getElementById('btnCopyJson').onclick = function() {
+      navigator.clipboard.writeText(outEl.textContent).then(() => {
+        this.textContent = '✓ Copied';
+        setTimeout(() => this.textContent = 'Copy JSON', 1500);
+      });
+    };
+  </script>
+</body>
 </html>
