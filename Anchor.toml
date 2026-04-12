@@ -8,6 +8,9 @@ skip-lint = false
 [programs.localnet]
 outcome = "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
 
+[programs.devnet]
+outcome = "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
+
 [registry]
 url = "https://api.apr.dev"
 
