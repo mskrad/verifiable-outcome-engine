@@ -11,6 +11,9 @@
   --text:      #e8eaf0;
   --text2:     #8b91a8;
   --text3:     #555c75;
+  --fg:        var(--text);
+  --muted:     var(--text2);
+  --mono:      'JetBrains Mono', monospace;
   --green:     #14f195;
   --green-dim: #0d9b61;
   --purple:    #9945ff;
@@ -389,6 +392,80 @@ select option { background: var(--bg2); }
   margin-top: 3px;
 }
 
+/* ── PRE-COMMITMENT TIMELINE ── */
+.timeline-block {
+  background: linear-gradient(180deg, rgba(153,69,255,.08), rgba(20,241,149,.035));
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.timeline-block h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.timeline-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.timeline-point {
+  flex: 0 0 auto;
+  text-align: center;
+  min-width: 138px;
+}
+
+.timeline-point .tl-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.timeline-point .tl-slot {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--fg);
+  margin-top: 4px;
+}
+
+.timeline-point.artifact .tl-slot { color: #9945ff; }
+.timeline-point.resolution .tl-slot { color: var(--green); }
+
+.timeline-gap {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 180px;
+}
+
+.timeline-caption {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.tl-compact {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-top: 6px;
+}
+
 /* ── LOADING ── */
 .loading {
   display: flex;
@@ -446,6 +523,14 @@ pre {
   .sig-card-header { flex-direction: column; align-items: flex-start; }
   header { padding: 0 16px; }
   main { padding: 20px 16px 48px; }
+  .logo { min-width: 0; flex-shrink: 1; }
+  .logo > div { min-width: 0; overflow: hidden; }
+  .nav a { padding: 6px 10px; }
+}
+
+@media (max-width: 420px) {
+  .logo-sub { display: none; }
+  .nav a { padding: 5px 7px; font-size: 12px; }
 }
 
 /* ── FEATURE GRID ── */

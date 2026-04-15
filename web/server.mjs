@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
+import { PublicKey } from "@solana/web3.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,6 +175,84 @@ function runReplay({ signature, rpcUrl, programId, artifactPath }) {
   };
 }
 
+async function rpcCall(rpcUrl, payload, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`RPC HTTP ${response.status}`);
+    }
+    const jsonBody = await response.json();
+    if (jsonBody.error) {
+      throw new Error(jsonBody.error.message || "RPC error");
+    }
+    return jsonBody.result;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchTimeline({
+  signature,
+  rpcUrl,
+  programId,
+  compiledArtifactHash,
+}) {
+  if (!signature) throw new Error("signature is required");
+  if (!rpcUrl) throw new Error("rpcUrl is required");
+  if (!programId) throw new Error("programId is required");
+  if (!/^[0-9a-fA-F]{64}$/.test(compiledArtifactHash || "")) {
+    throw new Error("compiledArtifactHash must be 32-byte hex");
+  }
+
+  const tx = await rpcCall(rpcUrl, {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "getTransaction",
+    params: [
+      signature,
+      { encoding: "json", maxSupportedTransactionVersion: 0 },
+    ],
+  });
+  if (!tx || typeof tx.slot !== "number") {
+    throw new Error("resolution transaction slot not found");
+  }
+
+  const [artifactPda] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("approved_outcome_artifact"),
+      Buffer.from(compiledArtifactHash, "hex"),
+    ],
+    new PublicKey(programId)
+  );
+  const signatures = await rpcCall(rpcUrl, {
+    jsonrpc: "2.0",
+    id: 2,
+    method: "getSignaturesForAddress",
+    params: [artifactPda.toBase58(), { limit: 1000 }],
+  });
+  if (!Array.isArray(signatures) || signatures.length === 0) {
+    throw new Error("artifact PDA transaction history not found");
+  }
+
+  const oldest = signatures[signatures.length - 1];
+  if (!oldest || typeof oldest.slot !== "number") {
+    throw new Error("artifact creation slot not found");
+  }
+
+  return {
+    artifact_slot: oldest.slot,
+    resolution_slot: tx.slot,
+    gap_slots: tx.slot - oldest.slot,
+  };
+}
+
 async function handleApi(req, res, pathname) {
   try {
     if (req.method === "GET" && pathname === "/api/health") {
@@ -228,6 +307,28 @@ async function handleApi(req, res, pathname) {
         stdout: replayResult.stdout,
         stderr: replayResult.stderr,
       });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/timeline") {
+      try {
+        const body = await readJsonBody(req);
+        const timeline = await fetchTimeline({
+          signature: String(body.signature || body.sig || ""),
+          rpcUrl: String(body.rpcUrl || body.rpc || defaultRpc()),
+          programId: String(body.programId || defaultProgramId()),
+          compiledArtifactHash: String(body.compiledArtifactHash || ""),
+        });
+        json(res, 200, { ok: true, ...timeline });
+      } catch (error) {
+        json(res, 200, {
+          ok: false,
+          error:
+            error?.name === "AbortError"
+              ? "timeline RPC request timed out"
+              : error?.message || String(error),
+        });
+      }
       return;
     }
 

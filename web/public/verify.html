@@ -63,6 +63,8 @@
 
       <div id="explorerLink" style="display:none;margin-top:4px"></div>
     </div>
+
+    <div id="timelineSection" style="display:none"></div>
   </main>
 
   <script>
@@ -107,6 +109,7 @@
       btn.disabled    = true;
       btn.textContent = 'Replaying…';
       document.getElementById('resultSection').style.display = 'none';
+      hideTimeline();
 
       try {
         const res  = await fetch('/api/replay', {
@@ -118,7 +121,12 @@
         if (!json.ok) throw new Error(json.error || 'replay failed');
 
         const replay = json.replay || {};
-        showResult(replay, sig, cluster);
+        showResult(replay, sig, cluster, rpc, programId);
+        if (replay.verification_result === 'MATCH') {
+          fetchTimeline(replay.compiled_artifact_hash, sig, rpc, programId);
+        } else {
+          hideTimeline();
+        }
       } catch (e) {
         showError(String(e));
       } finally {
@@ -127,7 +135,7 @@
       }
     };
 
-    function showResult(replay, sig, cluster) {
+    function showResult(replay, sig, cluster, rpc, programId) {
       const isMatch  = replay.verification_result === 'MATCH';
       const section  = document.getElementById('resultSection');
       const banner   = document.getElementById('resultBanner');
@@ -153,7 +161,75 @@
       section.style.display = 'block';
     }
 
+    function hideTimeline() {
+      const timeline = document.getElementById('timelineSection');
+      timeline.style.display = 'none';
+      timeline.innerHTML = '';
+    }
+
+    async function fetchTimeline(compiledArtifactHash, sig, rpc, programId) {
+      if (!compiledArtifactHash) { hideTimeline(); return; }
+      const timeline = document.getElementById('timelineSection');
+      timeline.style.display = 'block';
+      timeline.innerHTML = `
+        <div class="timeline-block">
+          <h4>Pre-commitment Proof</h4>
+          <div class="loading"><div class="spinner"></div> Loading on-chain timeline…</div>
+        </div>`;
+
+      try {
+        const res = await fetch('/api/timeline', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            signature: sig,
+            rpcUrl: rpc,
+            programId,
+            compiledArtifactHash,
+          }),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'timeline unavailable');
+        renderTimeline(data);
+      } catch (_) {
+        hideTimeline();
+      }
+    }
+
+    function renderTimeline(data) {
+      const artifactSlot = Number(data.artifact_slot);
+      const resolutionSlot = Number(data.resolution_slot);
+      const gapSlots = Number(data.gap_slots);
+      if (!Number.isFinite(artifactSlot) || !Number.isFinite(resolutionSlot) || !Number.isFinite(gapSlots)) {
+        hideTimeline();
+        return;
+      }
+
+      const gapSecs = Math.round(gapSlots * 0.4);
+      document.getElementById('timelineSection').innerHTML = `
+        <div class="timeline-block">
+          <h4>Pre-commitment Proof</h4>
+          <div class="timeline-track">
+            <div class="timeline-point artifact">
+              <div class="tl-label">Artifact locked</div>
+              <div class="tl-slot">slot ${artifactSlot.toLocaleString()}</div>
+            </div>
+            <div class="timeline-gap">← ${gapSlots.toLocaleString()} slots (~${gapSecs.toLocaleString()} sec) →</div>
+            <div class="timeline-point resolution">
+              <div class="tl-label">Outcome drawn</div>
+              <div class="tl-slot">slot ${resolutionSlot.toLocaleString()}</div>
+            </div>
+          </div>
+          <p class="timeline-caption">
+            Rules were committed on-chain before the outcome was drawn.
+            The operator could not change the artifact after seeing the result.
+          </p>
+        </div>`;
+      document.getElementById('timelineSection').style.display = 'block';
+    }
+
     function showError(msg) {
+      hideTimeline();
       const section = document.getElementById('resultSection');
       const banner  = document.getElementById('resultBanner');
       banner.innerHTML = `
