@@ -20,12 +20,13 @@ import {
   sha256,
   toHex,
 } from "./outcome_public_sdk.ts";
+import { buildArtifact } from "../sdk/artifact.ts";
+import type { ArtifactConfig, LootConfig, RaffleConfig } from "../sdk/types.ts";
 
 const DEFAULT_OPERATOR_RPC_URL = "http://127.0.0.1:8899";
 const DEFAULT_WALLET_PATH = "~/.config/solana/id.json";
 const STATUS_APPROVED = 1;
 const CHUNK_WRITE_BYTES = 900;
-const MAX_OUTCOME_ID_BYTES = 64;
 
 type CliArgs = Record<string, string | boolean>;
 
@@ -102,34 +103,6 @@ function asBigInt(value: any): bigint {
   throw new Error(`Cannot coerce value to bigint: ${String(value)}`);
 }
 
-function u16le(value: number): Buffer {
-  const out = Buffer.alloc(2);
-  out.writeUInt16LE(value, 0);
-  return out;
-}
-
-function u32le(value: number): Buffer {
-  const out = Buffer.alloc(4);
-  out.writeUInt32LE(value, 0);
-  return out;
-}
-
-function u64le(value: bigint): Buffer {
-  const out = Buffer.alloc(8);
-  out.writeBigUInt64LE(value, 0);
-  return out;
-}
-
-function fixedAscii(text: string, len: number): Buffer {
-  const bytes = Buffer.from(text, "ascii");
-  if (bytes.length > len) {
-    throw new Error(`ASCII payload too large: ${text}`);
-  }
-  const out = Buffer.alloc(len, 0);
-  bytes.copy(out, 0);
-  return out;
-}
-
 function ensureDirectory(dirPath: string): void {
   fs.mkdirSync(dirPath, { recursive: true });
 }
@@ -154,107 +127,59 @@ const RAFFLE_PARTICIPANTS = [
   "BKo2rXwCgPTtwkNcFV5E7G9SxYW6wByDzSbswhR6oNa4",
 ];
 
-function buildRaffleArtifact(
-  participants: string[],
-  opts?: { inputLamports?: bigint; payoutLamports?: bigint }
-): Buffer {
-  if (participants.length === 0) throw new Error("participants list is empty");
-  if (participants.length > 0xffff) {
-    throw new Error(`too many participants: ${participants.length}`);
-  }
-
-  const sortedParticipants = [...participants].sort((left, right) =>
-    Buffer.compare(Buffer.from(left, "ascii"), Buffer.from(right, "ascii"))
-  );
-  for (let i = 0; i < sortedParticipants.length; i += 1) {
-    const addr = sortedParticipants[i];
-    if (!/^[\x00-\x7F]+$/.test(addr)) {
-      throw new Error(`participant id must be ASCII: ${addr}`);
-    }
-    if (addr.length > MAX_OUTCOME_ID_BYTES) {
-      throw new Error(`address too long: ${addr}`);
-    }
-    if (i > 0 && sortedParticipants[i - 1] === addr) {
-      throw new Error(`duplicate participant id: ${addr}`);
-    }
-  }
-
-  const inputLamports = opts?.inputLamports ?? 10n;
-  const payoutLamports = opts?.payoutLamports ?? 3n;
-  const weight = 1000;
-
-  const parts: Buffer[] = [];
-  parts.push(Buffer.from("W3O1", "ascii"));
-  parts.push(u16le(1));
-  parts.push(u64le(inputLamports));
-  parts.push(u64le(inputLamports));
-  parts.push(u16le(participants.length));
-  parts.push(u16le(participants.length));
-  parts.push(Buffer.alloc(8, 0));
-
-  for (let i = 0; i < sortedParticipants.length; i++) {
-    const addr = sortedParticipants[i];
-    parts.push(Buffer.from([addr.length]));
-    parts.push(fixedAscii(addr, MAX_OUTCOME_ID_BYTES));
-    parts.push(u32le(weight));
-    parts.push(u16le(i));
-    parts.push(u16le(1));
-  }
-
-  for (let i = 0; i < sortedParticipants.length; i++) {
-    parts.push(Buffer.from([1]));
-    parts.push(Buffer.alloc(7, 0));
-    parts.push(u64le(payoutLamports));
-  }
-
-  return Buffer.concat(parts);
+function defaultRaffleConfig(inputLamports = 10n): RaffleConfig {
+  return {
+    type: "raffle",
+    input_lamports: inputLamports,
+    payout_lamports: 3n,
+    participants: RAFFLE_PARTICIPANTS.map((address) => ({
+      address,
+      weight: 1000,
+    })),
+  };
 }
 
-function buildDemoCompiledArtifact(opts?: {
-  minInputLamports?: bigint;
-  maxInputLamports?: bigint;
+function defaultLootConfig(opts?: {
+  inputLamports?: bigint;
   commonWeight?: number;
   rareWeight?: number;
   commonPayoutLamports?: bigint;
   rarePayoutLamports?: bigint;
-}): Buffer {
-  const minInputLamports = opts?.minInputLamports ?? 10n;
-  const maxInputLamports = opts?.maxInputLamports ?? 10n;
+}): LootConfig {
+  const inputLamports = opts?.inputLamports ?? 10n;
   const commonWeight = opts?.commonWeight ?? 700;
   const rareWeight = opts?.rareWeight ?? 300;
   const commonPayoutLamports = opts?.commonPayoutLamports ?? 3n;
   const rarePayoutLamports = opts?.rarePayoutLamports ?? 7n;
 
-  const parts: Buffer[] = [];
-  parts.push(Buffer.from("W3O1", "ascii"));
-  parts.push(u16le(1));
-  parts.push(u64le(minInputLamports));
-  parts.push(u64le(maxInputLamports));
-  parts.push(u16le(2));
-  parts.push(u16le(2));
-  parts.push(Buffer.alloc(8, 0));
+  return {
+    type: "loot",
+    input_lamports: inputLamports,
+    outcomes: [
+      { id: "common", weight: commonWeight, payout_lamports: commonPayoutLamports },
+      { id: "rare", weight: rareWeight, payout_lamports: rarePayoutLamports },
+    ],
+  };
+}
 
-  parts.push(Buffer.from([6]));
-  parts.push(fixedAscii("common", MAX_OUTCOME_ID_BYTES));
-  parts.push(u32le(commonWeight));
-  parts.push(u16le(0));
-  parts.push(u16le(1));
+function loadArtifactConfig(configPath: string): ArtifactConfig {
+  const resolvedPath = path.isAbsolute(configPath)
+    ? configPath
+    : path.resolve(process.cwd(), configPath);
+  return JSON.parse(fs.readFileSync(resolvedPath, "utf8")) as ArtifactConfig;
+}
 
-  parts.push(Buffer.from([4]));
-  parts.push(fixedAscii("rare", MAX_OUTCOME_ID_BYTES));
-  parts.push(u32le(rareWeight));
-  parts.push(u16le(1));
-  parts.push(u16le(1));
-
-  parts.push(Buffer.from([1]));
-  parts.push(Buffer.alloc(7, 0));
-  parts.push(u64le(commonPayoutLamports));
-
-  parts.push(Buffer.from([1]));
-  parts.push(Buffer.alloc(7, 0));
-  parts.push(u64le(rarePayoutLamports));
-
-  return Buffer.concat(parts);
+function artifactBounds(blob: Buffer): {
+  minInputLamports: bigint;
+  maxInputLamports: bigint;
+} {
+  if (blob.length < 22 || blob.subarray(0, 4).toString("ascii") !== "W3O1") {
+    throw new Error("Invalid W3O1 artifact header");
+  }
+  return {
+    minInputLamports: blob.readBigUInt64LE(6),
+    maxInputLamports: blob.readBigUInt64LE(14),
+  };
 }
 
 function nextArtifactVariant(): {
@@ -661,35 +586,16 @@ async function createApprovedRuntime(
   opts: {
     label: string;
     outputDir: string;
+    artifactConfig: ArtifactConfig;
     runtimeId?: Buffer;
-    minInputLamports?: bigint;
-    maxInputLamports?: bigint;
-    commonWeight?: number;
-    rareWeight?: number;
-    commonPayoutLamports?: bigint;
-    rarePayoutLamports?: bigint;
     masterSeed?: Buffer;
     authority?: Keypair;
-    raffle?: boolean;
-    participants?: string[];
   }
 ): Promise<ApprovedRuntimeResult> {
   const runtimeId = opts.runtimeId ?? (await findUnusedRuntimeId(client));
-  const minInputLamports = opts.minInputLamports ?? 10n;
-  const maxInputLamports = opts.maxInputLamports ?? 10n;
   const masterSeed = opts.masterSeed ?? Buffer.alloc(32, 1);
-  const blob = opts.raffle
-    ? buildRaffleArtifact(opts.participants ?? RAFFLE_PARTICIPANTS, {
-        inputLamports: minInputLamports,
-      })
-    : buildDemoCompiledArtifact({
-        minInputLamports,
-        maxInputLamports,
-        commonWeight: opts.commonWeight,
-        rareWeight: opts.rareWeight,
-        commonPayoutLamports: opts.commonPayoutLamports,
-        rarePayoutLamports: opts.rarePayoutLamports,
-      });
+  const blob = buildArtifact(opts.artifactConfig);
+  const { minInputLamports, maxInputLamports } = artifactBounds(blob);
   const approvedArtifact = await submitApprovedArtifact(client, {
     blob,
     label: opts.label,
@@ -824,6 +730,7 @@ async function runResolveOperator(opts?: {
   outputDir?: string;
   label?: string;
   raffle?: boolean;
+  configPath?: string;
 }): Promise<SmokeSetupResult> {
   const client = await loadOutcomeClient({
     url: opts?.url,
@@ -835,22 +742,31 @@ async function runResolveOperator(opts?: {
 
   const isRaffle = Boolean(opts?.raffle);
   const artifactVariant = nextArtifactVariant();
-  const label = opts?.label ?? (isRaffle ? `raffle-${Date.now()}` : artifactVariant.label);
+  const artifactConfig = opts?.configPath
+    ? loadArtifactConfig(opts.configPath)
+    : isRaffle
+      ? defaultRaffleConfig()
+      : defaultLootConfig({
+          inputLamports: 10n,
+          commonWeight: artifactVariant.commonWeight,
+          rareWeight: artifactVariant.rareWeight,
+          commonPayoutLamports: artifactVariant.commonPayoutLamports,
+          rarePayoutLamports: artifactVariant.rarePayoutLamports,
+        });
+  const label =
+    opts?.label ??
+    (opts?.configPath
+      ? `${path.basename(opts.configPath, path.extname(opts.configPath))}-${Date.now()}`
+      : isRaffle
+        ? `raffle-${Date.now()}`
+        : artifactVariant.label);
   const outputDir = outputDirFromArg(opts?.outputDir);
   ensureDirectory(outputDir);
 
   const runtime = await createApprovedRuntime(client, {
     label,
     outputDir,
-    raffle: isRaffle,
-    ...(isRaffle
-      ? {}
-      : {
-          commonWeight: artifactVariant.commonWeight,
-          rareWeight: artifactVariant.rareWeight,
-          commonPayoutLamports: artifactVariant.commonPayoutLamports,
-          rarePayoutLamports: artifactVariant.rarePayoutLamports,
-        }),
+    artifactConfig,
   });
 
   await refreshRuntimeMasterSeed(client, {
@@ -901,10 +817,11 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.h) {
     console.log(`Usage:
-  yarn -s resolve:operator [--url <RPC_URL>] [--wallet <PATH>] [--program-id <PUBKEY>] [--out-dir <DIR>] [--label <TEXT>] [--raffle] [--json]
+  yarn -s resolve:operator [--url <RPC_URL>] [--wallet <PATH>] [--program-id <PUBKEY>] [--out-dir <DIR>] [--label <TEXT>] [--raffle] [--config <PATH>] [--json]
 
 Flags:
   --raffle   Build a raffle artifact (7 participant wallet addresses) instead of the default demo artifact.
+  --config   Build an artifact from a JSON config file.
 
 Notes:
   Optional operator-side path only.
@@ -922,6 +839,7 @@ Notes:
     outputDir: args["out-dir"] as string | undefined,
     label: args.label as string | undefined,
     raffle: Boolean(args.raffle),
+    configPath: args.config as string | undefined,
   });
   printResult(result, Boolean(args.json));
 }

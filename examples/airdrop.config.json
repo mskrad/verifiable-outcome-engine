@@ -1,0 +1,18 @@
+{
+  "type": "airdrop",
+  "input_lamports": 10,
+  "slots": 3,
+  "payout_lamports": 3,
+  "eligible": [
+    { "address": "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4", "weight": 1000 },
+    { "address": "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU", "weight": 1000 },
+    { "address": "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9", "weight": 1000 },
+    { "address": "ABKKERBB9i7MvSbB5s9h6EphiCvXa4FvNDmxWFSdHZqY", "weight": 1000 },
+    { "address": "5a38vhRuQhKPQwRQFcgDAw3SYNQcGo7XKuWyvFDK5xjP", "weight": 1000 },
+    { "address": "9KpwjbCV3kF8x3puk4fUKa5UTToGSg6giaLQkYFP1J8r", "weight": 1000 },
+    { "address": "BKo2rXwCgPTtwkNcFV5E7G9SxYW6wByDzSbswhR6oNa4", "weight": 1000 },
+    { "address": "Fg6PaFpoGXkYsidMpWxTWqY8q8w5KMLQnM2QSGXv5qYJ", "weight": 750 },
+    { "address": "CktRuQ2mQFucF77t4vZ4QGWJv2a9oW1P1bL6n6LJ9m5H", "weight": 500 },
+    { "address": "7Zb1b7X2Z9Vyuk3F7S3w7Dnk3a1JpN96CBvs1BgqsSVq", "weight": 250 }
+  ]
+}

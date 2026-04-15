@@ -1,0 +1,9 @@
+{
+  "type": "loot",
+  "input_lamports": 10,
+  "outcomes": [
+    { "id": "legendary", "weight": 25, "payout_lamports": 21 },
+    { "id": "rare", "weight": 275, "payout_lamports": 7 },
+    { "id": "common", "weight": 700, "payout_lamports": 3 }
+  ]
+}

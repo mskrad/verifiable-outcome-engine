@@ -1,8 +1,26 @@
 {
-  "name": "outcome-runtime-reference",
-  "private": true,
+  "name": "verifiable-outcome-sdk",
+  "version": "0.1.0",
+  "description": "Configurable on-chain outcome engine for Solana - verifiable raffle, loot, and airdrop selection",
+  "license": "UNLICENSED",
   "type": "module",
+  "main": "dist/sdk/index.js",
+  "types": "dist/sdk/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/sdk/index.js",
+      "types": "./dist/sdk/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/sdk",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "build:artifact": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/build_artifact.ts",
     "replay": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/replay_verify.ts",
     "resolve:operator": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/resolve_operator.ts",
     "web": "node web/server.mjs"
