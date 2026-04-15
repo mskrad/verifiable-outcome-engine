@@ -8,3 +8,7 @@ agent-instructions/
 AGENTS.md
 OPEN_REPO_MIGRATION.md
 STATUS.md
+# Rust / Anchor build output
+target/
+.anchor/
+test-ledger/

@@ -2,7 +2,7 @@
   "schema_version": "outcome_core_devnet_blessed_sigs_v1",
   "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
   "rpc_url": "https://api.devnet.solana.com",
-  "updated_utc": "2026-03-30T18:26:03Z",
+  "updated_utc": "2026-04-15T00:00:00Z",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",
@@ -31,6 +31,20 @@
       "source": "engineer_devnet_setup_2026-03-30",
       "updated_utc": "2026-03-30T18:26:03Z",
       "notes": "Produced via existing outcome smoke helper on devnet after canonical deploy."
+    },
+    {
+      "id": "outcome_core_devnet_sig_3",
+      "signature": "mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "06695059d916d903a26087c0770533c5",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7",
+      "source": "resolve_operator_raffle_2026-04-15",
+      "updated_utc": "2026-04-15T00:00:00Z",
+      "notes": "Raffle artifact: 7 real participant wallet addresses as outcomes. Winner = resolved outcome_id (Solana pubkey)."
     }
   ]
 }

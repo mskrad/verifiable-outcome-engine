@@ -427,4 +427,16 @@ mod tests {
 
         assert!(parse(&blob).is_err());
     }
+
+    #[test]
+    fn rejects_truncated_effect_reserved_bytes_without_panicking() {
+        let mut blob = demo_blob();
+        let effects_offset = 4 + 2 + 8 + 8 + 2 + 2 + 8 + (1 + MAX_OUTCOME_ID_BYTES + 4 + 2 + 2) * 2;
+        blob.truncate(effects_offset + 1 + 3);
+
+        let result = std::panic::catch_unwind(|| parse(&blob));
+
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_err());
+    }
 }

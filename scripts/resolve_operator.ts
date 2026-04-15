@@ -1,4 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
+import BN from "bn.js";
 import crypto from "crypto";
 import fs from "fs";
 import os from "os";
@@ -72,7 +73,7 @@ function parseArgs(argv: string[]): CliArgs {
   const out: CliArgs = {};
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--json" || arg === "--help" || arg === "-h") {
+    if (arg === "--json" || arg === "--raffle" || arg === "--help" || arg === "-h") {
       out[arg.replace(/^-+/, "")] = true;
       continue;
     }
@@ -141,6 +142,72 @@ function outputDirFromArg(raw?: string): string {
 function loadKeypair(walletPath: string): Keypair {
   const raw = JSON.parse(fs.readFileSync(walletPath, "utf8"));
   return Keypair.fromSecretKey(Uint8Array.from(raw));
+}
+
+const RAFFLE_PARTICIPANTS = [
+  "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4",
+  "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU",
+  "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9",
+  "ABKKERBB9i7MvSbB5s9h6EphiCvXa4FvNDmxWFSdHZqY",
+  "5a38vhRuQhKPQwRQFcgDAw3SYNQcGo7XKuWyvFDK5xjP",
+  "9KpwjbCV3kF8x3puk4fUKa5UTToGSg6giaLQkYFP1J8r",
+  "BKo2rXwCgPTtwkNcFV5E7G9SxYW6wByDzSbswhR6oNa4",
+];
+
+function buildRaffleArtifact(
+  participants: string[],
+  opts?: { inputLamports?: bigint; payoutLamports?: bigint }
+): Buffer {
+  if (participants.length === 0) throw new Error("participants list is empty");
+  if (participants.length > 0xffff) {
+    throw new Error(`too many participants: ${participants.length}`);
+  }
+
+  const sortedParticipants = [...participants].sort((left, right) =>
+    Buffer.compare(Buffer.from(left, "ascii"), Buffer.from(right, "ascii"))
+  );
+  for (let i = 0; i < sortedParticipants.length; i += 1) {
+    const addr = sortedParticipants[i];
+    if (!/^[\x00-\x7F]+$/.test(addr)) {
+      throw new Error(`participant id must be ASCII: ${addr}`);
+    }
+    if (addr.length > MAX_OUTCOME_ID_BYTES) {
+      throw new Error(`address too long: ${addr}`);
+    }
+    if (i > 0 && sortedParticipants[i - 1] === addr) {
+      throw new Error(`duplicate participant id: ${addr}`);
+    }
+  }
+
+  const inputLamports = opts?.inputLamports ?? 10n;
+  const payoutLamports = opts?.payoutLamports ?? 3n;
+  const weight = 1000;
+
+  const parts: Buffer[] = [];
+  parts.push(Buffer.from("W3O1", "ascii"));
+  parts.push(u16le(1));
+  parts.push(u64le(inputLamports));
+  parts.push(u64le(inputLamports));
+  parts.push(u16le(participants.length));
+  parts.push(u16le(participants.length));
+  parts.push(Buffer.alloc(8, 0));
+
+  for (let i = 0; i < sortedParticipants.length; i++) {
+    const addr = sortedParticipants[i];
+    parts.push(Buffer.from([addr.length]));
+    parts.push(fixedAscii(addr, MAX_OUTCOME_ID_BYTES));
+    parts.push(u32le(weight));
+    parts.push(u16le(i));
+    parts.push(u16le(1));
+  }
+
+  for (let i = 0; i < sortedParticipants.length; i++) {
+    parts.push(Buffer.from([1]));
+    parts.push(Buffer.alloc(7, 0));
+    parts.push(u64le(payoutLamports));
+  }
+
+  return Buffer.concat(parts);
 }
 
 function buildDemoCompiledArtifact(opts?: {
@@ -269,9 +336,7 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
   );
   if (!info) {
     await (client.program.methods as any)
-      .initializeProgramConfig({
-        admin: client.authority.publicKey,
-      })
+      .initializeProgramConfig()
       .accounts({
         payer: client.authority.publicKey,
         programConfig: programConfigPda,
@@ -354,6 +419,78 @@ async function submitApprovedArtifact(
     client.programId,
     compiledArtifactHash
   );
+
+  // If the artifact PDA already exists on-chain, check its state and resume if needed.
+  const existingArtifactInfo = await client.provider.connection.getAccountInfo(
+    artifactPda,
+    "confirmed"
+  );
+  if (existingArtifactInfo) {
+    const chunkCount = Math.ceil(opts.blob.length / CHUNK_SIZE);
+    const chunkPdas: PublicKey[] = [];
+    for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+      chunkPdas.push(
+        deriveApprovedArtifactChunkPda(
+          client.programId,
+          compiledArtifactHash,
+          chunkIndex
+        )
+      );
+    }
+
+    const artifactAccount = await (client.program.account as any).approvedOutcomeArtifact.fetch(
+      artifactPda,
+      "confirmed"
+    );
+
+    if (!artifactAccount.isFinalized) {
+      console.log(`[info] artifact found but not finalized — finalizing: ${artifactPda.toBase58()}`);
+      await (client.program.methods as any)
+        .finalizeCompiledArtifact()
+        .accounts({
+          publisher: client.authority.publicKey,
+          approvedOutcomeArtifact: artifactPda,
+        })
+        .remainingAccounts(
+          chunkPdas.map((pubkey) => ({
+            pubkey,
+            isSigner: false,
+            isWritable: false,
+          }))
+        )
+        .rpc();
+    }
+
+    if (artifactAccount.status !== STATUS_APPROVED) {
+      console.log(`[info] artifact not yet reviewed — reviewing: ${artifactPda.toBase58()}`);
+      await (client.program.methods as any)
+        .reviewCompiledArtifact({
+          status: STATUS_APPROVED,
+          auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
+          artifactUri: Buffer.from(
+            opts.artifactUri ?? path.basename(artifactPath),
+            "utf8"
+          ),
+        })
+        .accounts({
+          programConfig: deriveProgramConfigPda(client.programId),
+          admin: client.authority.publicKey,
+          approvedOutcomeArtifact: artifactPda,
+        })
+        .rpc();
+    } else {
+      console.log(`[info] artifact already approved on-chain: ${artifactPda.toBase58()} — skipping upload`);
+    }
+
+    return {
+      blob: opts.blob,
+      compiledArtifactHash,
+      compiledArtifactHashHex,
+      artifactPath,
+      artifactPda,
+      chunkPdas,
+    };
+  }
 
   await (client.program.methods as any)
     .submitCompiledArtifact({
@@ -487,8 +624,8 @@ async function initializeOutcomeRuntime(
   await (client.program.methods as any)
     .initializeOutcomeConfig({
       runtimeId: [...opts.runtimeId],
-      minInputLamports: new anchor.BN(opts.minInputLamports.toString()),
-      maxInputLamports: new anchor.BN(opts.maxInputLamports.toString()),
+      minInputLamports: new BN(opts.minInputLamports.toString()),
+      maxInputLamports: new BN(opts.maxInputLamports.toString()),
       compiledArtifactHash: [...opts.compiledArtifactHash],
       masterSeed: [...opts.masterSeed],
     })
@@ -533,20 +670,26 @@ async function createApprovedRuntime(
     rarePayoutLamports?: bigint;
     masterSeed?: Buffer;
     authority?: Keypair;
+    raffle?: boolean;
+    participants?: string[];
   }
 ): Promise<ApprovedRuntimeResult> {
   const runtimeId = opts.runtimeId ?? (await findUnusedRuntimeId(client));
   const minInputLamports = opts.minInputLamports ?? 10n;
   const maxInputLamports = opts.maxInputLamports ?? 10n;
   const masterSeed = opts.masterSeed ?? Buffer.alloc(32, 1);
-  const blob = buildDemoCompiledArtifact({
-    minInputLamports,
-    maxInputLamports,
-    commonWeight: opts.commonWeight,
-    rareWeight: opts.rareWeight,
-    commonPayoutLamports: opts.commonPayoutLamports,
-    rarePayoutLamports: opts.rarePayoutLamports,
-  });
+  const blob = opts.raffle
+    ? buildRaffleArtifact(opts.participants ?? RAFFLE_PARTICIPANTS, {
+        inputLamports: minInputLamports,
+      })
+    : buildDemoCompiledArtifact({
+        minInputLamports,
+        maxInputLamports,
+        commonWeight: opts.commonWeight,
+        rareWeight: opts.rareWeight,
+        commonPayoutLamports: opts.commonPayoutLamports,
+        rarePayoutLamports: opts.rarePayoutLamports,
+      });
   const approvedArtifact = await submitApprovedArtifact(client, {
     blob,
     label: opts.label,
@@ -634,7 +777,7 @@ async function resolveOutcomeAndConfirm(
   const signature = await (client.program.methods as any)
     .resolveOutcome({
       runtimeId: [...opts.runtimeId],
-      inputLamports: new anchor.BN(opts.inputLamports.toString()),
+      inputLamports: new BN(opts.inputLamports.toString()),
     })
     .accounts({
       actor: actor.publicKey,
@@ -680,6 +823,7 @@ async function runResolveOperator(opts?: {
   programId?: string;
   outputDir?: string;
   label?: string;
+  raffle?: boolean;
 }): Promise<SmokeSetupResult> {
   const client = await loadOutcomeClient({
     url: opts?.url,
@@ -689,18 +833,24 @@ async function runResolveOperator(opts?: {
   await ensureWalletFunds(client);
   await ensureProgramConfig(client);
 
+  const isRaffle = Boolean(opts?.raffle);
   const artifactVariant = nextArtifactVariant();
-  const label = opts?.label ?? artifactVariant.label;
+  const label = opts?.label ?? (isRaffle ? `raffle-${Date.now()}` : artifactVariant.label);
   const outputDir = outputDirFromArg(opts?.outputDir);
   ensureDirectory(outputDir);
 
   const runtime = await createApprovedRuntime(client, {
     label,
     outputDir,
-    commonWeight: artifactVariant.commonWeight,
-    rareWeight: artifactVariant.rareWeight,
-    commonPayoutLamports: artifactVariant.commonPayoutLamports,
-    rarePayoutLamports: artifactVariant.rarePayoutLamports,
+    raffle: isRaffle,
+    ...(isRaffle
+      ? {}
+      : {
+          commonWeight: artifactVariant.commonWeight,
+          rareWeight: artifactVariant.rareWeight,
+          commonPayoutLamports: artifactVariant.commonPayoutLamports,
+          rarePayoutLamports: artifactVariant.rarePayoutLamports,
+        }),
   });
 
   await refreshRuntimeMasterSeed(client, {
@@ -751,7 +901,10 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args.h) {
     console.log(`Usage:
-  yarn -s resolve:operator [--url <RPC_URL>] [--wallet <PATH>] [--program-id <PUBKEY>] [--out-dir <DIR>] [--label <TEXT>] [--json]
+  yarn -s resolve:operator [--url <RPC_URL>] [--wallet <PATH>] [--program-id <PUBKEY>] [--out-dir <DIR>] [--label <TEXT>] [--raffle] [--json]
+
+Flags:
+  --raffle   Build a raffle artifact (7 participant wallet addresses) instead of the default demo artifact.
 
 Notes:
   Optional operator-side path only.
@@ -768,6 +921,7 @@ Notes:
     programId: (args["program-id"] as string | undefined) ?? DEFAULT_PROGRAM_ID,
     outputDir: args["out-dir"] as string | undefined,
     label: args.label as string | undefined,
+    raffle: Boolean(args.raffle),
   });
   printResult(result, Boolean(args.json));
 }
