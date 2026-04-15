@@ -131,9 +131,9 @@ function defaultRpc() {
 }
 
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
-  const tsNodeBin = findTsNodeBin();
   const args = [
-    "--transpile-only",
+    "--loader",
+    "ts-node/esm",
     "scripts/replay_verify.ts",
     "--sig",
     signature,
@@ -150,10 +150,11 @@ function runReplay({ signature, rpcUrl, programId, artifactPath }) {
   const env = {
     ...process.env,
     TS_NODE_PROJECT: path.join(REF_ROOT, "tsconfig.json"),
+    TS_NODE_TRANSPILE_ONLY: "true",
     ANCHOR_PROVIDER_URL: rpcUrl,
     PROGRAM_ID: programId,
   };
-  const out = spawnSync(tsNodeBin, args, {
+  const out = spawnSync(process.execPath, args, {
     cwd: REF_ROOT,
     env,
     encoding: "utf8",
