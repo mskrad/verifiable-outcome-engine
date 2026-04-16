@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verifiable Outcome Engine - Build</title>
+  <link rel="stylesheet" href="/app.css" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="/">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div>Verifiable Outcome Engine</div>
+        <span class="logo-sub">Solana · Devnet</span>
+      </div>
+    </a>
+    <nav class="nav">
+      <a href="/play.html">Demo</a>
+      <a href="/build.html" class="active">Build</a>
+      <a href="/verify.html">Verify</a>
+      <a href="/spec.html">Spec</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="card build-intro">
+      <div class="hero-badge">Config Engine + SDK</div>
+      <h2>Build with VRE</h2>
+      <p>
+        Configure verifiable raffles, loot tables, and airdrops. Commit the rules
+        on-chain before the outcome is drawn, then let anyone replay the result
+        from public RPC data.
+      </p>
+    </div>
+
+    <h3 class="section-kicker">Use Cases</h3>
+    <div class="features build-use-cases">
+      <div class="feature">
+        <div class="feature-icon">🎟</div>
+        <h4>Raffle</h4>
+        <p>Select a winner from a weighted participant list with Solana addresses as outcome ids.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎁</div>
+        <h4>Loot</h4>
+        <p>Roll a weighted outcome table for legendary, rare, and common reward paths.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🪂</div>
+        <h4>Airdrop</h4>
+        <p>Select N winners from an eligible address list; duplicate winners are allowed for now.</p>
+      </div>
+    </div>
+
+    <h3 class="section-kicker">How It Works</h3>
+    <div class="stepper">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-title">Define rules</div>
+        <p class="step-desc">
+          Create a JSON config with participants, weights, payout bounds, or outcome ids.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-title">Commit on-chain</div>
+        <p class="step-desc">
+          Run <span class="inline-code">yarn resolve:operator --config raffle.json</span>
+          to publish the artifact and resolve a transaction.
+        </p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-title">Share and verify</div>
+        <p class="step-desc">
+          Anyone pastes the transaction at verifiableoutcome.online and gets MATCH / OK
+          plus pre-commitment proof.
+        </p>
+      </div>
+    </div>
+
+    <h3 class="section-kicker">SDK</h3>
+    <div class="card sdk-card">
+      <div class="npm-install">
+        <code id="installCmd">npm install verifiable-outcome-sdk</code>
+        <button class="btn btn-ghost" id="btnCopyInstall">Copy</button>
+      </div>
+
+      <pre class="code-block"><code>import { buildArtifact, verifyOutcome } from 'verifiable-outcome-sdk';
+
+// Define your raffle
+const blob = buildArtifact({
+  type: 'raffle',
+  input_lamports: 10,
+  participants: [
+    { address: '5RbvSHb...', weight: 1000 },
+    { address: 'Aip3wC6...', weight: 1000 },
+  ],
+});
+
+// Verify any resolved TX
+const result = await verifyOutcome({
+  signature: 'mUXwae...',
+  rpcUrl: 'https://api.devnet.solana.com',
+});
+// -> { status: 'MATCH', outcome_id: '5RbvSHb...', ... }</code></pre>
+
+      <div class="example-links">
+        <a
+          class="btn btn-ghost ext"
+          href="https://raw.githubusercontent.com/mskrad/verifiable-outcome-engine/main/examples/raffle.config.json"
+          target="_blank"
+          rel="noopener"
+        >View raffle.config.json</a>
+        <a
+          class="btn btn-ghost ext"
+          href="https://raw.githubusercontent.com/mskrad/verifiable-outcome-engine/main/examples/loot.config.json"
+          target="_blank"
+          rel="noopener"
+        >View loot.config.json</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('btnCopyInstall').onclick = function() {
+      const text = document.getElementById('installCmd').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        this.textContent = 'Copied';
+        setTimeout(() => this.textContent = 'Copy', 1500);
+      });
+    };
+  </script>
+</body>
+</html>
