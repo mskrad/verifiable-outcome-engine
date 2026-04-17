@@ -839,6 +839,10 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     status: "MATCH",
     reason: "OK",
     outcome_id: outcomeIdString(event.outcomeId, event.outcomeIdLen),
+    outcomes: parsed.outcomes.map((outcome) => ({
+      id: outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen),
+      weight: outcome.weight,
+    })),
     resolve_id: resolveId,
     compiled_artifact_hash: compiledArtifactHashHex,
     runtime_id: runtimeIdHex,

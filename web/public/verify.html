@@ -54,6 +54,7 @@
 
     <div id="resultSection" style="display:none">
       <div id="resultBanner"></div>
+      <div id="artifactRulesSection" style="display:none"></div>
 
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -111,6 +112,7 @@
       btn.disabled    = true;
       btn.textContent = 'Replaying…';
       document.getElementById('resultSection').style.display = 'none';
+      hideArtifactRules();
       hideTimeline();
 
       try {
@@ -160,12 +162,91 @@
         </div>` : ''}`;
 
       outEl.textContent = JSON.stringify(replay, null, 2);
+      renderArtifactRules(replay);
 
       const explorerUrl = `${EXPLORER}/${sig}?cluster=${cluster}`;
       explorer.innerHTML = `<a class="btn btn-ghost ext" href="${explorerUrl}" target="_blank" rel="noopener" style="margin-bottom:16px">View on Solana Explorer</a>`;
       explorer.style.display = 'block';
 
       section.style.display = 'block';
+    }
+
+    function hideArtifactRules() {
+      const rules = document.getElementById('artifactRulesSection');
+      rules.style.display = 'none';
+      rules.innerHTML = '';
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function truncateMiddle(value, head = 10, tail = 10) {
+      const text = String(value || '');
+      if (text.length <= head + tail + 1) return text;
+      return `${text.slice(0, head)}…${text.slice(-tail)}`;
+    }
+
+    function looksLikeAddress(value) {
+      return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || ''));
+    }
+
+    function renderArtifactRules(replay) {
+      const rules = document.getElementById('artifactRulesSection');
+      const outcomes = Array.isArray(replay.outcomes) ? replay.outcomes : [];
+      if (replay.verification_result !== 'MATCH' || outcomes.length === 0) {
+        hideArtifactRules();
+        return;
+      }
+
+      const winner = String(replay.outcome_id || '');
+      const artifactHash = String(replay.compiled_artifact_hash || '');
+      const listLabel = outcomes.every((outcome) => looksLikeAddress(outcome.id))
+        ? 'Participants'
+        : 'Outcomes';
+      const totalWeight = outcomes.reduce((sum, outcome) => {
+        const weight = Number(outcome.weight);
+        return Number.isFinite(weight) ? sum + weight : sum;
+      }, 0);
+
+      const rows = outcomes.map((outcome) => {
+        const id = String(outcome.id || '');
+        const weight = Number(outcome.weight);
+        const isWinner = id === winner;
+        const weightText = Number.isFinite(weight)
+          ? weight.toLocaleString()
+          : String(outcome.weight ?? '');
+
+        return `
+          <div class="outcome-row ${isWinner ? 'winner' : ''}">
+            <div class="outcome-id" title="${escapeHtml(id)}">${escapeHtml(truncateMiddle(id, 12, 12))}</div>
+            <div class="outcome-weight">${escapeHtml(weightText)}</div>
+            <div class="outcome-selected">${isWinner ? 'Selected' : ''}</div>
+          </div>`;
+      }).join('');
+
+      rules.innerHTML = `
+        <div class="artifact-rules">
+          <div class="artifact-rules-head">
+            <div>
+              <h3>Committed Rules</h3>
+              <p>${listLabel}: ${outcomes.length.toLocaleString()} · total weight ${totalWeight.toLocaleString()}</p>
+            </div>
+            <div class="artifact-hash" title="${escapeHtml(artifactHash)}">${escapeHtml(truncateMiddle(artifactHash, 8, 8))}</div>
+          </div>
+          <div class="outcome-row outcome-row-head">
+            <div>Outcome</div>
+            <div>Weight</div>
+            <div>Status</div>
+          </div>
+          <div class="outcome-list">${rows}</div>
+        </div>`;
+      rules.style.display = 'block';
     }
 
     function hideTimeline() {
@@ -236,6 +317,7 @@
     }
 
     function showError(msg) {
+      hideArtifactRules();
       hideTimeline();
       const section = document.getElementById('resultSection');
       const banner  = document.getElementById('resultBanner');

@@ -16,6 +16,7 @@ type ReplayOutput = {
   resolve_id: string;
   compiled_artifact_hash: string;
   outcome_id: string;
+  outcomes: Array<{ id: string; weight: number }>;
 };
 
 function parseArgs(argv: string[]): CliArgs {
@@ -52,6 +53,7 @@ function buildReplayOutput(
     resolve_id: result.resolve_id,
     compiled_artifact_hash: result.compiled_artifact_hash,
     outcome_id: result.outcome_id,
+    outcomes: result.outcomes ?? [],
   };
 }
 
@@ -109,6 +111,8 @@ async function main(): Promise<void> {
         runtime_id: "",
         resolve_id: "",
         compiled_artifact_hash: "",
+        outcome_id: "",
+        outcomes: [],
       },
       asJson
     );

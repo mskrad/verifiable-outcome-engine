@@ -38,6 +38,7 @@ export type VerifyResult = {
   status: "MATCH" | "MISMATCH";
   reason: string;
   outcome_id: string;
+  outcomes?: Array<{ id: string; weight: number }>;
   resolve_id: string;
   compiled_artifact_hash: string;
   runtime_id: string;
