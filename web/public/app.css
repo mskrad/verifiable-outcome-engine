@@ -90,11 +90,12 @@ header {
   justify-content: center;
   text-decoration: none;
   color: var(--text2);
-  padding: 6px 14px;
-  min-height: 36px;
+  padding: 8px 16px;
+  min-height: 40px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
   transition: color .15s, background .15s;
 }
 
