@@ -83,24 +83,25 @@ header {
 }
 
 .nav {
-  display: flex;
+  display: grid;
   align-items: center;
+  grid-template-columns: repeat(4, 68px);
   gap: 8px;
   margin-left: auto;
 }
 
 .nav a {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   color: var(--text2);
+  width: 100%;
+  height: 40px;
   padding: 8px 16px;
-  min-width: 68px;
-  min-height: 40px;
   background: rgba(255,255,255,.025);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -828,10 +829,12 @@ pre {
   main { padding: 20px 16px 48px; }
   .logo { min-width: 0; flex-shrink: 1; }
   .logo > div { min-width: 0; overflow: hidden; }
-  .nav { gap: 6px; }
+  .nav {
+    grid-template-columns: repeat(4, 62px);
+    gap: 6px;
+  }
   .nav a {
-    min-width: 62px;
-    min-height: 44px;
+    height: 44px;
     padding: 6px 10px;
   }
   .npm-install { align-items: stretch; flex-direction: column; }
@@ -853,8 +856,8 @@ pre {
 
 @media (max-width: 420px) {
   .logo-sub { display: none; }
+  .nav { grid-template-columns: repeat(4, 54px); }
   .nav a {
-    min-width: 54px;
     padding: 5px 6px;
     font-size: 12px;
   }
