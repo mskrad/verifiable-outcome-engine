@@ -84,7 +84,8 @@ header {
 
 .nav {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
 }
 
@@ -95,16 +96,29 @@ header {
   text-decoration: none;
   color: var(--text2);
   padding: 8px 16px;
+  min-width: 68px;
   min-height: 40px;
+  background: rgba(255,255,255,.025);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: color .15s, background .15s;
+  line-height: 1;
+  transition: color .15s, background .15s, border-color .15s;
 }
 
-.nav a:hover { color: var(--text); background: var(--bg3); }
-.nav a.active { color: var(--green); }
+.nav a:hover {
+  color: var(--text);
+  background: var(--bg3);
+  border-color: var(--border2);
+}
+
+.nav a.active {
+  color: var(--green);
+  background: rgba(20,241,149,.1);
+  border-color: rgba(20,241,149,.25);
+}
 
 /* ── MAIN ── */
 main {
@@ -814,8 +828,9 @@ pre {
   main { padding: 20px 16px 48px; }
   .logo { min-width: 0; flex-shrink: 1; }
   .logo > div { min-width: 0; overflow: hidden; }
+  .nav { gap: 6px; }
   .nav a {
-    min-width: 44px;
+    min-width: 62px;
     min-height: 44px;
     padding: 6px 10px;
   }
@@ -833,12 +848,16 @@ pre {
 @media (max-width: 520px) {
   header { gap: 10px; }
   .logo > div { display: none; }
-  .nav { gap: 2px; }
+  .nav { gap: 4px; }
 }
 
 @media (max-width: 420px) {
   .logo-sub { display: none; }
-  .nav a { padding: 5px 7px; font-size: 12px; }
+  .nav a {
+    min-width: 54px;
+    padding: 5px 6px;
+    font-size: 12px;
+  }
 }
 
 /* ── FEATURE GRID ── */
