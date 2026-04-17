@@ -15,6 +15,7 @@ type ReplayOutput = {
   runtime_id: string;
   resolve_id: string;
   compiled_artifact_hash: string;
+  outcome_id: string;
 };
 
 function parseArgs(argv: string[]): CliArgs {
@@ -50,6 +51,7 @@ function buildReplayOutput(
     runtime_id: result.runtime_id,
     resolve_id: result.resolve_id,
     compiled_artifact_hash: result.compiled_artifact_hash,
+    outcome_id: result.outcome_id,
   };
 }
 
@@ -60,6 +62,7 @@ function printOutput(output: ReplayOutput, asJson: boolean): void {
   }
   console.log("verification_result :", output.verification_result);
   console.log("verification_reason :", output.verification_reason);
+  console.log("outcome_id          :", output.outcome_id);
   console.log("signature           :", output.signature);
   console.log("program_id          :", output.program_id);
   console.log("runtime_id          :", output.runtime_id);
