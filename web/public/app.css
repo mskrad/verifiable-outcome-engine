@@ -85,9 +85,13 @@ header {
 }
 
 .nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: var(--text2);
   padding: 6px 14px;
+  min-height: 36px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-weight: 500;
@@ -805,7 +809,11 @@ pre {
   main { padding: 20px 16px 48px; }
   .logo { min-width: 0; flex-shrink: 1; }
   .logo > div { min-width: 0; overflow: hidden; }
-  .nav a { padding: 6px 10px; }
+  .nav a {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 6px 10px;
+  }
   .npm-install { align-items: stretch; flex-direction: column; }
   .npm-install .btn { justify-content: center; }
   .artifact-rules-head { flex-direction: column; }
