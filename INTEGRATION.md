@@ -1,7 +1,11 @@
 # Integration Guide — verifiable-outcome-sdk
 
-This guide walks you through the full operator flow from zero:
-create a wallet, fund it on devnet, deploy an outcome on-chain, and verify the result — using only the npm package.
+This guide covers two roles:
+
+- **Verifier** — anyone can verify any resolved outcome. No wallet needed.
+- **Operator** — the party who deploys and resolves outcomes on-chain. Requires the program admin wallet.
+
+> **Note:** The shared devnet deployment (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) only accepts transactions from the program admin. If you want to run your own operator, you need to deploy a separate instance of the program. See [Deploy your own program](#deploy-your-own-program).
 
 **No repo clone required.**
 
@@ -225,6 +229,30 @@ vre resolve
 
 ---
 
+## Deploy your own program
+
+To use `vre resolve` with your own wallet, you need your own program instance:
+
+```bash
+git clone https://github.com/timurkurmangaliev/verifiable-outcome-engine
+cd verifiable-outcome-engine
+anchor build
+anchor deploy --provider.cluster devnet
+```
+
+Then pass your deployed program ID to the CLI:
+
+```bash
+vre resolve \
+  --config raffle.config.json \
+  --wallet ~/.config/solana/id.json \
+  --rpc https://api.devnet.solana.com \
+  --program-id <YOUR_PROGRAM_ID> \
+  --json
+```
+
+---
+
 ## Troubleshooting
 
 **`airdrop` fails**  
@@ -235,6 +263,9 @@ Run `solana balance`. If below 0.5 SOL, airdrop more: `solana airdrop 2`.
 
 **`verification_result: MISMATCH`**  
 The on-chain data does not match local replay. This should not happen with a freshly resolved outcome — check that you are using the correct `--sig` and `--rpc`.
+
+**`ProgramConfig admin mismatch`**  
+You are trying to resolve against a program deployed by a different wallet. Either use the program admin wallet, or deploy your own program instance. See [Deploy your own program](#deploy-your-own-program).
 
 **`could not determine executable to run`** (with `npx verifiable-outcome-sdk`)  
 The package binary is named `vre`, not `verifiable-outcome-sdk`. Use `vre` directly after `npm install -g verifiable-outcome-sdk`, or use `npx -p verifiable-outcome-sdk vre`.
