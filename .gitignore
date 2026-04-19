@@ -2,6 +2,7 @@
 .env
 node_modules/
 tmp/
+dist/
 
 # Internal multi-agent coordination — not part of public reviewer surface
 agent-instructions/
