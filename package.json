@@ -20,6 +20,7 @@
     "access": "public"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "build:artifact": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/build_artifact.ts",
     "replay": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/replay_verify.ts",
     "resolve:operator": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/resolve_operator.ts",

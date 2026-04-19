@@ -11,10 +11,10 @@ import {
   deriveOutcomeConfigPda,
   deriveOutcomeResolutionPda,
   deriveProgramConfigPda,
-  outcomeIdlPath,
   sha256,
   toHex,
-} from "../scripts/outcome_public_sdk.ts";
+} from "./internals.js";
+import { OUTCOME_IDL } from "./idl.js";
 import type { VerifyOutcomeOptions, VerifyResult } from "./types.js";
 
 const MAX_OUTCOME_ID_BYTES = 64;
@@ -84,7 +84,7 @@ function mismatch(code: string, message: string): never {
 }
 
 function loadIdl(): any {
-  return JSON.parse(fs.readFileSync(outcomeIdlPath(), "utf8"));
+  return OUTCOME_IDL;
 }
 
 function anchorEventDiscriminator(name: string): Buffer {
