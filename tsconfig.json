@@ -10,5 +10,10 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["scripts/**/*.ts", "sdk/**/*.ts"]
+  "include": ["scripts/**/*.ts", "sdk/**/*.ts"],
+  "ts-node": {
+    "esm": true,
+    "experimentalResolver": true,
+    "transpileOnly": true
+  }
 }

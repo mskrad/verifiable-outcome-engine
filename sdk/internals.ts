@@ -3,6 +3,7 @@ import { PublicKey } from "@solana/web3.js";
 
 export const DEFAULT_PROGRAM_ID =
   "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq";
+export const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 export const CHUNK_SIZE = 1024;
 
 function u32le(value: number): Buffer {
@@ -63,6 +64,16 @@ export function deriveOutcomeConfigPda(
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("outcome_config"), runtimeId],
+    programId
+  )[0];
+}
+
+export function deriveOutcomeVaultPda(
+  programId: PublicKey,
+  runtimeId: Buffer
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("outcome_vault"), runtimeId],
     programId
   )[0];
 }
