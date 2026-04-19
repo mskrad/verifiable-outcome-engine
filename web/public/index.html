@@ -41,7 +41,10 @@
         </div>
       </div>
       <div class="hero-mascot">
-        <img src="/assets/keeper.png" alt="Match Keeper" class="keeper-img" />
+        <picture>
+          <source srcset="/assets/keeper.webp" type="image/webp" />
+          <img src="/assets/keeper.png" alt="Match Keeper" class="keeper-img" id="keeperImg" />
+        </picture>
       </div>
     </div>
 
@@ -68,5 +71,13 @@
       </div>
     </div>
   </main>
+  <script>
+    const img = document.getElementById('keeperImg');
+    if (img.complete) {
+      img.classList.add('loaded');
+    } else {
+      img.addEventListener('load', () => img.classList.add('loaded'));
+    }
+  </script>
 </body>
 </html>

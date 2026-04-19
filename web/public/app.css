@@ -157,8 +157,11 @@ main {
 .keeper-img {
   width: 260px;
   height: auto;
-  animation: keeper-float 3.5s ease-in-out infinite, keeper-enter .8s ease-out both;
+  opacity: 0;
   filter: drop-shadow(0 0 32px rgba(20,241,149,.25)) drop-shadow(0 8px 24px rgba(0,0,0,.5));
+}
+.keeper-img.loaded {
+  animation: keeper-float 3.5s ease-in-out infinite, keeper-enter .8s ease-out both;
 }
 
 @keyframes keeper-float {
