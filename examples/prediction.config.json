@@ -1,0 +1,9 @@
+{
+  "type": "loot",
+  "input_lamports": 1,
+  "outcomes": [
+    { "id": "Solana ecosystem wins", "weight": 500, "payout_lamports": 1 },
+    { "id": "Ethereum ecosystem wins", "weight": 300, "payout_lamports": 1 },
+    { "id": "Bitcoin ecosystem wins", "weight": 200, "payout_lamports": 1 }
+  ]
+}

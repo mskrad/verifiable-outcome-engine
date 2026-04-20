@@ -2,7 +2,7 @@
   "schema_version": "outcome_core_devnet_blessed_sigs_v1",
   "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
   "rpc_url": "https://api.devnet.solana.com",
-  "updated_utc": "2026-04-15T00:00:00Z",
+  "updated_utc": "2026-04-20T00:00:00Z",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",
@@ -45,6 +45,38 @@
       "source": "resolve_operator_raffle_2026-04-15",
       "updated_utc": "2026-04-15T00:00:00Z",
       "notes": "Raffle artifact: 7 real participant wallet addresses as outcomes. Winner = resolved outcome_id (Solana pubkey)."
+    },
+    {
+      "id": "outcome_core_devnet_sig_4",
+      "signature": "24rAiXuQehJE6ruAH4wunGJw6yirbcjDAhjam7kTKWk7z88k1HJGcq2MHfhNTDADYBkC9NBX4jaNm51qhKBf8b9t",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "2af0d5d0696d6cb4308a13c4667b8528",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "dc5e40691ec9b536ac35e6e47a24d657a7c31a2788535d6371a8d858c55f0b73",
+      "label": "Airdrop",
+      "description": "Weighted selection from eligible address list",
+      "source": "resolve_operator_airdrop_2026-04-20",
+      "updated_utc": "2026-04-20T00:00:00Z",
+      "notes": "Airdrop artifact: eligible[] address list with weighted selection. Config includes slots: 3; current demo adds one resolved TX for this use case."
+    },
+    {
+      "id": "outcome_core_devnet_sig_5",
+      "signature": "4qXC2BkboXan2KsDXhW8g9XLD8Zm8yQPQXHsZH7x3fp7AiaPZeUKrjWELPfeBnVd5zwFx2YCZd1DVs1mymAKZh3y",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "2f9f0156ed3235f126509bfc88e356ad",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "08052c81661aa2ec630cb205224bb551e2ccc8b1ccd229bd6e954875d4816b14",
+      "label": "Prediction",
+      "description": "Verifiable outcome declaration — pre-committed before resolution",
+      "source": "resolve_operator_prediction_2026-04-20",
+      "updated_utc": "2026-04-20T00:00:00Z",
+      "notes": "Prediction artifact: loot-style possible event results as outcome ids, not wallet addresses."
     }
   ]
 }
