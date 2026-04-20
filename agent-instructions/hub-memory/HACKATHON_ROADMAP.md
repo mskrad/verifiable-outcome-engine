@@ -78,43 +78,43 @@ Workstreams:
 - Примеры для raffle и airdrop сценария
 
 **WS-2: Second use case**
-- Airdrop / whitelist selection: артефакт с eligible addresses + weights
-- Тот же protocol, другой нарратив
-- Показывает что это Developer Infrastructure, а не single-purpose raffle tool
+- ✅ INTEGRATION.md покрывает raffle
+- ✅ npm publish + CLI готов
 
 **WS-3: Open smart contract**
 - Выложить исходник Anchor program (или ссылку на verified program)
-- Судья видит что "движок" реален: deployed + open
-- Минимум: IDL уже есть, добавить ссылку на Solana Explorer program page
-
-**WS-4: Week 2 video**
-- 1-минутное видео: pre-commitment flow + MATCH
-- Показать timeline: artifact slot → resolution slot → replay
+- Минимум: добавить ссылку на Solana Explorer program page
 
 **WS-5: npm publish**
-- Перенести утилиты из `scripts/outcome_public_sdk.ts` в `sdk/utils.ts`
-- Инлайнить IDL как `import idl from "./idl.json"` вместо `fs.readFileSync`
-- Добавить `tsconfig.sdk.json` + `"build": "tsc -p tsconfig.sdk.json"`
-- `npm run build && npm publish` → пакет `verifiable-outcome-sdk` живёт на npm
-- Обновить `build.html`: npm install команда реально работает
+- ✅ verifiable-outcome-sdk@0.1.1 опубликован
 
-**WS-7: Artifact decode in UI** ← HACKATHON-ARTIFACT-DECODE-001
-- После MATCH показывать участников раффла с весами и выделенным победителем
-- Расширить `VerifyResult` полем `outcomes[]`
-- Карточка "Committed Rules" на verify.html
-- Делает "commit rules, then verify" визуально очевидным для судей
+**WS-6: Airdrop blessed signature + use cases** ← HACKATHON-AIRDROP-DEMO-001
+- Провести airdrop resolve на devnet → получить blessed signature
+- Добавить в play.html рядом с raffle
+- Показать что это не single-purpose raffle tool
+- По возможности добавить третий сценарий (loot или prediction)
 
-**WS-6: README banner**
-- Убрать ASCII арт из README (плохо рендерится на GitHub)
-- Сделать PNG banner (1280×400): Match Keeper + VRE wordmark + "Commit rules, then verify."
-- Вставить как `![VRE Banner](web/public/assets/banner.png)` в начало README
-- Тёмный фон `#0d0f14`, teal акценты, маскот слева или по центру
+**WS-7: Embed widget** ← HACKATHON-WIDGET-001
+- `web/public/widget.js` — web component `<vre-verify sig="..."></vre-verify>`
+- Хостится на verifiableoutcome.online/widget.js
+- Показывает MATCH/MISMATCH инлайн на любом сайте
+- Меняет нарратив с "инструмент" на "примитив который встраивается"
+
+**WS-8: Quick-start в README** ← HACKATHON-README-QS-001
+- Блок в самом верху README: 3 команды → MATCH
+- Before/After таблица: без VRE vs с VRE
+- Визуально объясняет проблему за 5 секунд
+
+**WS-9: Week 3 видео** — конец недели (Apr 25)
+- Screen recording: конфиг → vre resolve → TX → сайт → MATCH + committed rules
+- 2 минуты, голос за кадром
+- Показывает developer flow, не только результат
 
 Acceptance:
-- Разработчик может начать интеграцию по INTEGRATION.md без вопросов
-- Два use case задемонстрированы (raffle + airdrop)
-- `npm install verifiable-outcome-sdk` работает, `buildArtifact` и `verifyOutcome` импортируются
-- README выглядит профессионально на GitHub без ASCII артефактов
+- Airdrop blessed signature в play.html рядом с raffle
+- widget.js работает на любом внешнем сайте
+- README quick-start: 3 команды до MATCH
+- Before/After секция на главной или в README
 
 ---
 
