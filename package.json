@@ -2,7 +2,7 @@
   "name": "verifiable-outcome-sdk",
   "version": "0.1.1",
   "description": "Configurable on-chain outcome engine for Solana - verifiable raffle, loot, and airdrop selection",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "main": "dist/sdk/index.js",
   "types": "dist/sdk/index.d.ts",
