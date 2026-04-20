@@ -8,7 +8,27 @@
 
 ## Goal
 
-Провести airdrop resolve на devnet, добавить blessed signature в `play.html` рядом с raffle. Судья видит два живых use case — raffle и airdrop — в одном демо.
+Провести resolve на devnet для двух новых use case — **airdrop** и **prediction market** — получить blessed signatures и добавить их в демо. Судья видит три живых сценария в play.html.
+
+---
+
+## New configs to create
+
+### `examples/prediction.config.json`
+
+Prediction market — верифицируемое объявление исхода события. Участники = возможные исходы, weights = их вероятность (задаётся оператором заранее). Тип `loot` — outcome_id и есть объявленный результат.
+
+```json
+{
+  "type": "loot",
+  "input_lamports": 0,
+  "outcomes": [
+    { "id": "Solana ecosystem wins", "weight": 500, "payout_lamports": 0 },
+    { "id": "Ethereum ecosystem wins", "weight": 300, "payout_lamports": 0 },
+    { "id": "Bitcoin ecosystem wins", "weight": 200, "payout_lamports": 0 }
+  ]
+}
+```
 
 ---
 
@@ -16,62 +36,67 @@
 
 ### 1. Resolve airdrop на devnet
 
-Используй существующий `examples/airdrop.config.json` (или создай если нет):
-
-```json
-{
-  "type": "airdrop",
-  "input_lamports": 0,
-  "payout_lamports": 0,
-  "participants": [
-    { "address": "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4", "weight": 1000 },
-    { "address": "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU", "weight": 1000 },
-    { "address": "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9", "weight": 1000 },
-    { "address": "ABKKERBB9i7MvSbB5s9h6EphiCvXa4FvNDmxWFSdHZqY", "weight": 1000 },
-    { "address": "5a38vhRuQhKPQwRQFcgDAw3SYNQcGo7XKuWyvFDK5xjP", "weight": 1000 }
-  ]
-}
-```
+Используй существующий `examples/airdrop.config.json` — он уже правильный:
+- `slots: 3` — три победителя
+- 10 адресов с разными весами
 
 ```bash
 yarn resolve:operator --config examples/airdrop.config.json
 ```
 
-Записать полученный signature.
+Записать signature → это `AIRDROP_SIG`.
 
-### 2. Добавить в `web/server.mjs`
+### 2. Resolve prediction market на devnet
 
-В массив `BLESSED_SIGNATURES` добавить новый объект:
+Создать `examples/prediction.config.json` (см. выше), затем:
+
+```bash
+yarn resolve:operator --config examples/prediction.config.json
+```
+
+Записать signature → это `PREDICTION_SIG`.
+
+### 3. Добавить в `web/server.mjs`
+
+В массив `BLESSED_SIGNATURES` добавить два объекта:
 
 ```js
 {
-  sig: "<AIRDROP_TX_SIG>",
+  sig: "<AIRDROP_SIG>",
   label: "Airdrop",
-  description: "Weighted address selection from eligible list"
+  description: "Weighted selection from eligible address list"
+},
+{
+  sig: "<PREDICTION_SIG>",
+  label: "Prediction",
+  description: "Verifiable outcome declaration — pre-committed before resolution"
 }
 ```
 
-### 3. Обновить `play.html`
+### 4. Verify обоих signatures
 
-Карточки use case должны показывать тип (`Raffle` / `Airdrop`) и краткое описание. Если уже есть label из server.mjs — использовать его.
+```bash
+yarn -s replay --sig <AIRDROP_SIG> --url https://api.devnet.solana.com --json
+yarn -s replay --sig <PREDICTION_SIG> --url https://api.devnet.solana.com --json
+```
 
-### 4. Если есть время — добавить loot blessed signature
-
-Третий сценарий: `examples/loot.config.json` → resolve → добавить в blessed.
+Оба должны вернуть `MATCH / OK`.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] `GET /api/health` возвращает `blessed_signatures_count: 4` (или больше)
-- [ ] `play.html` показывает airdrop карточку с лейблом
-- [ ] `POST /api/replay` для airdrop signature возвращает `MATCH / OK`
-- [ ] `yarn -s replay --sig <AIRDROP_SIG>` возвращает `MATCH / OK`
+- [ ] `GET /api/health` возвращает `blessed_signatures_count: 5` (было 3, +2)
+- [ ] `yarn -s replay --sig <AIRDROP_SIG>` → `MATCH / OK`
+- [ ] `yarn -s replay --sig <PREDICTION_SIG>` → `MATCH / OK`
+- [ ] `examples/prediction.config.json` добавлен в репо
+- [ ] `BLESSED_SIGNATURES` в `server.mjs` содержит оба новых объекта с `label` и `description`
 
 ---
 
 ## Notes
 
-- Operator wallet должен иметь достаточно SOL на devnet
+- Operator wallet должен иметь SOL на devnet: `solana balance`, если мало — `solana airdrop 2`
 - `scripts/resolve_operator.ts` — не трогать логику, только запускать
-- Airdrop config отличается от raffle: нет winner selection, есть eligible list
+- Визуальное разделение use case на сайте — отдельная задача HACKATHON-USECASES-UI-001
+- airdrop config: поле `eligible` (не `participants`), `slots: 3`
