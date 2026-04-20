@@ -1,7 +1,7 @@
 # Task: HACKATHON-WIDGET-001
 
 **Sprint:** Sprint 3 (Apr 19–25)
-**Status:** READY FOR ENGINEER
+**Status:** READY FOR ARCHITECT
 **Priority:** High — меняет нарратив с "инструмент" на "примитив который встраивается"
 
 ---

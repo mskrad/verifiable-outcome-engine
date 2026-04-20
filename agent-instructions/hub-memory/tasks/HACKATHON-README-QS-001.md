@@ -1,7 +1,7 @@
 # Task: HACKATHON-README-QS-001
 
 **Sprint:** Sprint 3 (Apr 19–25)
-**Status:** READY FOR ENGINEER
+**Status:** READY FOR ARCHITECT
 **Priority:** Medium — первое что видит разработчик на GitHub
 
 ---
