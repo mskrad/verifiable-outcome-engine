@@ -152,6 +152,15 @@ Workstreams:
 
 Решение: принять в начале Sprint 4 после оценки сложности Rust-изменений.
 
+**WS-6: Multi-winner selection (Вариант C)** ← HACKATHON-MULTI-WINNER-001
+- Один resolve TX даёт seed (хеш транзакции)
+- Победители выводятся детерминированно: `winner[i] = select(shuffle(participants, seed + i))`
+- Artifact format: добавить `winners_count: N`
+- Изменения только в SDK/artifact — программа на Rust не меняется
+- Открывает: крупные airdrop'ы, NFT reveal коллекций, multi-prize raffle, tournament brackets
+- Оценка сложности: низкая-средняя (~2 дня инженера)
+- Это сильный дифференциатор: на Solana нет верифицируемой multi-winner выборки в одной TX
+
 **WS-5: Site redesign — исследование**
 - Оценить редизайн в terminal/hacker стиле (референс: charm.sh)
 - Моноспейс шрифт, зелёный на чёрном, ASCII элементы, CLI-ощущение
