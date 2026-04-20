@@ -27,12 +27,13 @@
   <main>
     <div class="hero">
       <div class="hero-content">
-        <div class="hero-badge">⚙ Developer Infrastructure</div>
-        <h1>Commit rules,<br/>then verify.</h1>
+        <div class="hero-badge">⚙ Developer Infrastructure · Solana</div>
+        <h1>Prove your raffle<br/>wasn't rigged.</h1>
         <p>
-          Take any VRE outcome transaction signature — replay it independently
-          from public RPC data and get <strong style="color:#14f195">MATCH / OK</strong>.
-          Independently replayable. No operator trust required.
+          Raffle operators can pick winners after seeing results — unless rules are
+          locked on-chain first. VRE pre-commits the outcome spec before the draw.
+          Anyone can replay the result from public RPC data and get
+          <strong style="color:#14f195">MATCH / OK</strong> — no operator trust required.
         </p>
         <div class="hero-actions">
           <a class="btn btn-primary" href="/play.html">▶ Try Demo</a>
@@ -51,23 +52,23 @@
     <div class="features">
       <div class="feature">
         <div class="feature-icon">🔒</div>
-        <h4>Pre-committed Rules</h4>
-        <p>Outcome spec is locked on-chain before resolution. Operator can't change rules after the fact.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🎲</div>
-        <h4>Chain-derived Resolution</h4>
-        <p>Resolution input is derived from the transaction itself and is replayable from public chain data.</p>
+        <h4>Rules locked before the draw</h4>
+        <p>Participant list and weights are committed on-chain before resolution. The operator can't change them after the fact.</p>
       </div>
       <div class="feature">
         <div class="feature-icon">🔁</div>
-        <h4>Deterministic Replay</h4>
-        <p>Given the same inputs, replay always produces the same result. Anyone can verify independently.</p>
+        <h4>Independently replayable</h4>
+        <p>Resolution input comes from the transaction itself. Anyone can replay from public RPC data and verify the result matches.</p>
       </div>
       <div class="feature">
         <div class="feature-icon">📦</div>
-        <h4>Standalone Package</h4>
-        <p>No monorepo dependencies. Clone, install, verify. Works from public devnet RPC alone.</p>
+        <h4>One npm package</h4>
+        <p><code>npm install -g verifiable-outcome-sdk</code> — verify any outcome, build artifacts, or run your own instance. No monorepo required.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🛠</div>
+        <h4>Drop-in for any dApp</h4>
+        <p>Raffle, loot table, airdrop selection. Commit the config, resolve on-chain, share the TX — your users verify themselves.</p>
       </div>
     </div>
   </main>
