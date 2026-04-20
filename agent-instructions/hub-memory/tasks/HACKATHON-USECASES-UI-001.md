@@ -20,18 +20,13 @@ HACKATHON-AIRDROP-DEMO-001 — нужны blessed signatures для airdrop и p
 
 ## Implementation Plan
 
-### 1. `web/server.mjs` — убедиться что blessed signatures имеют структуру
+### 1. Структура данных
 
-```js
-{
-  sig: "...",
-  label: "Raffle",           // отображаемое название
-  type: "raffle",            // для иконки и цвета
-  description: "Select one winner from weighted participant list"
-}
-```
+`web/server.mjs` читает `artifacts/outcome_devnet_blessed_signatures.json` и отдаёт `entries` как есть. Нет отдельного `BLESSED_SIGNATURES` array.
 
-Типы: `"raffle"` | `"airdrop"` | `"prediction"` | `"loot"`
+После HACKATHON-AIRDROP-DEMO-001 каждый entry в JSON будет иметь поля `label` и `description`. UI должен читать эти поля из `/api/health` или нового эндпоинта `/api/signatures`.
+
+Проверить: как сейчас `play.html` получает список подписей — через `/api/health` или отдельный вызов? Использовать тот же источник, добавить `label` и `description` в ответ если их нет.
 
 ### 2. `web/public/play.html` — карточки по use case
 

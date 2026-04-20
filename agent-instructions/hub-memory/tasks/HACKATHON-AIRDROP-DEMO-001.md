@@ -16,16 +16,18 @@
 
 ### `examples/prediction.config.json`
 
-Prediction market — верифицируемое объявление исхода события. Участники = возможные исходы, weights = их вероятность (задаётся оператором заранее). Тип `loot` — outcome_id и есть объявленный результат.
+Prediction market — верифицируемое объявление исхода события. Тип `loot` — outcome_id и есть объявленный результат.
+
+**Важно:** `buildArtifact()` требует positive safe integer для `input_lamports` и `payout_lamports`. Использовать минимальные ненулевые значения.
 
 ```json
 {
   "type": "loot",
-  "input_lamports": 0,
+  "input_lamports": 1,
   "outcomes": [
-    { "id": "Solana ecosystem wins", "weight": 500, "payout_lamports": 0 },
-    { "id": "Ethereum ecosystem wins", "weight": 300, "payout_lamports": 0 },
-    { "id": "Bitcoin ecosystem wins", "weight": 200, "payout_lamports": 0 }
+    { "id": "Solana ecosystem wins", "weight": 500, "payout_lamports": 1 },
+    { "id": "Ethereum ecosystem wins", "weight": 300, "payout_lamports": 1 },
+    { "id": "Bitcoin ecosystem wins", "weight": 200, "payout_lamports": 1 }
   ]
 }
 ```
@@ -56,20 +58,42 @@ yarn resolve:operator --config examples/prediction.config.json
 
 Записать signature → это `PREDICTION_SIG`.
 
-### 3. Добавить в `web/server.mjs`
+### 3. Добавить в `artifacts/outcome_devnet_blessed_signatures.json`
 
-В массив `BLESSED_SIGNATURES` добавить два объекта:
+`web/server.mjs` читает этот файл напрямую — `BLESSED_SIGNATURES` array не существует.
 
-```js
+Добавить два новых entry в массив `entries`, сохранив схему:
+
+```json
 {
-  sig: "<AIRDROP_SIG>",
-  label: "Airdrop",
-  description: "Weighted selection from eligible address list"
+  "id": "outcome_core_devnet_sig_4",
+  "signature": "<AIRDROP_SIG>",
+  "status": "active",
+  "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "verification_result": "MATCH",
+  "verification_reason": "OK",
+  "runtime_id": "<из replay output>",
+  "resolve_id": "0",
+  "compiled_artifact_hash": "<из replay output>",
+  "label": "Airdrop",
+  "description": "Weighted selection from eligible address list",
+  "source": "hub_sprint3_2026-04-20",
+  "updated_utc": "<дата>"
 },
 {
-  sig: "<PREDICTION_SIG>",
-  label: "Prediction",
-  description: "Verifiable outcome declaration — pre-committed before resolution"
+  "id": "outcome_core_devnet_sig_5",
+  "signature": "<PREDICTION_SIG>",
+  "status": "active",
+  "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "verification_result": "MATCH",
+  "verification_reason": "OK",
+  "runtime_id": "<из replay output>",
+  "resolve_id": "0",
+  "compiled_artifact_hash": "<из replay output>",
+  "label": "Prediction",
+  "description": "Verifiable outcome declaration — pre-committed before resolution",
+  "source": "hub_sprint3_2026-04-20",
+  "updated_utc": "<дата>"
 }
 ```
 
