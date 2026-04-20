@@ -65,4 +65,4 @@ yarn -s replay \
 
 Expected: `verification_result : MATCH` / `verification_reason : OK`
 
-This path demonstrates the full operator cycle: commit rules on-chain → resolve → independently verify.
+This path demonstrates the operator cycle against an existing deployed program: commit rules on-chain → resolve → independently verify.

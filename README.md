@@ -164,7 +164,7 @@ This package is not:
 - a new RNG or replay semantics change,
 - an artifact binding change,
 - an adapters export,
-- SDK/package publishing,
+- a claim that the npm SDK deploys the Solana program,
 - a fee implementation claim,
 - a product rollout claim.
 

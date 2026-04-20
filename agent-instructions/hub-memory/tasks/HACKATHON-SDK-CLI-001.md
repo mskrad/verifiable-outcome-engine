@@ -140,6 +140,18 @@ Shebang строка вверху: `#!/usr/bin/env node`
 - Real `npm publish` was not run.
 - On-chain `resolve` command was not run because it creates a devnet transaction and requires a funded wallet. The task verification list required `verify`; Tester/Hub can run `resolve` with the intended wallet.
 
+### Documentation Boundary Update
+
+- `INTEGRATION.md` now states that the npm SDK builds artifacts, resolves against an already deployed program, and verifies outcomes, but does not deploy a Solana program instance.
+- `INTEGRATION.md` now separates Verifier, Builder, Operator, and Program Owner roles.
+- `INTEGRATION.md` includes the clone + Anchor deploy path for Program Owners, including updating `Anchor.toml` and `declare_id!`.
+- `web/public/build.html` now warns that `npm install` does not deploy a Solana program and that Program Owners must clone the repo and deploy `programs/outcome`.
+- Builder code sample was corrected to call `buildArtifact(config)` with an `ArtifactConfig` object instead of a non-existent `configPath` API.
+- Verification:
+  - `npx tsc --noEmit`: passed.
+  - `node --check web/server.mjs`: passed.
+  - `rg "does not deploy|existing deployed program|clone this repo|deploy your own program|Program Owner|vre resolve --config" INTEGRATION.md web/public/build.html`: confirmed boundary copy is present.
+
 ### Tester Handoff Prompt
 
 Verify `HACKATHON-SDK-CLI-001` in `/Users/timurkurmangaliev/verifiable-outcome-engine`.
@@ -170,6 +182,30 @@ Facts:
 - `resolve` writes result artifacts to `tmp/resolve-operator` by default and submits an on-chain devnet transaction.
 
 Confidence: high.
+
+---
+
+## Copy Boundary Correction Note - 2026-04-19 22:18:00 +0300
+
+Historical sections above preserve the original task text and may mention
+`npx verifiable-outcome-sdk ...` or a full cycle without cloning the repo.
+For future public copy and handoffs, use only:
+
+```bash
+npm install -g verifiable-outcome-sdk
+vre verify --sig <SIGNATURE>
+```
+
+or:
+
+```bash
+npx -p verifiable-outcome-sdk vre verify --sig <SIGNATURE>
+```
+
+Boundary: the SDK/CLI builds artifacts, resolves against an existing deployed
+program, and verifies outcomes. The SDK does not deploy the Solana program.
+Program Owners clone the repo, deploy `programs/outcome` with Anchor, then use
+the SDK/CLI with `--program-id`.
 
 ---
 

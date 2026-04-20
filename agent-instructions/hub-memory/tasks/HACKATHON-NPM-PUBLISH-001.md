@@ -214,6 +214,28 @@ Confidence: high.
 
 ---
 
+## Copy Boundary Correction Note - 2026-04-19 22:18:00 +0300
+
+The package is now published as `verifiable-outcome-sdk@0.1.1`, and the binary
+name is `vre`. Future docs/handoffs must pair install text with the executable:
+
+```bash
+npm install -g verifiable-outcome-sdk
+vre verify --sig <SIGNATURE>
+```
+
+For one-off execution, use:
+
+```bash
+npx -p verifiable-outcome-sdk vre verify --sig <SIGNATURE>
+```
+
+Do not describe `npx verifiable-outcome-sdk ...` as the recommended command.
+The npm package does not deploy the Solana program; Program Owners clone the
+repo and deploy `programs/outcome` with Anchor.
+
+---
+
 ## Tester Verification Summary — 2026-04-19 18:24:40 +0300
 
 Status: READY FOR HUB ACCEPTANCE.

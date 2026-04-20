@@ -1,86 +1,48 @@
 # Integration Guide — verifiable-outcome-sdk
 
-This guide covers two roles:
+## Roles
 
-- **Verifier** — anyone can verify any resolved outcome. No wallet needed.
-- **Operator** — the party who deploys and resolves outcomes on-chain. Requires the program admin wallet.
+There are four distinct roles. Each requires a different level of access:
 
-> **Note:** The shared devnet deployment (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) only accepts transactions from the program admin. If you want to run your own operator, you need to deploy a separate instance of the program. See [Deploy your own program](#deploy-your-own-program).
+| Role | What they do | Wallet needed? | Repo clone? |
+|------|-------------|----------------|-------------|
+| **Verifier** | Verify any resolved outcome on-chain | No | No |
+| **Builder** | Compile a config into a binary artifact locally | No | No |
+| **Operator** | Resolve outcomes against an existing deployed program | Yes (program admin) | No |
+| **Program Owner** | Deploy their own instance of the Solana program | Yes (funded) | Yes |
 
-**No repo clone required.**
-
----
-
-## Requirements
-
-- Node.js v18+
-- npm v9+
-
----
-
-## Step 1 — Install Solana CLI
-
-```bash
-sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
-```
-
-Verify:
-
-```bash
-solana --version
-```
+> The npm package (`verifiable-outcome-sdk`) covers Verifier, Builder, and Operator roles.  
+> The Solana program itself is open-source and lives in `programs/outcome/` — Program Owners must clone the repo and deploy it themselves.
+>
+> The SDK does **not** deploy a new Solana program instance. It builds artifacts,
+> resolves against an already deployed program, and verifies resolved outcomes.
+> To operate your own program ID, clone this repo, deploy `programs/outcome`
+> with Anchor, then use the SDK/CLI with `--program-id`.
 
 ---
 
-## Step 2 — Create a wallet
+## Part 1 — Verifier
 
-```bash
-solana-keygen new --outfile ~/.config/solana/id.json
-```
+Anyone can verify any resolved outcome. No wallet, no setup beyond Node.js.
 
-You will be asked for an optional passphrase — press Enter to skip.
-
-Check your public key:
-
-```bash
-solana-keygen pubkey ~/.config/solana/id.json
-```
-
----
-
-## Step 3 — Switch to devnet and get free SOL
-
-```bash
-solana config set --url devnet
-solana airdrop 2
-solana balance
-```
-
-You need at least **1 SOL** to deploy an outcome on-chain.  
-If `airdrop 2` fails (rate limit), wait 30 seconds and try again, or run `solana airdrop 1` twice.
-
----
-
-## Step 4 — Install the SDK
+### Install
 
 ```bash
 npm install -g verifiable-outcome-sdk
 ```
 
-Verify the CLI is available:
-
-```bash
-vre --help
-```
-
----
-
-## Step 5 — Quick verify (no wallet needed)
-
-Test that the package works by verifying a known devnet transaction:
+### Verify a transaction
 
 ```bash
 vre verify \
+  --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh \
+  --rpc https://api.devnet.solana.com
+```
+
+Or run without a global install:
+
+```bash
+npx -p verifiable-outcome-sdk vre verify \
   --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh \
   --rpc https://api.devnet.solana.com
 ```
@@ -92,20 +54,31 @@ verification_result : MATCH
 verification_reason : OK
 program_id          : 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
 runtime_id          : 06695059d916d903a26087c0770533c5
-...
+compiled_artifact_hash : 4a3304a5...
+outcome_id          : 3nafSu5G...
+```
+
+`MATCH` means the on-chain result matches an independent local replay. No trust required.
+
+### Verify programmatically
+
+```js
+import { verifyOutcome } from "verifiable-outcome-sdk";
+
+const result = await verifyOutcome({
+  signature: "mUXwae...",
+  rpcUrl: "https://api.devnet.solana.com",
+});
+console.log(result.status); // "MATCH"
 ```
 
 ---
 
-## Step 6 — Create a raffle config
+## Part 2 — Builder
 
-Create a new directory and a config file:
+Build a binary artifact from a config file, without deploying anything on-chain.
 
-```bash
-mkdir my-raffle && cd my-raffle
-```
-
-Create `raffle.config.json`:
+### Create a config
 
 ```json
 {
@@ -115,36 +88,86 @@ Create `raffle.config.json`:
   "participants": [
     { "address": "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4", "weight": 1000 },
     { "address": "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU", "weight": 1000 },
-    { "address": "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9", "weight": 1000 },
-    { "address": "ABKKERBB9i7MvSbB5s9h6EphiCvXa4FvNDmxWFSdHZqY", "weight": 1000 },
-    { "address": "5a38vhRuQhKPQwRQFcgDAw3SYNQcGo7XKuWyvFDK5xjP", "weight": 1000 },
-    { "address": "9KpwjbCV3kF8x3puk4fUKa5UTToGSg6giaLQkYFP1J8r", "weight": 1000 },
-    { "address": "BKo2rXwCgPTtwkNcFV5E7G9SxYW6wByDzSbswhR6oNa4", "weight": 1000 }
+    { "address": "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9", "weight": 1000 }
   ]
 }
 ```
 
 **Fields:**
-- `type` — outcome type, `"raffle"` selects one winner by weighted random
-- `input_lamports` — entry cost per participant (in lamports, 1 SOL = 1,000,000,000 lamports)
+- `type` — `"raffle"` selects one winner by weighted random
+- `input_lamports` — entry cost per participant (1 SOL = 1,000,000,000 lamports)
 - `payout_lamports` — prize payout to the winner
-- `participants` — list of Solana wallet addresses with weights (equal weight = equal chance)
+- `participants` — Solana wallet addresses with weights (equal weight = equal chance)
+
+### Build
+
+```js
+import { buildArtifact } from "verifiable-outcome-sdk";
+
+const artifact = buildArtifact({
+  type: "raffle",
+  input_lamports: 10,
+  payout_lamports: 3,
+  participants: [
+    { address: "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4", weight: 1000 },
+    { address: "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU", weight: 1000 },
+  ],
+});
+console.log(artifact.toString("hex"));
+```
 
 ---
 
-## Step 7 — Deploy and resolve on-chain
+## Part 3 — Operator
+
+Resolve outcomes on-chain against an **existing deployed program**. Requires the wallet that initialized that program (the program admin).
+
+> The canonical devnet program (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) is operated by the VRE team. To become your own operator, see **Part 4 — Program Owner**.
+>
+> `vre resolve` does not deploy a program. It commits an artifact and resolves
+> against the program ID you provide.
+
+### Prerequisites
+
+**Install Solana CLI:**
+
+```bash
+sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
+solana --version
+```
+
+**Create or use your admin wallet:**
+
+```bash
+solana-keygen new --outfile ~/.config/solana/id.json
+solana-keygen pubkey ~/.config/solana/id.json
+```
+
+**Fund the wallet (devnet):**
+
+```bash
+solana config set --url devnet
+solana airdrop 2
+solana balance
+```
+
+You need at least **1 SOL** to cover transaction fees and artifact storage.  
+If `airdrop 2` is rate-limited, wait 30 seconds and retry, or use [faucet.solana.com](https://faucet.solana.com).
+
+### Resolve via CLI
 
 ```bash
 vre resolve \
   --config raffle.config.json \
   --wallet ~/.config/solana/id.json \
   --rpc https://api.devnet.solana.com \
+  --program-id <YOUR_PROGRAM_ID> \
   --json
 ```
 
 This command:
-1. Compiles your config into a binary artifact
-2. Deploys the artifact on-chain (pre-commits the rules)
+1. Compiles the config into a binary artifact
+2. Uploads the artifact on-chain (pre-commits the rules)
 3. Submits the resolution transaction
 4. Returns the transaction signature
 
@@ -154,57 +177,103 @@ Expected output:
 { "signature": "5Kj3..." }
 ```
 
-Copy the signature — you will use it in the next step.
-
----
-
-## Step 8 — Verify your own transaction
+### Verify the result
 
 ```bash
 vre verify \
-  --sig <PASTE_SIGNATURE_HERE> \
-  --rpc https://api.devnet.solana.com
+  --sig <SIGNATURE_FROM_ABOVE> \
+  --rpc https://api.devnet.solana.com \
+  --program-id <YOUR_PROGRAM_ID>
 ```
 
-Expected output:
-
-```
-verification_result : MATCH
-verification_reason : OK
-```
-
-`MATCH` means: the on-chain result matches an independent local replay of your config. The outcome is provably fair.
-
----
-
-## Using the SDK programmatically
-
-```bash
-npm install verifiable-outcome-sdk
-```
+### Resolve programmatically
 
 ```js
-import { verifyOutcome, buildArtifact, resolveOperator } from "verifiable-outcome-sdk";
+import { resolveOperator } from "verifiable-outcome-sdk";
 
-// Verify a known transaction
-const result = await verifyOutcome({
-  signature: "5Kj3...",
-  rpcUrl: "https://api.devnet.solana.com",
-});
-console.log(result.status); // "MATCH"
-
-// Build artifact from config (without deploying)
-const artifact = await buildArtifact({
-  configPath: "./raffle.config.json",
-});
-
-// Full operator flow: deploy + resolve
 const { signature } = await resolveOperator({
   configPath: "./raffle.config.json",
   walletPath: "~/.config/solana/id.json",
   rpcUrl: "https://api.devnet.solana.com",
+  programId: "<YOUR_PROGRAM_ID>",
 });
 console.log("TX:", signature);
+```
+
+---
+
+## Part 4 — Program Owner
+
+Deploy your own instance of the Solana program so you control the admin wallet.
+
+### Prerequisites
+
+- [Rust](https://rustup.rs)
+- [Anchor CLI](https://www.anchor-lang.com/docs/installation) v0.32+
+- Solana CLI + funded devnet wallet (see Part 3 prerequisites)
+
+### Clone the repo
+
+```bash
+git clone https://github.com/mskrad/verifiable-outcome-engine
+cd verifiable-outcome-engine
+yarn install
+```
+
+### Generate a new program keypair
+
+```bash
+solana-keygen new --outfile target/deploy/outcome-keypair.json
+solana address -k target/deploy/outcome-keypair.json
+```
+
+Copy the printed address — this will be your program ID.
+
+### Update the program ID in two places
+
+**`Anchor.toml`** — replace both `localnet` and `devnet` entries:
+
+```toml
+[programs.localnet]
+outcome = "<YOUR_PROGRAM_ID>"
+
+[programs.devnet]
+outcome = "<YOUR_PROGRAM_ID>"
+```
+
+**`programs/outcome/src/lib.rs`** — update the `declare_id!` macro:
+
+```rust
+declare_id!("<YOUR_PROGRAM_ID>");
+```
+
+### Build and deploy
+
+```bash
+anchor build
+anchor deploy --provider.cluster devnet
+```
+
+Anchor will use `target/deploy/outcome-keypair.json` as the program authority.
+
+### Use your program
+
+The first `vre resolve` against a fresh program ID will automatically call `initializeProgramConfig` and set your wallet as the admin.
+
+```bash
+vre resolve \
+  --config raffle.config.json \
+  --wallet ~/.config/solana/id.json \
+  --rpc https://api.devnet.solana.com \
+  --program-id <YOUR_PROGRAM_ID> \
+  --json
+```
+
+```bash
+vre verify \
+  --sig <SIGNATURE> \
+  --rpc https://api.devnet.solana.com \
+  --program-id <YOUR_PROGRAM_ID>
 ```
 
 ---
@@ -229,43 +298,19 @@ vre resolve
 
 ---
 
-## Deploy your own program
-
-To use `vre resolve` with your own wallet, you need your own program instance:
-
-```bash
-git clone https://github.com/timurkurmangaliev/verifiable-outcome-engine
-cd verifiable-outcome-engine
-anchor build
-anchor deploy --provider.cluster devnet
-```
-
-Then pass your deployed program ID to the CLI:
-
-```bash
-vre resolve \
-  --config raffle.config.json \
-  --wallet ~/.config/solana/id.json \
-  --rpc https://api.devnet.solana.com \
-  --program-id <YOUR_PROGRAM_ID> \
-  --json
-```
-
----
-
 ## Troubleshooting
 
-**`airdrop` fails**  
-Devnet faucet has rate limits. Wait 30 seconds and retry, or use [faucet.solana.com](https://faucet.solana.com).
+**`ProgramConfig admin mismatch`**  
+You are calling `resolve` against a program that was initialized by a different wallet. Use the correct admin wallet for that program, or operate your own program instance by cloning this repo, deploying `programs/outcome` with Anchor, then passing `--program-id` (Part 4).
+
+**`airdrop` fails / rate limit**  
+Wait 30 seconds and retry, or use [faucet.solana.com](https://faucet.solana.com).
 
 **`insufficient funds`**  
 Run `solana balance`. If below 0.5 SOL, airdrop more: `solana airdrop 2`.
 
 **`verification_result: MISMATCH`**  
-The on-chain data does not match local replay. This should not happen with a freshly resolved outcome — check that you are using the correct `--sig` and `--rpc`.
+On-chain data does not match local replay. Check that `--sig`, `--rpc`, and `--program-id` all match the transaction you are verifying.
 
-**`ProgramConfig admin mismatch`**  
-You are trying to resolve against a program deployed by a different wallet. Either use the program admin wallet, or deploy your own program instance. See [Deploy your own program](#deploy-your-own-program).
-
-**`could not determine executable to run`** (with `npx verifiable-outcome-sdk`)  
-The package binary is named `vre`, not `verifiable-outcome-sdk`. Use `vre` directly after `npm install -g verifiable-outcome-sdk`, or use `npx -p verifiable-outcome-sdk vre`.
+**`could not determine executable to run`** (when using `npx verifiable-outcome-sdk`)  
+The package binary is named `vre`. Use `vre` directly after `npm install -g verifiable-outcome-sdk`, or prefix with `npx -p verifiable-outcome-sdk vre`.
