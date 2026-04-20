@@ -152,6 +152,12 @@ Workstreams:
 
 Решение: принять в начале Sprint 4 после оценки сложности Rust-изменений.
 
+**WS-5: Site redesign — исследование**
+- Оценить редизайн в terminal/hacker стиле (референс: charm.sh)
+- Моноспейс шрифт, зелёный на чёрном, ASCII элементы, CLI-ощущение
+- Оценить объём токенов и усилий перед реализацией
+- Решение: делать или нет — принять в начале Sprint 4
+
 **WS-4: Submission form**
 - Заполнить Colosseum submission fields
 - Project description, links, category confirmation
