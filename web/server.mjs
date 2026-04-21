@@ -20,6 +20,7 @@ const DEFAULT_SUMMARY_PATH = path.join(
   "artifacts",
   "public_evidence_summary.json"
 );
+const CORS_API_PATHS = new Set(["/api/replay", "/api/health"]);
 
 function loadEnvFile() {
   const envPath = path.join(REF_ROOT, ".env");
@@ -43,6 +44,12 @@ function json(res, status, payload) {
     "content-length": Buffer.byteLength(body),
   });
   res.end(body);
+}
+
+function applyCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
 function readJsonBody(req) {
@@ -256,6 +263,19 @@ async function fetchTimeline({
 
 async function handleApi(req, res, pathname) {
   try {
+    const corsEnabled = CORS_API_PATHS.has(pathname);
+    if (corsEnabled) applyCorsHeaders(res);
+
+    if (req.method === "OPTIONS") {
+      if (corsEnabled) {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      json(res, 404, { ok: false, error: "api route not found" });
+      return;
+    }
+
     if (req.method === "GET" && pathname === "/api/health") {
       const blessed = loadBlessedSignatures();
       json(res, 200, {
