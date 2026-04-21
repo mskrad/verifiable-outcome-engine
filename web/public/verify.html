@@ -1,346 +1,136 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="/assets/logo.png" />
-  <title>Verifiable Outcome Engine – Verify</title>
-  <link rel="stylesheet" href="/app.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verify · VRE</title>
+  <meta name="description" content="Replay any VRE outcome from a transaction signature and public RPC data. Get MATCH / OK — or a specific error code." />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <header>
-    <a class="logo" href="/">
-      <img src="/assets/logo.png" alt="VRE" class="logo-img" />
-      <div>
-        <div>Verifiable Outcome Engine</div>
-        <span class="logo-sub">Solana · Devnet</span>
-      </div>
-    </a>
-    <nav class="nav">
-      <a href="/play.html">Demo</a>
-      <a href="/build.html">Build</a>
-      <a href="/verify.html" class="active">Verify</a>
-      <a href="/widget.html">Widget</a>
-      <a href="/spec.html">Spec</a>
-    </nav>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.svg" alt="" class="nav-brand-logo" />
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="play.html"   data-nav="play.html">Demo</a></li>
+        <li><a href="build.html"  data-nav="build.html">Build</a></li>
+        <li><a href="verify.html" data-nav="verify.html">Verify</a></li>
+        <li><a href="widget.html" data-nav="widget.html">Widget</a></li>
+        <li><a href="spec.html"   data-nav="spec.html">Spec</a></li>
+      </ul>
+      <a href="build.html" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container-narrow">
+      <span class="eyebrow"><span class="dot"></span> Independent verifier</span>
+      <h1 class="page-title">Verify Outcome</h1>
+      <p>Paste a transaction signature from a <span class="mono">vre resolve</span> call. The verifier fetches it from a public RPC, reconstructs the committed rules, and replays the selection. If the on-chain result matches the replay, you get <span class="mono text-teal">MATCH / OK</span>.</p>
+    </div>
   </header>
 
-  <main>
-    <div class="card">
-      <h3>Verify Outcome</h3>
-      <p>Paste any resolved outcome transaction signature to replay and verify it independently.</p>
+  <section style="padding-top: 24px;">
+    <div class="container-narrow">
 
-      <div class="grid2">
-        <div>
-          <label>Cluster</label>
-          <select id="cluster">
-            <option value="devnet">devnet</option>
-            <option value="localnet">localnet</option>
-          </select>
+      <form id="verify-form" class="verify-form" autocomplete="off">
+        <div class="form-row form-two-col">
+          <div>
+            <label class="form-label" for="field-cluster">Cluster</label>
+            <select id="field-cluster" class="form-select">
+              <option value="devnet">devnet</option>
+              <option value="testnet">testnet</option>
+              <option value="localnet">localnet</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" for="field-rpc">RPC URL <span class="hint">(override if you have your own endpoint)</span></label>
+            <input id="field-rpc" class="form-input" placeholder="https://api.devnet.solana.com" />
+          </div>
         </div>
-        <div>
-          <label>RPC URL</label>
-          <input id="rpc" value="https://api.devnet.solana.com" />
+
+        <div class="form-row">
+          <label class="form-label" for="field-program">Program ID</label>
+          <input id="field-program" class="form-input" placeholder="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq" />
         </div>
+
+        <div class="form-row">
+          <label class="form-label" for="field-sig">Transaction Signature <span class="hint">(base58 — from a resolve call)</span></label>
+          <input id="field-sig" class="form-input form-input-large" placeholder="5KJp…9vW2" spellcheck="false" />
+        </div>
+
+        <div class="form-row flex gap-3" style="align-items:center;">
+          <button id="btn-verify" class="btn btn-primary btn-lg" type="submit">▶ Run Verification</button>
+          <span class="text-faint" style="font-size:12.5px;">
+            Anyone can run this. The public API replays the outcome from RPC data and returns a specific reason code.
+          </span>
+        </div>
+      </form>
+
+      <!-- Result area -->
+      <div id="result-banner" class="result-banner hidden" aria-live="polite"></div>
+      <div id="result-details" class="hidden"></div>
+
+      <div id="result-raw-wrap" class="result-section hidden" style="margin-top:24px;">
+        <div class="section-head-with-action">
+          <div class="result-section-title">Raw output</div>
+          <button id="btn-copy-json" class="btn btn-ghost btn-sm" type="button">Copy JSON</button>
+        </div>
+        <pre id="result-raw" class="raw-json"></pre>
       </div>
 
-      <label>Program ID</label>
-      <input id="programId" value="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq" />
-
-      <label>Transaction Signature</label>
-      <input id="sig" placeholder="Paste tx signature…" />
-
-      <button id="btnReplay">▶ Run Verification</button>
-    </div>
-
-    <div id="resultSection" style="display:none">
-      <div id="resultBanner"></div>
-      <div id="artifactRulesSection" style="display:none"></div>
-
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <h3 style="margin:0">Raw Output</h3>
-          <button class="btn btn-ghost" id="btnCopyJson">Copy JSON</button>
-        </div>
-        <pre id="out"></pre>
+      <!-- Error codes reference -->
+      <div class="mt-8">
+        <a class="btn btn-ghost btn-sm" href="/spec.html#error-codes">See full error code reference →</a>
       </div>
 
-      <div id="explorerLink" style="display:none;margin-top:4px"></div>
+      <!-- Shareable URL hint -->
+      <div class="mt-4 text-faint" style="font-size:12.5px;">
+        💡 Append <span class="mono">?sig=&lt;SIGNATURE&gt;</span> to this page's URL to share a pre-filled verifier link.
+      </div>
+
     </div>
+  </section>
 
-    <div id="timelineSection" style="display:none"></div>
-  </main>
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.svg" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="play.html">Demo</a></li>
+          <li><a href="build.html">Build</a></li>
+          <li><a href="verify.html">Verify</a></li>
+          <li><a href="spec.html">Spec</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+      </div>
+    </div>
+  </footer>
 
+  <script src="/js/main.js"></script>
+  <script src="/js/verify.js"></script>
   <script>
-    const EXPLORER = 'https://explorer.solana.com/tx';
-    const outEl    = document.getElementById('out');
-    const params   = new URLSearchParams(location.search);
-
-    const sigParam       = params.get('sig');
-    const rpcParam       = params.get('rpc');
-    const programIdParam = params.get('programId');
-    if (sigParam)       document.getElementById('sig').value       = sigParam;
-    if (rpcParam)       document.getElementById('rpc').value       = rpcParam;
-    if (programIdParam) document.getElementById('programId').value = programIdParam;
-
-    async function loadDefaults() {
-      try {
-        const res  = await fetch('/api/health');
-        const json = await res.json();
-        if (json.ok && json.program_id && !programIdParam)
-          document.getElementById('programId').value = json.program_id;
-        if (json.ok && json.rpc && !rpcParam)
-          document.getElementById('rpc').value = json.rpc;
-      } catch (_) {}
-    }
-    loadDefaults();
-
-    if (sigParam) {
-      window.addEventListener('load', () => {
-        document.getElementById('btnReplay').click();
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('btn-copy-json');
+      btn?.addEventListener('click', async () => {
+        const text = document.getElementById('result-raw').textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          window.vreToast('JSON copied');
+        } catch (_) { window.vreToast('Copy failed'); }
       });
-    }
-
-    document.getElementById('btnReplay').onclick = async () => {
-      const btn       = document.getElementById('btnReplay');
-      const sig       = document.getElementById('sig').value.trim();
-      const rpc       = document.getElementById('rpc').value.trim();
-      const programId = document.getElementById('programId').value.trim();
-      const cluster   = document.getElementById('cluster').value;
-
-      if (!sig) { alert('Transaction signature is required.'); return; }
-
-      btn.disabled    = true;
-      btn.textContent = 'Replaying…';
-      document.getElementById('resultSection').style.display = 'none';
-      hideArtifactRules();
-      hideTimeline();
-
-      try {
-        const res  = await fetch('/api/replay', {
-          method:  'POST',
-          headers: { 'content-type': 'application/json' },
-          body:    JSON.stringify({ cluster, rpc, programId, signature: sig }),
-        });
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || 'replay failed');
-
-        const replay = json.replay || {};
-        showResult(replay, sig, cluster, rpc, programId);
-        if (replay.verification_result === 'MATCH') {
-          fetchTimeline(replay.compiled_artifact_hash, sig, rpc, programId);
-        } else {
-          hideTimeline();
-        }
-      } catch (e) {
-        showError(String(e));
-      } finally {
-        btn.disabled    = false;
-        btn.textContent = '▶ Run Verification';
-      }
-    };
-
-    function showResult(replay, sig, cluster, rpc, programId) {
-      const isMatch  = replay.verification_result === 'MATCH';
-      const section  = document.getElementById('resultSection');
-      const banner   = document.getElementById('resultBanner');
-      const explorer = document.getElementById('explorerLink');
-
-      banner.innerHTML = `
-        <div class="result-banner ${isMatch ? 'match' : 'mismatch'}">
-          <div class="result-icon">${isMatch ? '✅' : '❌'}</div>
-          <div>
-            <div class="result-label">${replay.verification_result} / ${replay.verification_reason}</div>
-            <div class="result-sub">${isMatch
-              ? 'Outcome replayed successfully — computation matches on-chain record.'
-              : 'Replay result does not match on-chain record. <a href="/spec.html#error-codes" style="color:var(--green)">See error codes →</a>'}</div>
-          </div>
-        </div>
-        ${isMatch && replay.outcome_id ? `
-        <div class="card" style="margin-top:12px;border-color:rgba(20,241,149,.25);background:rgba(20,241,149,.05)">
-          <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Selected Outcome</div>
-          <div style="font-family:var(--mono);font-size:14px;color:var(--green);word-break:break-all">${replay.outcome_id}</div>
-        </div>` : ''}`;
-
-      outEl.textContent = JSON.stringify(replay, null, 2);
-      renderArtifactRules(replay);
-
-      const explorerUrl = `${EXPLORER}/${sig}?cluster=${cluster}`;
-      explorer.innerHTML = `<a class="btn btn-ghost ext" href="${explorerUrl}" target="_blank" rel="noopener" style="margin-bottom:16px">View on Solana Explorer</a>`;
-      explorer.style.display = 'block';
-
-      section.style.display = 'block';
-    }
-
-    function hideArtifactRules() {
-      const rules = document.getElementById('artifactRulesSection');
-      rules.style.display = 'none';
-      rules.innerHTML = '';
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
-
-    function truncateMiddle(value, head = 10, tail = 10) {
-      const text = String(value || '');
-      if (text.length <= head + tail + 1) return text;
-      return `${text.slice(0, head)}…${text.slice(-tail)}`;
-    }
-
-    function looksLikeAddress(value) {
-      return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(String(value || ''));
-    }
-
-    function renderArtifactRules(replay) {
-      const rules = document.getElementById('artifactRulesSection');
-      const outcomes = Array.isArray(replay.outcomes) ? replay.outcomes : [];
-      if (replay.verification_result !== 'MATCH' || outcomes.length === 0) {
-        hideArtifactRules();
-        return;
-      }
-
-      const winner = String(replay.outcome_id || '');
-      const artifactHash = String(replay.compiled_artifact_hash || '');
-      const listLabel = outcomes.every((outcome) => looksLikeAddress(outcome.id))
-        ? 'Participants'
-        : 'Outcomes';
-      const totalWeight = outcomes.reduce((sum, outcome) => {
-        const weight = Number(outcome.weight);
-        return Number.isFinite(weight) ? sum + weight : sum;
-      }, 0);
-
-      const rows = outcomes.map((outcome) => {
-        const id = String(outcome.id || '');
-        const weight = Number(outcome.weight);
-        const isWinner = id === winner;
-        const weightText = Number.isFinite(weight)
-          ? weight.toLocaleString()
-          : String(outcome.weight ?? '');
-
-        return `
-          <div class="outcome-row ${isWinner ? 'winner' : ''}">
-            <div class="outcome-id" title="${escapeHtml(id)}">${escapeHtml(truncateMiddle(id, 12, 12))}</div>
-            <div class="outcome-weight">${escapeHtml(weightText)}</div>
-            <div class="outcome-selected">${isWinner ? 'Selected' : ''}</div>
-          </div>`;
-      }).join('');
-
-      rules.innerHTML = `
-        <div class="artifact-rules">
-          <div class="artifact-rules-head">
-            <div>
-              <h3>Committed Rules</h3>
-              <p>${listLabel}: ${outcomes.length.toLocaleString()} · total weight ${totalWeight.toLocaleString()}</p>
-            </div>
-            <div class="artifact-hash" title="${escapeHtml(artifactHash)}">${escapeHtml(truncateMiddle(artifactHash, 8, 8))}</div>
-          </div>
-          <div class="outcome-row outcome-row-head">
-            <div>Outcome</div>
-            <div>Weight</div>
-            <div>Status</div>
-          </div>
-          <div class="outcome-list">${rows}</div>
-        </div>`;
-      rules.style.display = 'block';
-    }
-
-    function hideTimeline() {
-      const timeline = document.getElementById('timelineSection');
-      timeline.style.display = 'none';
-      timeline.innerHTML = '';
-    }
-
-    async function fetchTimeline(compiledArtifactHash, sig, rpc, programId) {
-      if (!compiledArtifactHash) { hideTimeline(); return; }
-      const timeline = document.getElementById('timelineSection');
-      timeline.style.display = 'block';
-      timeline.innerHTML = `
-        <div class="timeline-block">
-          <h4>Pre-commitment Proof</h4>
-          <div class="loading"><div class="spinner"></div> Loading on-chain timeline…</div>
-        </div>`;
-
-      try {
-        const res = await fetch('/api/timeline', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            signature: sig,
-            rpcUrl: rpc,
-            programId,
-            compiledArtifactHash,
-          }),
-        });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || 'timeline unavailable');
-        renderTimeline(data);
-      } catch (_) {
-        hideTimeline();
-      }
-    }
-
-    function renderTimeline(data) {
-      const artifactSlot = Number(data.artifact_slot);
-      const resolutionSlot = Number(data.resolution_slot);
-      const gapSlots = Number(data.gap_slots);
-      if (!Number.isFinite(artifactSlot) || !Number.isFinite(resolutionSlot) || !Number.isFinite(gapSlots)) {
-        hideTimeline();
-        return;
-      }
-
-      const gapSecs = Math.round(gapSlots * 0.4);
-      document.getElementById('timelineSection').innerHTML = `
-        <div class="timeline-block">
-          <h4>Pre-commitment Proof</h4>
-          <div class="timeline-track">
-            <div class="timeline-point artifact">
-              <div class="tl-label">Artifact locked</div>
-              <div class="tl-slot">slot ${artifactSlot.toLocaleString()}</div>
-            </div>
-            <div class="timeline-gap">← ${gapSlots.toLocaleString()} slots (~${gapSecs.toLocaleString()} sec) →</div>
-            <div class="timeline-point resolution">
-              <div class="tl-label">Outcome drawn</div>
-              <div class="tl-slot">slot ${resolutionSlot.toLocaleString()}</div>
-            </div>
-          </div>
-          <p class="timeline-caption">
-            Rules were committed on-chain before the outcome was drawn.
-            The operator could not change the artifact after seeing the result.
-          </p>
-        </div>`;
-      document.getElementById('timelineSection').style.display = 'block';
-    }
-
-    function showError(msg) {
-      hideArtifactRules();
-      hideTimeline();
-      const section = document.getElementById('resultSection');
-      const banner  = document.getElementById('resultBanner');
-      banner.innerHTML = `
-        <div class="result-banner mismatch">
-          <div class="result-icon">⚠️</div>
-          <div>
-            <div class="result-label">ERROR</div>
-            <div class="result-sub">${msg}</div>
-          </div>
-        </div>`;
-      outEl.textContent = msg;
-      document.getElementById('explorerLink').style.display = 'none';
-      section.style.display = 'block';
-    }
-
-    document.getElementById('btnCopyJson').onclick = function() {
-      navigator.clipboard.writeText(outEl.textContent).then(() => {
-        this.textContent = '✓ Copied';
-        setTimeout(() => this.textContent = 'Copy JSON', 1500);
-      });
-    };
+    });
   </script>
 </body>
 </html>

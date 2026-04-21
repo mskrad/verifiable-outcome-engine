@@ -87,6 +87,20 @@ function sendStatic(req, res, pathname) {
       ? "text/javascript; charset=utf-8"
       : ext === ".css"
       ? "text/css; charset=utf-8"
+      : ext === ".svg"
+      ? "image/svg+xml"
+      : ext === ".webp"
+      ? "image/webp"
+      : ext === ".png"
+      ? "image/png"
+      : ext === ".jpg" || ext === ".jpeg"
+      ? "image/jpeg"
+      : ext === ".ico"
+      ? "image/x-icon"
+      : ext === ".json"
+      ? "application/json; charset=utf-8"
+      : ext === ".woff2"
+      ? "font/woff2"
       : "application/octet-stream";
   const data = fs.readFileSync(abs);
   res.writeHead(200, {

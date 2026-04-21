@@ -69,6 +69,10 @@ Acceptance:
 
 **Goal:** разработчик понимает как встроить VRE в свой dApp.
 
+Done:
+- Static `keeper.webp` replaced the keeper video on the current design branch.
+- Static MIME handling now covers `svg` as `image/svg+xml` and `webp` as `image/webp`.
+
 Workstreams:
 
 **WS-1: Integration guide**
@@ -110,11 +114,22 @@ Workstreams:
 - 2 минуты, голос за кадром
 - Показывает developer flow, не только результат
 
+**WS-10: Phantom wallet integration** ← HACKATHON-PHANTOM-001 — READY FOR ARCHITECT
+- Connect Phantom на verify.html (read-only)
+- "Did I win?" — сравнение адреса кошелька с outcome_id после MATCH
+- Показывает user-facing ценность продукта, не только developer infra
+
+**WS-11: New design adaptation** ← HACKATHON-DESIGN-ADAPT-001 ✅
+- Адаптация Claude Design в ветке design/claude-design-v1
+- Wire up реальные API эндпоинты в новых JS файлах
+- ACCEPTED; merge в main pending
+
 Acceptance:
 - Airdrop blessed signature в play.html рядом с raffle
 - widget.js работает на любом внешнем сайте
 - README quick-start: 3 команды до MATCH
 - Before/After секция на главной или в README
+- Phantom "Did I win?" работает на verify.html
 
 ---
 

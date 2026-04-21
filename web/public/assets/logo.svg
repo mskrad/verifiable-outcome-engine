@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2638"/>
+      <stop offset="100%" stop-color="#0d1420"/>
+    </linearGradient>
+    <linearGradient id="shieldStroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14f195" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0d9b66" stop-opacity="0.6"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1.6"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="1.2"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Outer hex shield -->
+  <path d="M32 4 L54 16 L54 42 L32 60 L10 42 L10 16 Z"
+        fill="url(#shieldGrad)"
+        stroke="url(#shieldStroke)"
+        stroke-width="1.5"
+        stroke-linejoin="round"/>
+
+  <!-- Inner hex accent -->
+  <path d="M32 12 L47 20 L47 38 L32 52 L17 38 L17 20 Z"
+        fill="none"
+        stroke="rgba(20,241,149,0.25)"
+        stroke-width="1"
+        stroke-linejoin="round"/>
+
+  <!-- Checkmark -->
+  <path d="M22 32 L29 39 L43 25"
+        stroke="#14f195"
+        stroke-width="3.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        fill="none"
+        filter="url(#glow)"/>
+</svg>

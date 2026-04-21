@@ -1,13 +1,13 @@
 # CURRENT TASK
 
-- Timestamp: 2026-04-21 17:45:00 +0300
-- Active Task ID: HACKATHON-WIDGET-001
+- Timestamp: 2026-04-21 22:10:00 +0300
+- Active Task ID: HACKATHON-PHANTOM-001
 - Parent Sprint: HACKATHON-SPRINT-3 (Apr 19–25)
-- Current Stage: ACCEPTED
-- Hub Decision: HACKATHON-WIDGET-001 accepted. widget.js, widget.html, Widget nav deployed and verified manually on https://verifiableoutcome.online. Sprint 3 complete.
-- Next Owner: Hub
-- Next Action: Plan Sprint 4.
-- Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-WIDGET-001.md`
+- Current Stage: READY FOR ARCHITECT
+- Hub Decision: Sprint 3 continues. `HACKATHON-DESIGN-ADAPT-001` is ACCEPTED on branch `design/claude-design-v1`; merge to `main` is pending.
+- Next Owner: Architect
+- Next Action: Design read-only Phantom "Did I win?" integration for `verify.html`.
+- Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-PHANTOM-001.md`
 - Sprint Plan: `agent-instructions/hub-memory/HACKATHON_ROADMAP.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-CONFIG-ENGINE-001.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-RAFFLE-FIX-001.md`
@@ -15,14 +15,9 @@
 ## Development Flow
 
 - `HACKATHON-SPRINT-3` is the active sprint-level coordination frame.
-- `HACKATHON-WIDGET-001` is ready for Hub server test after Engineer implemented the Shadow DOM widget, /widget.html page, Widget nav, and scoped CORS; final widget validation should run against the public server.
-- `HACKATHON-README-QS-001` is ready for Tester after README Quick Verify and Before/After table were added.
-- `HACKATHON-USECASES-UI-001` is ready for Hub acceptance after Tester verified play.html labels/descriptions/use-case badges, build.html Prediction Market card/copy, index.html prediction market copy, and mobile overflow.
-- `HACKATHON-AIRDROP-DEMO-001` is ready for Hub acceptance after Tester verified both new devnet signatures, JSON source-of-truth behavior, local API responses, and verify UI replay.
-- `HACKATHON-COPY-BOUNDARY-001` is ready for Tester after site/docs wording cleanup around npm SDK, CLI commands, and own-program deployment boundaries. npm package `verifiable-outcome-sdk@0.1.1` is published; use `vre` as the executable name.
-- `HACKATHON-SDK-CLI-001` is ready for Hub acceptance after Tester verified SDK CLI package surface and devnet verify flow.
-- `HACKATHON-NPM-PUBLISH-001` is ready for Hub acceptance after Tester verified SDK build output, importability, embedded IDL, script import removal, and npm dry-run packaging.
-- `HACKATHON-ARTIFACT-DECODE-001` is ready for Tester after decoded artifact outcomes were added to replay JSON and verify.html renders the Committed Rules card after MATCH.
+- `HACKATHON-DESIGN-ADAPT-001` is ACCEPTED on `design/claude-design-v1`; merge to `main` is pending.
+- `HACKATHON-PHANTOM-001` is READY FOR ARCHITECT and is the next active Sprint 3 task.
+- Completed Sprint 3 doc/task details remain in each task memory file; this current-task file should not imply an active handoff for already accepted work.
 - `HACKATHON-DEVPAGE-001` is accepted and committed as `db12eeb`.
 - `HACKATHON-DEPLOY-001` is accepted after public HTTPS deploy verification.
 - `HACKATHON-TIMELINE-001` is closed and accepted after Tester re-verified the mobile overflow fix.
@@ -44,6 +39,45 @@
 
 ## Latest Evidence
 
+- HACKATHON-DESIGN-ADAPT-001 tester result:
+  - verdict: PASS; Hub accepted the task for Sprint 3.
+  - branch: `design/claude-design-v1`.
+  - merge status: pending merge to `main`.
+  - HTML asset paths now use absolute `/assets/`, `/css/`, and `/js/` paths.
+  - Correction note: the earlier keeper video plan was superseded; `index.html` now uses the static `/assets/keeper.webp` illustration.
+  - New assets added under `web/public/assets/`: `keeper.webp`, `airdrop.webp`, `loot.webp`, `prediction.webp`, `raffle.webp`, `logo.webp`, `logo.svg`, `favicon.svg`, and `mascot.svg`.
+  - MIME fix in `web/server.mjs`: `svg` serves as `image/svg+xml`; `webp` serves as `image/webp`; existing static support includes png, jpeg, ico, json, and woff2.
+  - `play.js` fetches `/api/health` and `/api/blessed-signatures`, filters active entries, renders use-case badges, and calls `/api/timeline` per card.
+  - Browser check for `/play.html`: 5 cards, use-case badges `Loot`, `Loot`, `Raffle`, `Airdrop`, `Prediction`, and 5 timeline rows.
+  - `verify.js` uses `POST /api/replay` and `POST /api/timeline`; local `weightedPick` replay and direct RPC scraping are removed from frontend verify flow.
+  - Browser check for `/verify.html?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`: visible `MATCH / OK`, Committed Rules, Pre-commitment Timeline, and Raw output.
+  - Browser check for `/widget.html`: live widget and form flow both rendered `MATCH / OK` and `Raffle · slot 455693113`.
+  - `css/style.css` includes `.error-table`, use-case badge colors, widget page styles, keeper media styles, and mobile overflow guards.
+  - `node --check web/public/js/play.js`: passed.
+  - `node --check web/public/js/verify.js`: passed.
+  - `node --check web/server.mjs`: passed.
+  - `npx tsc --noEmit`: passed.
+  - `git diff --check`: passed.
+  - Local HTTP smoke: `/`, `/play.html`, `/verify.html`, `/build.html`, `/widget.html`, `/spec.html` returned HTTP `200`.
+  - Local API smoke: `/api/health` returned `ok:true` and `blessed_signatures_count=5`; `/api/blessed-signatures` returned 5 entries.
+  - Network evidence included `/api/health`, `/api/blessed-signatures`, `/api/replay`, and `/api/timeline`.
+  - Brave headless 375px sweep: all 6 pages had `clientWidth=375`, `scrollWidth=375`, `overflow=false`.
+  - Scope guard: no diff in `web/server.mjs`, SDK, Rust/Anchor code, artifacts, or `scripts/resolve_operator.ts`.
+- HACKATHON-ERROR-SURFACE-001 tester result:
+  - verdict: PASS, ready for Hub acceptance.
+  - `spec.html` includes `<h3 id="error-codes">Verification Reason Codes</h3>`.
+  - `spec.html` includes `.error-table` with 20 reason codes from `VERIFICATION_ERRORS.md`.
+  - `spec.html` links to `https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md`.
+  - `build.html` `.example-links` includes `Error Code Reference`.
+  - `verify.html` MISMATCH result-sub includes `See error codes →` linking to `/spec.html#error-codes`.
+  - mocked MISMATCH browser check rendered `MISMATCH / ERR_OUTPUT_MISMATCH` and the expected `/spec.html#error-codes` link.
+  - `app.css` includes `.error-table` styles and mobile wrapping guard.
+  - `node --check web/server.mjs`: passed.
+  - `npx tsc --noEmit`: passed.
+  - `git diff --check`: passed.
+  - Local `/spec.html`, `/build.html`, `/verify.html`: HTTP `200`.
+  - Brave headless `/spec.html#error-codes` at 375px: `clientWidth=375`, `scrollWidth=375`, `overflow=false`, `rows=20`, `offenders=[]`.
+  - Scope guard: no replay semantics, SDK, Rust, or `web/server.mjs` logic changes.
 - HACKATHON-WIDGET-001 implementation:
   - `web/public/widget.js` defines `<vre-verify>` as zero-dependency plain JS Shadow DOM component.
   - `web/public/widget.js` also defines `<vre-verify-form>` as a separate paste-your-own-signature form.
