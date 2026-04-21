@@ -1,13 +1,13 @@
 # CURRENT TASK
 
-- Timestamp: 2026-04-21 13:00:00 +0300
+- Timestamp: 2026-04-21 17:45:00 +0300
 - Active Task ID: HACKATHON-WIDGET-001
 - Parent Sprint: HACKATHON-SPRINT-3 (Apr 19–25)
-- Current Stage: READY FOR ARCHITECT
-- Hub Decision: HACKATHON-USECASES-UI-001 accepted. play.html shows use-case badges, build.html has 4 use cases. Next: embed widget.
-- Next Owner: Architect
-- Next Action: Design embed widget for HACKATHON-WIDGET-001.
-- Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-USECASES-UI-001.md`
+- Current Stage: ACCEPTED
+- Hub Decision: HACKATHON-WIDGET-001 accepted. widget.js, widget.html, Widget nav deployed and verified manually on https://verifiableoutcome.online. Sprint 3 complete.
+- Next Owner: Hub
+- Next Action: Plan Sprint 4.
+- Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-WIDGET-001.md`
 - Sprint Plan: `agent-instructions/hub-memory/HACKATHON_ROADMAP.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-CONFIG-ENGINE-001.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-RAFFLE-FIX-001.md`
@@ -15,6 +15,8 @@
 ## Development Flow
 
 - `HACKATHON-SPRINT-3` is the active sprint-level coordination frame.
+- `HACKATHON-WIDGET-001` is ready for Hub server test after Engineer implemented the Shadow DOM widget, /widget.html page, Widget nav, and scoped CORS; final widget validation should run against the public server.
+- `HACKATHON-README-QS-001` is ready for Tester after README Quick Verify and Before/After table were added.
 - `HACKATHON-USECASES-UI-001` is ready for Hub acceptance after Tester verified play.html labels/descriptions/use-case badges, build.html Prediction Market card/copy, index.html prediction market copy, and mobile overflow.
 - `HACKATHON-AIRDROP-DEMO-001` is ready for Hub acceptance after Tester verified both new devnet signatures, JSON source-of-truth behavior, local API responses, and verify UI replay.
 - `HACKATHON-COPY-BOUNDARY-001` is ready for Tester after site/docs wording cleanup around npm SDK, CLI commands, and own-program deployment boundaries. npm package `verifiable-outcome-sdk@0.1.1` is published; use `vre` as the executable name.
@@ -42,6 +44,40 @@
 
 ## Latest Evidence
 
+- HACKATHON-WIDGET-001 implementation:
+  - `web/public/widget.js` defines `<vre-verify>` as zero-dependency plain JS Shadow DOM component.
+  - `web/public/widget.js` also defines `<vre-verify-form>` as a separate paste-your-own-signature form.
+  - `widget.js` hardcodes `https://verifiableoutcome.online` as API origin.
+  - `widget.js` keeps a localhost-only fallback to `location.origin` for local demo verification after a public-origin fetch failure.
+  - `widget.js` posts `signature`, `rpc`, and `programId`; it does not use `url` or `program_id`.
+  - `widget.js` auto-verifies on load and includes loading, match, mismatch, and error states.
+  - Blessed raffle rendering contract: `✅ MATCH / OK` plus `Raffle · slot 455693113`.
+  - `web/public/widget.html` shows a live demo, embed code for custom transactions with `sig`, `rpc`, and `program-id`, and an interactive `<vre-verify-form>`.
+  - `README.md`, `DEMO_RUNBOOK.md`, and `RUNBOOK.md` document both embed modes: fixed-signature `<vre-verify>` and paste-your-own-signature `<vre-verify-form>`.
+  - `web/server.mjs` scoped CORS only to `/api/replay` and `/api/health`.
+  - `OPTIONS /api/replay` returns HTTP `204` with CORS headers.
+  - `GET /api/health` returns HTTP `200` with CORS headers.
+  - `widget.js` size: `4065` bytes.
+  - `node --check web/server.mjs`: passed.
+  - `node --check web/public/widget.js`: passed.
+  - `npx tsc --noEmit`: passed.
+  - `git diff --check`: passed.
+  - `test "$(wc -c < web/public/widget.js)" -lt 5120`: passed.
+  - `yarn web`: started successfully on `http://127.0.0.1:8787`.
+  - `curl -fsS http://127.0.0.1:8787/widget.html >/tmp/widget.html`: passed.
+  - `curl -fsS http://127.0.0.1:8787/widget.js >/tmp/widget.js`: passed; served size `4065` bytes.
+  - Brave headless `/widget.html` at 375px: `clientWidth=375`, `scrollWidth=375`.
+  - Brave headless live demo rendered `✅ MATCH / OK` and `Raffle · slot 455693113`.
+  - Brave headless `<vre-verify-form>` check: 3 inputs; form submission with blessed raffle signature rendered `✅ MATCH / OK` and `Raffle · slot 455693113`.
+  - Caveat: external embeds require public deployment of the new `widget.js` and scoped CORS headers; local browser verification uses localhost fallback if the public origin does not yet expose CORS.
+- HACKATHON-WIDGET-001 architect design result:
+  - verdict: ready for Engineer.
+  - `web/server.mjs` checked: `/api/replay`, `/api/health`, and `/api/timeline` exist; CORS is missing.
+  - `POST /api/replay` accepts `signature`, `rpc`, and `programId`; task sketch keys `url` and `program_id` should not be used by the widget implementation.
+  - `/api/replay` does not return slot or blessed-signature label.
+  - Design keeps CORS scoped to `/api/replay` and `/api/health`.
+  - Design uses a tiny `KNOWN_SIGNATURES` display map in `widget.js` only for blessed raffle signature to render `Raffle · slot 455693113` without changing replay API semantics.
+  - Design requires nav grid updates for 5 links and mobile overflow verification at 375px.
 - HACKATHON-USECASES-UI-001 tester result:
   - verdict: PASS, ready for Hub acceptance.
   - `play.html` renders labels/descriptions and colored badges for all active signature cards.
