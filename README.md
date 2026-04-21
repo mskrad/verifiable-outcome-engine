@@ -1,5 +1,19 @@
 # Verifiable Outcome Engine
 
+## Quick Verify
+
+```bash
+npm install -g verifiable-outcome-sdk
+vre verify --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
+
+# -> MATCH / OK
+```
+
+Live verifier:
+
+```text
+https://verifiableoutcome.online/verify.html?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
+```
 
 ## Problem
 
@@ -9,6 +23,12 @@ On-chain apps often ask users to trust that an outcome was computed correctly:
 - a reviewer wants to verify the selected winner.
 
 The usual review path is weak: users see a transaction or UI result, but not an easy way to independently check how that outcome was derived.
+
+| Without VRE | With VRE |
+|---|---|
+| Operator picks winner, posts TX | Rules committed on-chain before draw |
+| Users trust the result | Anyone replays from public RPC data |
+| No way to verify selection logic | `vre verify --sig <TX>` -> `MATCH / OK` |
 
 ## Solution
 
