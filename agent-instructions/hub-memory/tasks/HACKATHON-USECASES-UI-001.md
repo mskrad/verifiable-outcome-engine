@@ -1,7 +1,7 @@
 # Task: HACKATHON-USECASES-UI-001
 
 **Sprint:** Sprint 3 (Apr 19–25)
-**Status:** READY FOR ARCHITECT
+**Status:** READY FOR ENGINEER
 **Priority:** Medium — визуально доказывает "Developer Infrastructure, not single-purpose tool"
 
 ---
