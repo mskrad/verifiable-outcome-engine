@@ -1,12 +1,12 @@
 # CURRENT TASK
 
-- Timestamp: 2026-04-20 23:00:00 +0300
-- Active Task ID: HACKATHON-USECASES-UI-001
+- Timestamp: 2026-04-21 13:00:00 +0300
+- Active Task ID: HACKATHON-WIDGET-001
 - Parent Sprint: HACKATHON-SPRINT-3 (Apr 19–25)
 - Current Stage: READY FOR ARCHITECT
-- Hub Decision: HACKATHON-AIRDROP-DEMO-001 accepted. Blessed signatures count now 5 (airdrop + prediction added). Next: visual use-case separation in play.html and build.html.
+- Hub Decision: HACKATHON-USECASES-UI-001 accepted. play.html shows use-case badges, build.html has 4 use cases. Next: embed widget.
 - Next Owner: Architect
-- Next Action: Design UI changes for use-case badges and grouping in play.html and build.html.
+- Next Action: Design embed widget for HACKATHON-WIDGET-001.
 - Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-USECASES-UI-001.md`
 - Sprint Plan: `agent-instructions/hub-memory/HACKATHON_ROADMAP.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-CONFIG-ENGINE-001.md`
@@ -15,6 +15,7 @@
 ## Development Flow
 
 - `HACKATHON-SPRINT-3` is the active sprint-level coordination frame.
+- `HACKATHON-USECASES-UI-001` is ready for Hub acceptance after Tester verified play.html labels/descriptions/use-case badges, build.html Prediction Market card/copy, index.html prediction market copy, and mobile overflow.
 - `HACKATHON-AIRDROP-DEMO-001` is ready for Hub acceptance after Tester verified both new devnet signatures, JSON source-of-truth behavior, local API responses, and verify UI replay.
 - `HACKATHON-COPY-BOUNDARY-001` is ready for Tester after site/docs wording cleanup around npm SDK, CLI commands, and own-program deployment boundaries. npm package `verifiable-outcome-sdk@0.1.1` is published; use `vre` as the executable name.
 - `HACKATHON-SDK-CLI-001` is ready for Hub acceptance after Tester verified SDK CLI package surface and devnet verify flow.
@@ -41,6 +42,22 @@
 
 ## Latest Evidence
 
+- HACKATHON-USECASES-UI-001 tester result:
+  - verdict: PASS, ready for Hub acceptance.
+  - `play.html` renders labels/descriptions and colored badges for all active signature cards.
+  - Badge classes render for Loot, Raffle, Airdrop, and Prediction.
+  - Badge colors matched expected values: raffle `#14f195`, airdrop `#6366f1`, prediction `#f59e0b`, loot `#a855f7`.
+  - `build.html` renders 4 use case cards including `Prediction Market`.
+  - `build.html` includes required Prediction Market copy.
+  - `index.html` Drop-in feature card mentions `prediction market`.
+  - `npx tsc --noEmit`: passed.
+  - `node --check web/server.mjs`: passed.
+  - `git diff --check`: passed.
+  - `yarn web`: started successfully on `http://127.0.0.1:8787`.
+  - Local `GET /`, `/play.html`, `/build.html`: HTTP `200`.
+  - Brave headless `/play.html` at 375px: `clientWidth=375`, `scrollWidth=375`, `overflow=false`, `offenders=[]`, labels `Loot`, `Loot`, `Raffle`, `Airdrop`, `Prediction`.
+  - Brave headless `/build.html`: use case cards `Raffle`, `Loot`, `Airdrop`, `Prediction Market`.
+  - Scope guard: no diff in `web/server.mjs`, SDK, Rust/Anchor code, or `scripts/resolve_operator.ts`.
 - Active blessed signatures count: `5`
 - Airdrop signature: `24rAiXuQehJE6ruAH4wunGJw6yirbcjDAhjam7kTKWk7z88k1HJGcq2MHfhNTDADYBkC9NBX4jaNm51qhKBf8b9t`
 - Airdrop runtime ID: `2af0d5d0696d6cb4308a13c4667b8528`

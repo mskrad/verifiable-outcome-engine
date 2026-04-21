@@ -41,6 +41,50 @@
   <script>
     const EXPLORER = 'https://explorer.solana.com/tx';
     const CLUSTER  = 'devnet';
+    const TYPE_META = {
+      raffle: {
+        label: 'Raffle',
+        description: 'Select a verifiable winner from a committed weighted list.',
+      },
+      airdrop: {
+        label: 'Airdrop',
+        description: 'Weighted selection from eligible address list',
+      },
+      prediction: {
+        label: 'Prediction',
+        description: 'Verifiable outcome declaration — pre-committed before resolution',
+      },
+      loot: {
+        label: 'Loot',
+        description: 'Roll a committed weighted outcome table.',
+      },
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char]));
+    }
+
+    function classifyEntry(entry) {
+      const haystack = [
+        entry.label,
+        entry.description,
+        entry.source,
+        entry.notes,
+        entry.id,
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      if (haystack.includes('airdrop')) return 'airdrop';
+      if (haystack.includes('prediction')) return 'prediction';
+      if (haystack.includes('raffle')) return 'raffle';
+      if (haystack.includes('loot')) return 'loot';
+      return 'loot';
+    }
 
     async function load() {
       const [healthRes, sigRes] = await Promise.all([
@@ -62,17 +106,25 @@
       const programId = health.program_id || sigJson.data.program_id;
 
       const html = active.map((entry, i) => {
+        const type        = classifyEntry(entry);
+        const meta        = TYPE_META[type] || TYPE_META.loot;
+        const label       = escapeHtml(entry.label || meta.label);
+        const description = escapeHtml(entry.description || meta.description);
         const verifyUrl   = `/verify.html?sig=${encodeURIComponent(entry.signature)}&rpc=${encodeURIComponent(rpc)}&programId=${encodeURIComponent(programId)}`;
         const explorerUrl = `${EXPLORER}/${entry.signature}?cluster=${CLUSTER}`;
-        const shortSig    = entry.signature.slice(0, 20) + '…' + entry.signature.slice(-12);
         const timelineId  = `tl-${String(entry.id || i).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
 
         return `
-        <div class="sig-card">
+        <div class="sig-card sig-card-${type}">
           <div class="sig-card-header">
-            <span class="sig-number">Signature #${i + 1}</span>
+            <div class="sig-title">
+              <span class="usecase-badge usecase-${type}">${label}</span>
+              <span class="sig-number">Signature #${i + 1}</span>
+            </div>
             <span class="badge-match">✓ MATCH / OK</span>
           </div>
+
+          <p class="sig-description">${description}</p>
 
           <div class="sig-hash" title="${entry.signature}">${entry.signature}</div>
 
