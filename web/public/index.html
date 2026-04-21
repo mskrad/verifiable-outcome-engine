@@ -42,10 +42,10 @@
         </div>
       </div>
       <div class="hero-mascot">
-        <picture>
-          <source srcset="/assets/keeper.webp" type="image/webp" />
-          <img src="/assets/keeper.png" alt="Match Keeper" class="keeper-img" id="keeperImg" />
-        </picture>
+        <video class="keeper-img" autoplay loop muted playsinline>
+          <source src="/assets/keeper_loop.webm" type="video/webm" />
+          <source src="/assets/keeper_loop.mp4" type="video/mp4" />
+        </video>
       </div>
     </div>
 
@@ -72,13 +72,5 @@
       </div>
     </div>
   </main>
-  <script>
-    const img = document.getElementById('keeperImg');
-    if (img.complete) {
-      img.classList.add('loaded');
-    } else {
-      img.addEventListener('load', () => img.classList.add('loaded'));
-    }
-  </script>
 </body>
 </html>
