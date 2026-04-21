@@ -1,5 +1,7 @@
 # Verifiable Outcome Engine
 
+We help Solana apps replace backend-trust reward logic with replay-verifiable on-chain outcomes.
+
 ## Quick Verify
 
 ```bash
