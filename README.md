@@ -15,6 +15,8 @@ Live verifier:
 https://verifiableoutcome.online/verify.html?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
 ```
 
+Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
+
 ## Problem
 
 On-chain apps often ask users to trust that an outcome was computed correctly:
@@ -99,9 +101,34 @@ Open:
 
 - `http://127.0.0.1:8787/play.html`
 - `http://127.0.0.1:8787/verify.html`
+- `http://127.0.0.1:8787/widget.html`
 - `http://127.0.0.1:8787/spec.html`
 
 The web surface is a reviewer flow. Live browser resolve is not part of this demo path.
+
+## Embeddable Widget
+
+The reviewer flow can also be embedded on another page with the standalone widget script.
+
+Use `<vre-verify>` when the page already knows the transaction signature:
+
+```html
+<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify
+  sig="YOUR_TX_SIGNATURE"
+  rpc="https://api.devnet.solana.com"
+  program-id="YOUR_PROGRAM_ID">
+</vre-verify>
+```
+
+Use `<vre-verify-form>` when users should paste their own transaction signature in-page:
+
+```html
+<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify-form></vre-verify-form>
+```
+
+Both widgets call the public replay endpoint with `signature`, `rpc`, and `programId` and show `MATCH / OK` when replay matches the on-chain outcome.
 
 ## Included Evidence
 
