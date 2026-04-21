@@ -155,10 +155,12 @@ main {
 }
 
 .keeper-img {
-  width: 260px;
+  width: 360px;
   height: auto;
   opacity: 1;
-  filter: drop-shadow(0 0 32px rgba(20,241,149,.25)) drop-shadow(0 8px 24px rgba(0,0,0,.5));
+  mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(ellipse 95% 90% at 50% 45%, black 60%, transparent 100%);
+  mask-image: radial-gradient(ellipse 95% 90% at 50% 45%, black 60%, transparent 100%);
   animation: keeper-float 3.5s ease-in-out infinite, keeper-enter .8s ease-out both;
 }
 .keeper-img.loaded {
@@ -224,7 +226,7 @@ main {
   }
   .hero p { max-width: 100%; margin: 0 auto 32px; }
   .hero-actions { justify-content: center; }
-  .keeper-img { width: 180px; }
+  .keeper-img { width: 200px; }
 }
 
 /* ── CARDS ── */
