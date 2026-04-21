@@ -1,194 +1,125 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="/assets/logo.png" />
-  <title>Verifiable Outcome Engine – Demo</title>
-  <link rel="stylesheet" href="/app.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo · VRE</title>
+  <meta name="description" content="Active devnet signatures from the Verifiable Outcome Engine — live, verifiable, reproducible." />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <header>
-    <a class="logo" href="/">
-      <img src="/assets/logo.png" alt="VRE" class="logo-img" />
-      <div>
-        <div>Verifiable Outcome Engine</div>
-        <span class="logo-sub">Solana · Devnet</span>
-      </div>
-    </a>
-    <nav class="nav">
-      <a href="/play.html" class="active">Demo</a>
-      <a href="/build.html">Build</a>
-      <a href="/verify.html">Verify</a>
-      <a href="/widget.html">Widget</a>
-      <a href="/spec.html">Spec</a>
-    </nav>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.svg" alt="" class="nav-brand-logo" />
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="play.html"   data-nav="play.html">Demo</a></li>
+        <li><a href="build.html"  data-nav="build.html">Build</a></li>
+        <li><a href="verify.html" data-nav="verify.html">Verify</a></li>
+        <li><a href="widget.html" data-nav="widget.html">Widget</a></li>
+        <li><a href="spec.html"   data-nav="spec.html">Spec</a></li>
+      </ul>
+      <a href="build.html" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Live on devnet</span>
+      <h1 class="page-title">Active Devnet Signatures</h1>
+      <p>Every signature below invoked the VRE program on Solana devnet. Rules were committed on-chain before the draw; the outcome can be replayed from public RPC data. Click <span class="mono text-teal">Verify Now</span> to reproduce the result end-to-end.</p>
+    </div>
   </header>
 
-  <main>
-    <div class="card">
-      <h3>Active Devnet Signatures</h3>
-      <p>
-        Each signature below is a live resolved outcome on Solana devnet.
-        Pick one — you will get <strong style="color:#14f195">MATCH / OK</strong> from public RPC data alone.
-      </p>
+  <section style="padding-top: 24px;">
+    <div class="container">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+        <div class="text-faint" style="font-size:13px;">
+          <span id="sig-status">Loading…</span>
+          <span style="margin: 0 8px;">·</span>
+          Program <span class="mono">3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq</span>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" data-copy="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq">Copy program ID</button>
+          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/address/3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
+        </div>
+      </div>
+
+      <div id="sig-list" class="sig-grid">
+        <div class="loading-state">
+          <div class="spinner spinner-lg"></div>
+          <div>Fetching signatures…</div>
+        </div>
+      </div>
+
+      <div class="mt-8 text-faint center" style="font-size:13px;">
+        Signatures auto-refresh on page load. Need a specific one?
+        <a href="verify.html" class="text-teal">Paste it on the verify page →</a>
+      </div>
+
     </div>
+  </section>
 
-    <div id="sigList">
-      <div class="loading"><div class="spinner"></div> Loading signatures…</div>
+  <!-- Legend -->
+  <section>
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Use cases</span>
+        <h2>Same engine. Four surfaces.</h2>
+        <p>Every card above uses the same deterministic kernel. The use-case label is descriptive, not architectural — VRE doesn't care what your draw is for.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(20,241,149,0.08); color: var(--teal); border-color: rgba(20,241,149,0.2);">🎟</div>
+          <h3>Raffle</h3>
+          <p>Weighted selection from a participant list. One winner (or N), seeded from a slot + nonce.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(99,102,241,0.08); color: #8b8dff; border-color: rgba(99,102,241,0.2);">🪂</div>
+          <h3>Airdrop</h3>
+          <p>Multi-winner eligible-list selection with per-address weights. Useful for fair distributions to a long tail.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(245,158,11,0.08); color: #fbbf24; border-color: rgba(245,158,11,0.2);">🔮</div>
+          <h3>Prediction</h3>
+          <p>Possible outcomes and their probabilities committed before the event resolves. Oracle-independent.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(168,85,247,0.08); color: #c084fc; border-color: rgba(168,85,247,0.2);">🎁</div>
+          <h3>Loot</h3>
+          <p>Weighted outcome table (legendary / rare / common). Identical kernel to raffle, different label.</p>
+        </div>
+      </div>
     </div>
-  </main>
+  </section>
 
-  <script>
-    const EXPLORER = 'https://explorer.solana.com/tx';
-    const CLUSTER  = 'devnet';
-    const TYPE_META = {
-      raffle: {
-        label: 'Raffle',
-        description: 'Select a verifiable winner from a committed weighted list.',
-      },
-      airdrop: {
-        label: 'Airdrop',
-        description: 'Weighted selection from eligible address list',
-      },
-      prediction: {
-        label: 'Prediction',
-        description: 'Verifiable outcome declaration — pre-committed before resolution',
-      },
-      loot: {
-        label: 'Loot',
-        description: 'Roll a committed weighted outcome table.',
-      },
-    };
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.svg" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="play.html">Demo</a></li>
+          <li><a href="build.html">Build</a></li>
+          <li><a href="verify.html">Verify</a></li>
+          <li><a href="spec.html">Spec</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+      </div>
+    </div>
+  </footer>
 
-    function escapeHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      }[char]));
-    }
-
-    function classifyEntry(entry) {
-      const haystack = [
-        entry.label,
-        entry.description,
-        entry.source,
-        entry.notes,
-        entry.id,
-      ].filter(Boolean).join(' ').toLowerCase();
-
-      if (haystack.includes('airdrop')) return 'airdrop';
-      if (haystack.includes('prediction')) return 'prediction';
-      if (haystack.includes('raffle')) return 'raffle';
-      if (haystack.includes('loot')) return 'loot';
-      return 'loot';
-    }
-
-    async function load() {
-      const [healthRes, sigRes] = await Promise.all([
-        fetch('/api/health'),
-        fetch('/api/blessed-signatures'),
-      ]);
-      const health  = await healthRes.json();
-      const sigJson = await sigRes.json();
-      if (!sigJson.ok) throw new Error(sigJson.error || 'failed to load signatures');
-
-      const active = (sigJson.data.entries || []).filter(e => e.status === 'active');
-      if (!active.length) {
-        document.getElementById('sigList').innerHTML =
-          '<div class="card"><p>No active blessed signatures found.</p></div>';
-        return;
-      }
-
-      const rpc       = health.rpc       || sigJson.data.rpc_url;
-      const programId = health.program_id || sigJson.data.program_id;
-
-      const html = active.map((entry, i) => {
-        const type        = classifyEntry(entry);
-        const meta        = TYPE_META[type] || TYPE_META.loot;
-        const label       = escapeHtml(entry.label || meta.label);
-        const description = escapeHtml(entry.description || meta.description);
-        const verifyUrl   = `/verify.html?sig=${encodeURIComponent(entry.signature)}&rpc=${encodeURIComponent(rpc)}&programId=${encodeURIComponent(programId)}`;
-        const explorerUrl = `${EXPLORER}/${entry.signature}?cluster=${CLUSTER}`;
-        const timelineId  = `tl-${String(entry.id || i).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-
-        return `
-        <div class="sig-card sig-card-${type}">
-          <div class="sig-card-header">
-            <div class="sig-title">
-              <span class="usecase-badge usecase-${type}">${label}</span>
-              <span class="sig-number">Signature #${i + 1}</span>
-            </div>
-            <span class="badge-match">✓ MATCH / OK</span>
-          </div>
-
-          <p class="sig-description">${description}</p>
-
-          <div class="sig-hash" title="${entry.signature}">${entry.signature}</div>
-
-          <div class="sig-meta">
-            <div class="sig-meta-row">runtime_id <br/><span>${entry.runtime_id}</span></div>
-            <div class="sig-meta-row">resolve_id <br/><span>${entry.resolve_id}</span></div>
-            <div class="sig-meta-row" style="grid-column:1/-1">artifact_hash <br/><span>${entry.compiled_artifact_hash}</span></div>
-            <div class="sig-meta-row" style="grid-column:1/-1"><span id="${timelineId}" class="tl-compact"></span></div>
-          </div>
-
-          <div class="sig-actions">
-            <a class="btn btn-primary" href="${verifyUrl}">▶ Verify Now</a>
-            <a class="btn btn-ghost ext" href="${explorerUrl}" target="_blank" rel="noopener">Explorer</a>
-            <button class="btn btn-ghost" onclick="copy('${entry.signature}', this)">Copy Sig</button>
-          </div>
-        </div>`;
-      }).join('');
-
-      document.getElementById('sigList').innerHTML = html;
-      active.forEach((entry, i) => {
-        const timelineId = `tl-${String(entry.id || i).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
-        fetchTimelineForCard(entry, rpc, programId, timelineId);
-      });
-    }
-
-    async function fetchTimelineForCard(entry, rpc, programId, elementId) {
-      const target = document.getElementById(elementId);
-      if (!target || !entry.compiled_artifact_hash) return;
-      try {
-        const res = await fetch('/api/timeline', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            signature: entry.signature,
-            rpcUrl: rpc,
-            programId,
-            compiledArtifactHash: entry.compiled_artifact_hash,
-          }),
-        });
-        const data = await res.json();
-        if (!data.ok) return;
-        const artifactSlot = Number(data.artifact_slot);
-        const resolutionSlot = Number(data.resolution_slot);
-        const gapSlots = Number(data.gap_slots);
-        if (!Number.isFinite(artifactSlot) || !Number.isFinite(resolutionSlot) || !Number.isFinite(gapSlots)) return;
-        target.textContent = `slot ${artifactSlot.toLocaleString()} → ${resolutionSlot.toLocaleString()} (+${gapSlots.toLocaleString()} slots)`;
-      } catch (_) {
-        if (target) target.textContent = '';
-      }
-    }
-
-    function copy(text, btn) {
-      navigator.clipboard.writeText(text).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = '✓ Copied';
-        setTimeout(() => btn.textContent = orig, 1500);
-      });
-    }
-
-    load().catch(err => {
-      document.getElementById('sigList').innerHTML =
-        `<div class="card"><p style="color:var(--red)">${err}</p></div>`;
-    });
-  </script>
+  <script src="/js/main.js"></script>
+  <script src="/js/play.js"></script>
 </body>
 </html>

@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <defs>
+    <!-- Hood/robe gradient -->
+    <linearGradient id="hoodGrad" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%"   stop-color="#1a1d28"/>
+      <stop offset="60%"  stop-color="#0e1018"/>
+      <stop offset="100%" stop-color="#06080c"/>
+    </linearGradient>
+
+    <!-- Face shadow -->
+    <radialGradient id="faceShadow" cx="0.5" cy="0.4" r="0.5">
+      <stop offset="0%"   stop-color="#000000"/>
+      <stop offset="100%" stop-color="#06080c"/>
+    </radialGradient>
+
+    <!-- Eye glow -->
+    <radialGradient id="eyeGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"   stop-color="#c6ffe6"/>
+      <stop offset="35%"  stop-color="#14f195"/>
+      <stop offset="100%" stop-color="#14f195" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Chest seal glow -->
+    <radialGradient id="sealGlow" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="#14f195" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#14f195" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Orbit ring gradient -->
+    <linearGradient id="orbitGrad" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0%"   stop-color="#14f195" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#14f195" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#14f195" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="orbitGrad2" x1="0" y1="0.5" x2="1" y2="0.5">
+      <stop offset="0%"   stop-color="#9945ff" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#9945ff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#9945ff" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="8"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="ringBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient backdrop glow -->
+  <circle cx="200" cy="210" r="180" fill="url(#sealGlow)" opacity="0.35"/>
+
+  <!-- Back orbit ring (violet, behind figure) -->
+  <g transform="translate(200 230) rotate(-18)">
+    <ellipse cx="0" cy="0" rx="190" ry="58"
+             fill="none"
+             stroke="url(#orbitGrad2)"
+             stroke-width="1.5"
+             filter="url(#ringBlur)"/>
+  </g>
+
+  <!-- Robe body — broad trapezoid extending off-canvas bottom -->
+  <path d="M 110 200
+           Q 120 260 100 340
+           L 100 420
+           L 300 420
+           L 300 340
+           Q 280 260 290 200
+           Z"
+        fill="url(#hoodGrad)"/>
+
+  <!-- Shoulder curve -->
+  <path d="M 110 200
+           Q 150 170 200 170
+           Q 250 170 290 200"
+        fill="#0e1018"/>
+
+  <!-- Hood — outer shape (teardrop peak) -->
+  <path d="M 200 40
+           C 150 45 115 90 115 155
+           C 115 180 120 200 130 215
+           L 150 210
+           Q 155 165 180 140
+           Q 200 128 220 140
+           Q 245 165 250 210
+           L 270 215
+           C 280 200 285 180 285 155
+           C 285 90 250 45 200 40 Z"
+        fill="url(#hoodGrad)"
+        stroke="#1a1d28"
+        stroke-width="1"/>
+
+  <!-- Inner hood (darker face recess) -->
+  <path d="M 200 70
+           C 165 75 140 115 140 165
+           C 140 185 148 200 158 210
+           L 168 210
+           Q 175 170 195 150
+           Q 200 147 205 150
+           Q 225 170 232 210
+           L 242 210
+           C 252 200 260 185 260 165
+           C 260 115 235 75 200 70 Z"
+        fill="url(#faceShadow)"/>
+
+  <!-- Face shadow depth -->
+  <ellipse cx="200" cy="155" rx="40" ry="55" fill="#000000" opacity="0.85"/>
+
+  <!-- Eyes: two teal ovals with glow -->
+  <g filter="url(#strongGlow)">
+    <ellipse cx="183" cy="155" rx="8" ry="4" fill="url(#eyeGlow)"/>
+    <ellipse cx="217" cy="155" rx="8" ry="4" fill="url(#eyeGlow)"/>
+  </g>
+  <ellipse cx="183" cy="155" rx="3.5" ry="1.8" fill="#e6fff3"/>
+  <ellipse cx="217" cy="155" rx="3.5" ry="1.8" fill="#e6fff3"/>
+
+  <!-- Robe fold lines -->
+  <path d="M 165 260 Q 160 320 150 410" stroke="#1a1d28" stroke-width="1.2" fill="none"/>
+  <path d="M 235 260 Q 240 320 250 410" stroke="#1a1d28" stroke-width="1.2" fill="none"/>
+  <path d="M 200 230 L 200 410" stroke="#1a1d28" stroke-width="1" fill="none" opacity="0.6"/>
+
+  <!-- Chest seal — hexagonal shield with checkmark -->
+  <g transform="translate(200 290)">
+    <!-- Seal glow halo -->
+    <circle cx="0" cy="0" r="45" fill="url(#sealGlow)"/>
+
+    <!-- Hex outline -->
+    <path d="M 0 -28 L 24 -14 L 24 14 L 0 28 L -24 14 L -24 -14 Z"
+          fill="#0a0d14"
+          stroke="#14f195"
+          stroke-width="1.5"
+          stroke-linejoin="round"/>
+
+    <!-- Inner hex detail -->
+    <path d="M 0 -20 L 17 -10 L 17 10 L 0 20 L -17 10 L -17 -10 Z"
+          fill="none"
+          stroke="rgba(20,241,149,0.3)"
+          stroke-width="0.8"/>
+
+    <!-- Checkmark -->
+    <path d="M -10 0 L -3 8 L 12 -8"
+          stroke="#14f195"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"
+          filter="url(#softGlow)"/>
+  </g>
+
+  <!-- Front orbit ring (teal, in front of figure) -->
+  <g transform="translate(200 290) rotate(12)">
+    <ellipse cx="0" cy="0" rx="165" ry="50"
+             fill="none"
+             stroke="url(#orbitGrad)"
+             stroke-width="2"
+             filter="url(#ringBlur)"
+             opacity="0.9"/>
+    <!-- Crisp accent arc (bottom visible portion) -->
+    <path d="M -165 0 A 165 50 0 0 0 165 0"
+          fill="none"
+          stroke="#14f195"
+          stroke-width="1.2"
+          opacity="0.7"/>
+  </g>
+
+  <!-- Orbit sparkle particles -->
+  <g>
+    <circle cx="365" cy="300" r="2" fill="#14f195">
+      <animate attributeName="opacity" values="0.2;1;0.2" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="45"  cy="270" r="1.5" fill="#14f195">
+      <animate attributeName="opacity" values="1;0.2;1" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="330" cy="160" r="1.5" fill="#9945ff">
+      <animate attributeName="opacity" values="0.2;1;0.2" dur="4.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="80"  cy="130" r="1.8" fill="#14f195">
+      <animate attributeName="opacity" values="0.2;0.9;0.2" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+</svg>

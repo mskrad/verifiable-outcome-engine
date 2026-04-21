@@ -1,168 +1,247 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="/assets/logo.png" />
-  <title>Verifiable Outcome Engine - Build</title>
-  <link rel="stylesheet" href="/app.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Build · VRE</title>
+  <meta name="description" content="Build with VRE — define rules, commit on-chain, share the signature. Works for raffles, airdrops, loot tables, and prediction markets." />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <header>
-    <a class="logo" href="/">
-      <img src="/assets/logo.png" alt="VRE" class="logo-img" />
-      <div>
-        <div>Verifiable Outcome Engine</div>
-        <span class="logo-sub">Solana · Devnet</span>
-      </div>
-    </a>
-    <nav class="nav">
-      <a href="/play.html">Demo</a>
-      <a href="/build.html" class="active">Build</a>
-      <a href="/verify.html">Verify</a>
-      <a href="/widget.html">Widget</a>
-      <a href="/spec.html">Spec</a>
-    </nav>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.svg" alt="" class="nav-brand-logo" />
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="play.html"   data-nav="play.html">Demo</a></li>
+        <li><a href="build.html"  data-nav="build.html">Build</a></li>
+        <li><a href="verify.html" data-nav="verify.html">Verify</a></li>
+        <li><a href="widget.html" data-nav="widget.html">Widget</a></li>
+        <li><a href="spec.html"   data-nav="spec.html">Spec</a></li>
+      </ul>
+      <a href="build.html" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Config Engine + SDK</span>
+      <h1 class="page-title">Build with VRE</h1>
+      <p>The SDK turns a JSON ruleset into a deterministic, on-chain-committable artifact. Define once, commit on-chain, resolve on schedule. The engine is use-case-neutral — the examples below are conventions, not restrictions.</p>
+    </div>
   </header>
 
-  <main>
-    <div class="card build-intro">
-      <div class="hero-badge">Config Engine + SDK</div>
-      <h2>Build with VRE</h2>
-      <p>
-        Configure verifiable raffles, loot tables, and airdrops. Commit the rules
-        on-chain before the outcome is drawn, then let anyone replay the result
-        from public RPC data.
-      </p>
-      <p>
-        The npm SDK builds artifacts, resolves against an existing deployed program,
-        and verifies outcomes. The SDK does not deploy the Solana program. To
-        operate your own program instance, clone the repo, deploy
-        <span class="inline-code">programs/outcome</span> with Anchor, then use
-        the SDK/CLI with <span class="inline-code">--program-id</span>.
-      </p>
-    </div>
+  <!-- ============================================================
+       Use cases
+       ============================================================ -->
+  <section style="padding-top: 16px;">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Use cases</span>
+        <h2>Four shapes out of the box.</h2>
+        <p>The kernel is always the same: committed rules → deterministic replay → on-chain signature. The shape you pick is just a semantic label.</p>
+      </div>
 
-    <h3 class="section-kicker">Use Cases</h3>
-    <div class="features build-use-cases">
-      <div class="feature">
-        <div class="feature-icon">🎟</div>
-        <h4>Raffle</h4>
-        <p>Select a winner from a weighted participant list with Solana addresses as outcome ids.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🎁</div>
-        <h4>Loot</h4>
-        <p>Roll a weighted outcome table for legendary, rare, and common reward paths.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🪂</div>
-        <h4>Airdrop</h4>
-        <p>Weighted eligible-list selection from an address set. Multi-winner support is experimental.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🔮</div>
-        <h4>Prediction Market</h4>
-        <p>Pre-commit possible outcomes and their weights before the event resolves. Anyone can verify the declared result matches the pre-committed spec.</p>
+      <div class="usecase-grid">
+        <div class="usecase-card">
+          <span class="usecase-card-emoji">🎟</span>
+          <h3>Raffle</h3>
+          <p>Select a winner (or N winners) from a weighted participant list. Seed derived from resolve slot.</p>
+        </div>
+        <div class="usecase-card">
+          <span class="usecase-card-emoji">🎁</span>
+          <h3>Loot</h3>
+          <p>Roll a weighted outcome table — legendary / rare / common. Same kernel, different label.</p>
+        </div>
+        <div class="usecase-card">
+          <span class="usecase-card-emoji">🪂</span>
+          <h3>Airdrop</h3>
+          <p>Weighted eligible-list selection. Experimental multi-winner output with per-address caps.</p>
+        </div>
+        <div class="usecase-card">
+          <span class="usecase-card-emoji">🔮</span>
+          <h3>Prediction Market</h3>
+          <p>Pre-commit possible outcomes and weights before the event resolves. No oracle required.</p>
+        </div>
       </div>
     </div>
+  </section>
 
-    <h3 class="section-kicker">How It Works</h3>
-    <div class="stepper">
-      <div class="step-card">
-        <div class="step-num">1</div>
-        <div class="step-title">Define rules</div>
-        <p class="step-desc">
-          Create a JSON config with participants, weights, payout bounds, or outcome ids.
-        </p>
+  <!-- ============================================================
+       How it works — 3-step stepper
+       ============================================================ -->
+  <section>
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> How it works</span>
+        <h2>Three steps. Three commits. Zero hidden state.</h2>
+        <p>Each step produces a public artifact. Each artifact references the previous one. You never need to trust the engine — the chain of hashes is the proof.</p>
       </div>
-      <div class="step-card">
-        <div class="step-num">2</div>
-        <div class="step-title">Commit on-chain</div>
-        <p class="step-desc">
-          Run <span class="inline-code">vre resolve --config raffle.json --program-id &lt;PROGRAM_ID&gt;</span>
-          to publish the artifact to an existing program and resolve a transaction.
-        </p>
-      </div>
-      <div class="step-card">
-        <div class="step-num">3</div>
-        <div class="step-title">Share and verify</div>
-        <p class="step-desc">
-          Anyone pastes the transaction at verifiableoutcome.online and gets MATCH / OK
-          plus pre-commitment proof.
-        </p>
+
+      <div class="stepper">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Define rules</h3>
+          <p>Write a JSON config: participants, weights, outcome ids, selection mode. The SDK hashes it and gives you an <span class="mono">artifact_hash</span>.</p>
+          <div class="step-code"><span class="prompt">$</span> vre init raffle.json</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Commit on-chain</h3>
+          <p>Push the hash to Solana. The VRE program stores it against a <span class="mono">runtime_id</span>. Once committed, the ruleset cannot be edited.</p>
+          <div class="step-code"><span class="prompt">$</span> vre resolve --config raffle.json --program-id &lt;ID&gt;</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Share and verify</h3>
+          <p>You get a signature. Paste it at <span class="mono">verifiableoutcome.online/verify</span> or run <span class="mono">vre verify</span>. Anyone does this — not just you.</p>
+          <div class="step-code"><span class="prompt">$</span> vre verify --sig &lt;SIG&gt; <span style="color:var(--teal)">→ MATCH / OK</span></div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <h3 class="section-kicker">SDK</h3>
-    <div class="card sdk-card">
-      <div class="npm-install">
-        <code id="installCmd">npm install -g verifiable-outcome-sdk</code>
-        <button class="btn btn-ghost" id="btnCopyInstall">Copy</button>
+  <!-- ============================================================
+       Install + config example
+       ============================================================ -->
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Install</span>
+        <h2>One npm package. Three commands.</h2>
       </div>
 
-      <pre class="code-block"><code>vre verify --sig &lt;SIGNATURE&gt;
+      <div class="terminal mb-6">
+        <div class="terminal-head">
+          <div class="terminal-dots">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <span>~/projects/my-dapp</span>
+        </div>
+        <div class="terminal-body"><span class="comment"># Global CLI — for scripting, CI, and manual resolves</span>
+<span class="prompt">$</span> npm install -g verifiable-outcome-sdk
 
-# Or without a global install:
-npx -p verifiable-outcome-sdk vre verify --sig &lt;SIGNATURE&gt;</code></pre>
+<span class="comment"># Or embed the programmatic API in your dApp</span>
+<span class="prompt">$</span> npm install verifiable-outcome-sdk
 
-      <pre class="code-block"><code>import { buildArtifact, verifyOutcome } from 'verifiable-outcome-sdk';
+<span class="comment"># The same deterministic kernel runs in Node, browser, and Deno</span>
+<span class="prompt">$</span> vre --version
+<span class="out">verifiable-outcome-sdk v1.0.0</span>
+<span class="out">kernel: vre-core@1.0.0 (sha256 committed)</span></div>
+      </div>
 
-// Define your raffle
-const blob = buildArtifact({
-  type: 'raffle',
-  input_lamports: 10,
-  participants: [
-    { address: '5RbvSHb...', weight: 1000 },
-    { address: 'Aip3wC6...', weight: 1000 },
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <div class="result-section-title mb-2">raffle.json</div>
+          <div class="terminal">
+            <div class="terminal-body"><span class="comment">// The shape VRE commits on-chain</span>
+{
+  <span style="color:#a384ff">"version"</span>: <span class="ok">"1.0"</span>,
+  <span style="color:#a384ff">"runtime_id"</span>: <span class="ok">"rt_8a1f…c4d2"</span>,
+  <span style="color:#a384ff">"ruleset_id"</span>: <span class="ok">"rs_2e7b…9f01"</span>,
+  <span style="color:#a384ff">"mode"</span>: <span class="ok">"raffle"</span>,
+  <span style="color:#a384ff">"participants"</span>: [
+    <span class="ok">"7FHkp…3GnV"</span>,
+    <span class="ok">"9LxTm…bV2a"</span>,
+    <span class="ok">"4NpQr…X9eY"</span>
   ],
+  <span style="color:#a384ff">"weights"</span>: [<span style="color:#fbbf24">5</span>, <span style="color:#fbbf24">3</span>, <span style="color:#fbbf24">2</span>],
+  <span style="color:#a384ff">"seed_fn"</span>: <span class="ok">"slot_nonce"</span>
+}</div>
+          </div>
+        </div>
+        <div>
+          <div class="result-section-title mb-2">Programmatic API</div>
+          <div class="terminal">
+            <div class="terminal-body"><span class="comment">// The same engine, from JS</span>
+<span style="color:#a384ff">import</span> { VRE } <span style="color:#a384ff">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
+
+<span style="color:#a384ff">const</span> vre = <span style="color:#a384ff">new</span> VRE({
+  cluster: <span class="ok">"devnet"</span>,
+  programId: <span class="ok">"3b7T…XkBq"</span>,
 });
 
-// Verify any resolved TX
-const result = await verifyOutcome({
-  signature: 'mUXwae...',
-  rpcUrl: 'https://api.devnet.solana.com',
-});
-// -> { status: 'MATCH', outcome_id: '5RbvSHb...', ... }</code></pre>
+<span style="color:#a384ff">const</span> runtime = <span style="color:#a384ff">await</span> vre.commit(config);
+<span style="color:#a384ff">const</span> outcome = <span style="color:#a384ff">await</span> vre.resolve(runtime.id);
 
-      <p class="muted">
-        The executable is <span class="inline-code">vre</span>, not
-        <span class="inline-code">verifiable-outcome-sdk</span>. Program owners
-        clone the repo, deploy <span class="inline-code">programs/outcome</span>
-        with Anchor, then use this SDK against their program id.
-      </p>
+<span class="comment">// Independent check — anyone can run this</span>
+<span style="color:#a384ff">const</span> result = <span style="color:#a384ff">await</span> vre.verify(outcome.sig);
+<span class="comment">// { status: "MATCH", code: "OK", … }</span></div>
+          </div>
+        </div>
+      </div>
 
-      <div class="example-links">
-        <a
-          class="btn btn-ghost ext"
-          href="https://raw.githubusercontent.com/mskrad/verifiable-outcome-engine/main/examples/raffle.config.json"
-          target="_blank"
-          rel="noopener"
-        >View raffle.config.json</a>
-        <a
-          class="btn btn-ghost ext"
-          href="https://raw.githubusercontent.com/mskrad/verifiable-outcome-engine/main/examples/loot.config.json"
-          target="_blank"
-          rel="noopener"
-        >View loot.config.json</a>
-        <a
-          class="btn btn-ghost ext"
-          href="https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md"
-          target="_blank"
-          rel="noopener"
-        >Error Code Reference</a>
+      <div class="mt-8 flex gap-3" style="flex-wrap:wrap;">
+        <a class="btn btn-primary" href="spec.html">Read the spec →</a>
+        <a class="btn btn-secondary" href="verify.html">Try a verification →</a>
+        <a class="btn btn-ghost" href="https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md" target="_blank" rel="noopener">Error Code Reference</a>
       </div>
     </div>
-  </main>
+  </section>
 
-  <script>
-    document.getElementById('btnCopyInstall').onclick = function() {
-      const text = document.getElementById('installCmd').textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        this.textContent = 'Copied';
-        setTimeout(() => this.textContent = 'Copy', 1500);
-      });
-    };
-  </script>
+  <!-- ============================================================
+       Determinism explainer
+       ============================================================ -->
+  <section>
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Invariants</span>
+        <h2>What VRE actually guarantees.</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">1</div>
+          <h3>Pre-commitment</h3>
+          <p>The ruleset hash is on-chain before the resolve transaction. Slot ordering is enforced by the validator, not by VRE.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">2</div>
+          <h3>Determinism</h3>
+          <p>The selection function is a pure mapping from (seed, rules) to outcome. Same inputs, same output — forever.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">3</div>
+          <h3>Public seed</h3>
+          <p>Seed is derived from a future slot's block hash — unknowable at commit time, public after resolution.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">4</div>
+          <h3>No oracles</h3>
+          <p>Every input the verifier needs is already on-chain. Public RPC is the only dependency.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.svg" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="play.html">Demo</a></li>
+          <li><a href="build.html">Build</a></li>
+          <li><a href="verify.html">Verify</a></li>
+          <li><a href="spec.html">Spec</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
 </body>
 </html>

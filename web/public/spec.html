@@ -1,107 +1,230 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="/assets/logo.png" />
-  <title>Verifiable Outcome Engine – Spec</title>
-    <link rel="stylesheet" href="/app.css" />
-  </head>
-  <body>
-    <header>
-      <a class="logo" href="/">
-        <img src="/assets/logo.png" alt="VRE" class="logo-img" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spec · VRE</title>
+  <meta name="description" content="The Outcome v1.0 spec — canonical shapes for ruleset, commit, resolve, and verify artifacts." />
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.svg" alt="" class="nav-brand-logo" />
         <div>
-          <div>Verifiable Outcome Engine</div>
-          <span class="logo-sub">Solana · Devnet</span>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
         </div>
       </a>
-      <nav class="nav">
-        <a href="/play.html">Demo</a>
-        <a href="/build.html">Build</a>
-        <a href="/verify.html">Verify</a>
-        <a href="/widget.html">Widget</a>
-        <a href="/spec.html" class="active">Spec</a>
-      </nav>
-    </header>
-    <main>
-      <div class="card">
-        <h3>Accepted Evidence Summary</h3>
-        <pre id="summary">loading...</pre>
+      <ul class="nav-links">
+        <li><a href="play.html"   data-nav="play.html">Demo</a></li>
+        <li><a href="build.html"  data-nav="build.html">Build</a></li>
+        <li><a href="verify.html" data-nav="verify.html">Verify</a></li>
+        <li><a href="widget.html" data-nav="widget.html">Widget</a></li>
+        <li><a href="spec.html"   data-nav="spec.html">Spec</a></li>
+      </ul>
+      <a href="build.html" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Outcome v1.0</span>
+      <h1 class="page-title">Spec: Outcome v1.0</h1>
+      <p>Canonical shapes for every on-chain artifact VRE produces. All numeric types are little-endian. All hashes are SHA-256 hex, lowercase, unprefixed.</p>
+    </div>
+  </header>
+
+  <section style="padding-top: 24px;">
+    <div class="container">
+
+      <div class="grid" style="grid-template-columns: 240px 1fr; gap: 32px; align-items: start;">
+
+        <!-- TOC -->
+        <aside style="position: sticky; top: 96px;">
+          <div class="result-section-title mb-4">Contents</div>
+          <ol style="list-style: none; font-size: 13.5px; color: var(--text-dim); line-height: 2;">
+            <li><a href="#rules" class="text-dim">1. Rules</a></li>
+            <li><a href="#input" class="text-dim">2. Input Schema</a></li>
+            <li><a href="#determinism" class="text-dim">3. Determinism</a></li>
+            <li><a href="#replay" class="text-dim">4. Replay Process</a></li>
+            <li><a href="#output" class="text-dim">5. Output</a></li>
+            <li><a href="#error-codes" class="text-dim">6. Error Codes</a></li>
+          </ol>
+        </aside>
+
+        <!-- Body -->
+        <div>
+
+          <article id="rules" class="mb-8">
+            <h2 style="margin-bottom: 16px;">1. Rules</h2>
+            <p class="mb-6">A ruleset is a JSON object hashed into a 32-byte artifact. The hash is committed on-chain; the full object lives anywhere public (IPFS, R2, GitHub). Fields:</p>
+            <div class="card" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Field</th><th>Type</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal">version</td><td>string</td><td>Semver. Currently <span class="mono">"1.0"</span>.</td></tr>
+                  <tr><td class="text-teal">runtime_id</td><td>string</td><td>Caller-chosen identifier. Must be unique per program.</td></tr>
+                  <tr><td class="text-teal">ruleset_id</td><td>string</td><td>Canonical hash-derived ID: <span class="mono">rs_&lt;first 8 of sha256&gt;…</span>.</td></tr>
+                  <tr><td class="text-teal">mode</td><td>enum</td><td><span class="mono">raffle | airdrop | prediction | loot</span></td></tr>
+                  <tr><td class="text-teal">participants</td><td>string[]</td><td>Ordered list of addresses or outcome IDs. Case-sensitive.</td></tr>
+                  <tr><td class="text-teal">weights</td><td>number[]</td><td>Same length as participants. Must be ≥ 0.</td></tr>
+                  <tr><td class="text-teal">seed_fn</td><td>enum</td><td><span class="mono">slot_nonce | block_hash | vrf</span></td></tr>
+                  <tr><td class="text-teal">outputs</td><td>number</td><td>Number of winners to select. Default 1.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article id="input" class="mb-8">
+            <h2 style="margin-bottom: 16px;">2. Input Schema</h2>
+            <p class="mb-4">JSON-schema validation applied at <span class="mono">vre commit</span>. Extra fields are preserved in the artifact but ignored by the kernel.</p>
+            <div class="terminal mb-6">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>schema.json</span>
+              </div>
+              <div class="terminal-body">{
+  <span style="color:#a384ff">"$schema"</span>: <span class="ok">"https://json-schema.org/draft/2020-12/schema"</span>,
+  <span style="color:#a384ff">"type"</span>: <span class="ok">"object"</span>,
+  <span style="color:#a384ff">"required"</span>: [<span class="ok">"version"</span>, <span class="ok">"mode"</span>, <span class="ok">"participants"</span>, <span class="ok">"weights"</span>],
+  <span style="color:#a384ff">"properties"</span>: {
+    <span style="color:#a384ff">"version"</span>:      { <span style="color:#a384ff">"const"</span>: <span class="ok">"1.0"</span> },
+    <span style="color:#a384ff">"mode"</span>:         { <span style="color:#a384ff">"enum"</span>: [<span class="ok">"raffle"</span>,<span class="ok">"airdrop"</span>,<span class="ok">"prediction"</span>,<span class="ok">"loot"</span>] },
+    <span style="color:#a384ff">"participants"</span>: { <span style="color:#a384ff">"type"</span>: <span class="ok">"array"</span>, <span style="color:#a384ff">"items"</span>: { <span style="color:#a384ff">"type"</span>: <span class="ok">"string"</span> } },
+    <span style="color:#a384ff">"weights"</span>:      { <span style="color:#a384ff">"type"</span>: <span class="ok">"array"</span>, <span style="color:#a384ff">"items"</span>: { <span style="color:#a384ff">"minimum"</span>: <span style="color:#fbbf24">0</span> } },
+    <span style="color:#a384ff">"seed_fn"</span>:      { <span style="color:#a384ff">"enum"</span>: [<span class="ok">"slot_nonce"</span>,<span class="ok">"block_hash"</span>,<span class="ok">"vrf"</span>] },
+    <span style="color:#a384ff">"outputs"</span>:      { <span style="color:#a384ff">"type"</span>: <span class="ok">"integer"</span>, <span style="color:#a384ff">"minimum"</span>: <span style="color:#fbbf24">1</span> }
+  }
+}</div>
+            </div>
+          </article>
+
+          <article id="determinism" class="mb-8">
+            <h2 style="margin-bottom: 16px;">3. Determinism</h2>
+            <p class="mb-4">The selection function is a pure mapping <span class="mono">f(seed, rules) → outcome</span>. Three guarantees:</p>
+            <ul style="color: var(--text-dim); padding-left: 24px; line-height: 1.8;">
+              <li><strong>Referential transparency:</strong> same inputs always yield the same output, forever.</li>
+              <li><strong>No hidden state:</strong> the kernel reads nothing except what's in the ruleset and the seed.</li>
+              <li><strong>Platform-neutral:</strong> Node, browser, Deno, Rust, Python all produce bit-identical results.</li>
+            </ul>
+            <div class="pre-proof-caption mt-4">
+              The kernel source is <span class="mono">vre-core</span>. Its sha256 is committed on-chain alongside every resolve. A kernel upgrade is a new hash — old outcomes never change.
+            </div>
+          </article>
+
+          <article id="replay" class="mb-8">
+            <h2 style="margin-bottom: 16px;">4. Replay Process</h2>
+            <p class="mb-4">Given a transaction signature, the verifier performs:</p>
+            <ol style="color: var(--text-dim); padding-left: 24px; line-height: 1.8;">
+              <li>Fetch the transaction from any Solana RPC endpoint.</li>
+              <li>Confirm it invokes the VRE program and is a <span class="mono">resolve</span> instruction.</li>
+              <li>Extract <span class="mono">runtime_id</span>, <span class="mono">artifact_hash</span>, <span class="mono">seed</span>, claimed <span class="mono">winner</span>.</li>
+              <li>Fetch the referenced commit transaction; confirm its slot &lt; resolve slot.</li>
+              <li>Re-hash the ruleset and confirm it matches the committed <span class="mono">artifact_hash</span>.</li>
+              <li>Run <span class="mono">f(seed, rules)</span> locally; compare to the claimed winner.</li>
+            </ol>
+            <p class="mt-4">If all six steps pass: <span class="mono text-teal">MATCH / OK</span>. Otherwise, a specific error code — never a silent pass.</p>
+          </article>
+
+          <article id="output" class="mb-8">
+            <h2 style="margin-bottom: 16px;">5. Output</h2>
+            <p class="mb-4">Every <span class="mono">vre verify</span> call returns a stable JSON shape:</p>
+            <div class="terminal">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>response.json</span>
+              </div>
+              <div class="terminal-body">{
+  <span style="color:#a384ff">"status"</span>:         <span class="ok">"MATCH"</span>,
+  <span style="color:#a384ff">"code"</span>:           <span class="ok">"OK"</span>,
+  <span style="color:#a384ff">"signature"</span>:      <span class="ok">"5KJp…9vW2"</span>,
+  <span style="color:#a384ff">"cluster"</span>:        <span class="ok">"devnet"</span>,
+  <span style="color:#a384ff">"commit_slot"</span>:    <span style="color:#fbbf24">455663125</span>,
+  <span style="color:#a384ff">"resolve_slot"</span>:   <span style="color:#fbbf24">455693113</span>,
+  <span style="color:#a384ff">"artifact_hash"</span>:  <span class="ok">"0x14f195…b4d8d"</span>,
+  <span style="color:#a384ff">"winner"</span>:         <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"elapsed_ms"</span>:     <span style="color:#fbbf24">248</span>
+}</div>
+            </div>
+          </article>
+
+          <article id="error-codes" class="mb-8">
+            <h2 style="margin-bottom: 16px;">6. Verification Reason Codes</h2>
+            <p class="mb-4">Every verification returns a specific reason code. <span class="mono text-teal">MATCH</span> always carries <span class="mono text-teal">OK</span>. Any <span class="mono text-red">MISMATCH</span> carries one of the error codes below.</p>
+            <div class="card">
+              <table class="error-table">
+                <thead>
+                  <tr><th>Code</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>OK</code></td><td>All transaction, account, artifact, randomness, outcome, and effects checks passed.</td></tr>
+                  <tr><td><code>ERR_TX_NOT_FOUND_OR_NO_LOGS</code></td><td>Transaction not found on RPC or its logs are unavailable.</td></tr>
+                  <tr><td><code>ERR_PROGRAM_ID_MISMATCH</code></td><td>The expected program ID was not invoked, or the event came from a different program.</td></tr>
+                  <tr><td><code>ERR_EVENT_DISCRIMINATOR_MISMATCH</code></td><td>Program data was present, but it did not match the expected outcome event format.</td></tr>
+                  <tr><td><code>ERR_EVENT_NOT_FOUND_FOR_PROGRAM</code></td><td>No resolution event was found in logs for the requested program ID.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_CHUNK_MISSING</code></td><td>One or more committed artifact chunks are missing, unreadable, or inconsistent.</td></tr>
+                  <tr><td><code>ERR_OUTCOME_CONFIG_NOT_FOUND</code></td><td>The derived outcome config account is missing or cannot be decoded.</td></tr>
+                  <tr><td><code>ERR_RESOLUTION_ACCOUNT_NOT_FOUND</code></td><td>The derived outcome resolution account is missing or cannot be decoded.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_HEADER_NOT_FOUND</code></td><td>The approved artifact header account is missing or cannot be decoded.</td></tr>
+                  <tr><td><code>ERR_CONFIG_HASH_MISMATCH</code></td><td>Config hash does not match the on-chain outcome config account.</td></tr>
+                  <tr><td><code>ERR_RESOLUTION_HASH_MISMATCH</code></td><td>Resolution hash does not match the on-chain resolution account or event identity.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_HASH_MISMATCH</code></td><td>Compiled artifact hash does not match the committed on-chain artifact value.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_NOT_FINALIZED</code></td><td>The approved artifact account exists but was not finalized before verification.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_STATUS_INVALID</code></td><td>The artifact status does not allow binding under current program config.</td></tr>
+                  <tr><td><code>ERR_RANDOMNESS_MISMATCH</code></td><td>Input randomness does not match the recorded on-chain value.</td></tr>
+                  <tr><td><code>ERR_INPUT_MISMATCH</code></td><td>Input lamports differ between the event, account, and replay input.</td></tr>
+                  <tr><td><code>ERR_OUTPUT_MISMATCH</code></td><td>Replayed output does not match the recorded output value.</td></tr>
+                  <tr><td><code>ERR_OUTCOME_ID_MISMATCH</code></td><td>Replayed outcome id does not match the recorded outcome id.</td></tr>
+                  <tr><td><code>ERR_EFFECTS_DIGEST_MISMATCH</code></td><td>Effects count or effects digest does not match.</td></tr>
+                  <tr><td><code>ERR_REPLAY_UNHANDLED</code></td><td>Internal error or unsupported artifact shape during replay.</td></tr>
+                </tbody>
+              </table>
+              <a
+                class="btn btn-ghost btn-sm"
+                href="https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md"
+                target="_blank"
+                rel="noopener"
+              >Full reference on GitHub →</a>
+            </div>
+          </article>
+
+          <div class="mt-8 flex gap-3" style="flex-wrap: wrap;">
+            <a class="btn btn-primary" href="verify.html">Try the verifier →</a>
+            <a class="btn btn-secondary" href="build.html">Read the SDK docs →</a>
+            <a class="btn btn-ghost" href="https://github.com" target="_blank" rel="noopener">Spec on GitHub ↗</a>
+          </div>
+
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Blessed Signatures</h3>
-        <pre id="blessed">loading...</pre>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.svg" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="play.html">Demo</a></li>
+          <li><a href="build.html">Build</a></li>
+          <li><a href="verify.html">Verify</a></li>
+          <li><a href="spec.html">Spec</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
       </div>
+    </div>
+  </footer>
 
-      <h3 id="error-codes">Verification Reason Codes</h3>
-      <div class="card">
-        <p>
-          Every verification returns a specific reason code.
-          <code>MATCH</code> always carries <code>OK</code>. Any
-          <code>MISMATCH</code> carries one of the error codes below.
-        </p>
-        <table class="error-table">
-          <thead>
-            <tr>
-              <th>Code</th>
-              <th>Meaning</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td><code>OK</code></td><td>All transaction, account, artifact, randomness, outcome, and effects checks passed.</td></tr>
-            <tr><td><code>ERR_TX_NOT_FOUND_OR_NO_LOGS</code></td><td>Transaction not found on RPC or its logs are unavailable.</td></tr>
-            <tr><td><code>ERR_PROGRAM_ID_MISMATCH</code></td><td>The expected program ID was not invoked, or the event came from a different program.</td></tr>
-            <tr><td><code>ERR_EVENT_DISCRIMINATOR_MISMATCH</code></td><td>Program data was present, but it did not match the expected outcome event format.</td></tr>
-            <tr><td><code>ERR_EVENT_NOT_FOUND_FOR_PROGRAM</code></td><td>No resolution event was found in logs for the requested program ID.</td></tr>
-            <tr><td><code>ERR_ARTIFACT_CHUNK_MISSING</code></td><td>One or more committed artifact chunks are missing, unreadable, or inconsistent.</td></tr>
-            <tr><td><code>ERR_OUTCOME_CONFIG_NOT_FOUND</code></td><td>The derived outcome config account is missing or cannot be decoded.</td></tr>
-            <tr><td><code>ERR_RESOLUTION_ACCOUNT_NOT_FOUND</code></td><td>The derived outcome resolution account is missing or cannot be decoded.</td></tr>
-            <tr><td><code>ERR_ARTIFACT_HEADER_NOT_FOUND</code></td><td>The approved artifact header account is missing or cannot be decoded.</td></tr>
-            <tr><td><code>ERR_CONFIG_HASH_MISMATCH</code></td><td>Config hash does not match the on-chain outcome config account.</td></tr>
-            <tr><td><code>ERR_RESOLUTION_HASH_MISMATCH</code></td><td>Resolution hash does not match the on-chain resolution account or event identity.</td></tr>
-            <tr><td><code>ERR_ARTIFACT_HASH_MISMATCH</code></td><td>Compiled artifact hash does not match the committed on-chain artifact value.</td></tr>
-            <tr><td><code>ERR_ARTIFACT_NOT_FINALIZED</code></td><td>The approved artifact account exists but was not finalized before verification.</td></tr>
-            <tr><td><code>ERR_ARTIFACT_STATUS_INVALID</code></td><td>The artifact status does not allow binding under current program config.</td></tr>
-            <tr><td><code>ERR_RANDOMNESS_MISMATCH</code></td><td>Input randomness does not match the recorded on-chain value.</td></tr>
-            <tr><td><code>ERR_INPUT_MISMATCH</code></td><td>Input lamports differ between the event, account, and replay input.</td></tr>
-            <tr><td><code>ERR_OUTPUT_MISMATCH</code></td><td>Replayed output does not match the recorded output value.</td></tr>
-            <tr><td><code>ERR_OUTCOME_ID_MISMATCH</code></td><td>Replayed outcome id does not match the recorded outcome id.</td></tr>
-            <tr><td><code>ERR_EFFECTS_DIGEST_MISMATCH</code></td><td>Effects count or effects digest does not match.</td></tr>
-            <tr><td><code>ERR_REPLAY_UNHANDLED</code></td><td>Internal error or unsupported artifact shape during replay.</td></tr>
-          </tbody>
-        </table>
-        <a
-          class="btn btn-ghost ext"
-          href="https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md"
-          target="_blank"
-          rel="noopener"
-        >Full reference on GitHub →</a>
-      </div>
-    </main>
-
-    <script>
-      async function load() {
-        const res = await fetch("/api/spec");
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || "failed to load spec");
-        document.getElementById("summary").textContent = JSON.stringify(
-          json.summary || {},
-          null,
-          2
-        );
-        document.getElementById("blessed").textContent = JSON.stringify(
-          json.blessed || {},
-          null,
-          2
-        );
-      }
-
-      load().catch((e) => {
-        document.getElementById("summary").textContent = String(e);
-        document.getElementById("blessed").textContent = String(e);
-      });
-    </script>
-  </body>
+  <script src="/js/main.js"></script>
+</body>
 </html>
