@@ -122,14 +122,26 @@ Workstreams:
 **WS-11: New design adaptation** ← HACKATHON-DESIGN-ADAPT-001 ✅
 - Адаптация Claude Design в ветке design/claude-design-v1
 - Wire up реальные API эндпоинты в новых JS файлах
-- ACCEPTED; merge в main pending
+- ACCEPTED; merged в main ✅
+
+**WS-12: Positioning rewrite** ← HACKATHON-POSITIONING-001
+- Переписать всю публичную копию по формуле: кто / что ломается / что получают
+- Убрать "dev infrastructure for verifiable outcomes" со всех публичных поверхностей
+- Новый хедлайн: "Trustless outcome infrastructure for Solana apps"
+- Затрагивает: index.html, play.html, verify.html, build.html, README.md
+
+**WS-13: B2B/B2C стратегия + коммерческое предложение** ← HACKATHON-BIZMODEL-001
+- Решение: B2B первичная стратегия (Developer Infrastructure) vs B2C
+- Решение: protocol fee per resolution vs subscription
+- Итог: pitch документ для Colosseum submission
 
 Acceptance:
-- Airdrop blessed signature в play.html рядом с raffle
-- widget.js работает на любом внешнем сайте
-- README quick-start: 3 команды до MATCH
-- Before/After секция на главной или в README
-- Phantom "Did I win?" работает на verify.html
+- Airdrop blessed signature в play.html рядом с raffle ✅
+- widget.js работает на любом внешнем сайте ✅
+- README quick-start: 3 команды до MATCH ✅
+- Before/After секция на главной или в README ✅
+- Phantom "Did I win?" работает на verify.html (HACKATHON-PHANTOM-001 — в работе)
+- Новый value prop на всех публичных страницах (HACKATHON-POSITIONING-001)
 
 ---
 
