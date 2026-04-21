@@ -16,3 +16,5 @@ STATUS.md
 target/
 .anchor/
 test-ledger/
+programs/
+programs/

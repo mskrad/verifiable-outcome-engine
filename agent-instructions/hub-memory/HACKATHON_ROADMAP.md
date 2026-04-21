@@ -130,18 +130,35 @@ Workstreams:
 - Новый хедлайн: "Trustless outcome infrastructure for Solana apps"
 - Затрагивает: index.html, play.html, verify.html, build.html, README.md
 
-**WS-13: B2B/B2C стратегия + коммерческое предложение** ← HACKATHON-BIZMODEL-001
-- Решение: B2B первичная стратегия (Developer Infrastructure) vs B2C
-- Решение: protocol fee per resolution vs subscription
-- Итог: pitch документ для Colosseum submission
+**WS-13: B2B/B2C стратегия + коммерческое предложение** ← HACKATHON-BIZMODEL-001 ✅
+- Решение принято: B2B primary + B2C as demo layer
+- Revenue: protocol fee per resolution (Tier 1) + partner instances (Tier 2)
+- npm пакет удалён (verifiable-outcome-sdk unpublished)
+- programs/ никогда не было в публичном репо ✅
+
+**WS-14: License + docs cleanup** ← HACKATHON-LICENSE-DOCS-001
+- Заменить MIT LICENSE на split-license (SDK open, program proprietary)
+- INTEGRATION.md: убрать "open-source program" и self-deploy инструкции
+- Добавить Partner Program описание (Tier 2 → own instance by agreement)
+- index.html: убрать "MIT-licensed SDK"
+- README.md: добавить Licensing + Partner CTA секцию
+- build.html: добавить Partner CTA блок
+
+**WS-15: Protocol fee implementation** ← HACKATHON-PROTOCOL-FEE-001
+- Добавить fee_lamports + treasury в ProgramConfig (Rust)
+- CPI transfer в resolve_outcome.rs перед резолвом
+- anchor upgrade на devnet (Program ID не меняется — upgradeable ✅)
+- Новая blessed signature после успешного fee-resolve
 
 Acceptance:
 - Airdrop blessed signature в play.html рядом с raffle ✅
 - widget.js работает на любом внешнем сайте ✅
 - README quick-start: 3 команды до MATCH ✅
 - Before/After секция на главной или в README ✅
-- Phantom "Did I win?" работает на verify.html (HACKATHON-PHANTOM-001 — в работе)
-- Новый value prop на всех публичных страницах (HACKATHON-POSITIONING-001)
+- Phantom "Did I win?" работает на verify.html ← HACKATHON-PHANTOM-001
+- Новый value prop на всех публичных страницах ✅ (HACKATHON-POSITIONING-001)
+- LICENSE отражает реальную бизнес-модель ← HACKATHON-LICENSE-DOCS-001
+- Protocol fee работает на devnet ← HACKATHON-PROTOCOL-FEE-001
 
 ---
 
@@ -164,7 +181,7 @@ Workstreams:
 - Показать integration flow end-to-end
 - Twitter/X: build-in-public пост с pre-commitment timeline screenshot
 
-**WS-4: Revenue model — Protocol fee (два варианта)**
+**WS-4: Revenue model — Protocol fee** ← HACKATHON-PROTOCOL-FEE-001
 
 Вариант A — Shared program с комиссией per-resolution (рекомендуется):
 - Все используют канонический задеплоенный program (`3b7T...`)
