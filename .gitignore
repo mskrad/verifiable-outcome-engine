@@ -3,6 +3,9 @@
 node_modules/
 tmp/
 dist/
+artifacts/*.bin
+sdk/*.js
+sdk/*.d.ts
 
 # Internal multi-agent coordination — not part of public reviewer surface
 agent-instructions/
