@@ -14,6 +14,7 @@ Optional: copy `.env.example` to `.env` to override defaults. Not required — s
 
 - Reviewer flow: `http://127.0.0.1:8787/play.html`
 - Verify: `http://127.0.0.1:8787/verify.html`
+- Widget: `http://127.0.0.1:8787/widget.html`
 - Spec / Evidence: `http://127.0.0.1:8787/spec.html`
 
 ## 3) Web reviewer flow
@@ -37,7 +38,27 @@ yarn -s replay \
   --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
 ```
 
-## 5) Acceptance boundary
+## 5) Embedded widget equivalent
+
+For a known transaction signature:
+
+```html
+<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify
+  sig="YOUR_TX_SIGNATURE"
+  rpc="https://api.devnet.solana.com"
+  program-id="YOUR_PROGRAM_ID">
+</vre-verify>
+```
+
+For a paste-your-own-signature form:
+
+```html
+<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify-form></vre-verify-form>
+```
+
+## 6) Acceptance boundary
 
 This runbook is packaging-only and reviewer-oriented.
 

@@ -834,6 +834,37 @@ select option { background: var(--bg2); }
   flex-wrap: wrap;
 }
 
+.error-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 12px 0 16px;
+}
+
+.error-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.error-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  vertical-align: top;
+}
+
+.error-table td:first-child {
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.error-table tr:last-child td {
+  border-bottom: none;
+}
+
 .widget-demo-surface {
   background:
     radial-gradient(circle at top left, rgba(20,241,149,.14), transparent 34%),
@@ -917,6 +948,10 @@ pre {
   }
   .npm-install { align-items: stretch; flex-direction: column; }
   .npm-install .btn { justify-content: center; }
+  .error-table td:first-child {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
   .artifact-rules-head { flex-direction: column; }
   .outcome-row { grid-template-columns: minmax(0, 1fr) 72px; }
   .outcome-row-head { display: none; }

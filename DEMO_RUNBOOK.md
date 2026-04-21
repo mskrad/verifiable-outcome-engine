@@ -66,3 +66,33 @@ yarn -s replay \
 Expected: `verification_result : MATCH` / `verification_reason : OK`
 
 This path demonstrates the operator cycle against an existing deployed program: commit rules on-chain → resolve → independently verify.
+
+---
+
+## Optional: Embedded Widget Path
+
+To show verification directly inside another page, use the public widget script.
+
+For a fixed transaction signature:
+
+```html
+<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify
+  sig="YOUR_TX_SIGNATURE"
+  rpc="https://api.devnet.solana.com"
+  program-id="YOUR_PROGRAM_ID">
+</vre-verify>
+```
+
+For a paste-your-own-signature flow:
+
+```html
+<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify-form></vre-verify-form>
+```
+
+The local demo page is available at:
+
+```text
+http://127.0.0.1:8787/widget.html
+```
