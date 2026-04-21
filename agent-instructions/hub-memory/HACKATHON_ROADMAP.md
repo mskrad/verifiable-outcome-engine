@@ -145,6 +145,13 @@ Workstreams:
 - build.html: добавить Partner CTA блок
 
 **WS-15: Protocol fee implementation** ← HACKATHON-PROTOCOL-FEE-001
+- Tier 1/Tier 2 через fee_lamports в ProgramConfig (Вариант A)
+- Tier 2 партнёры: fee_lamports = 0, свой инстанс по соглашению
+
+**WS-16: npm republish SDK v0.2.0** ← HACKATHON-NPM-REPUBLISH-001
+- verifiable-outcome-sdk@0.1.1 удалён Apr 21 (защита кода)
+- Переиздать v0.2.0: IDL остаётся (не секрет), programs/ не входит
+- Добавить .npmignore, обновить package.json description + keywords
 - Добавить fee_lamports + treasury в ProgramConfig (Rust)
 - CPI transfer в resolve_outcome.rs перед резолвом
 - anchor upgrade на devnet (Program ID не меняется — upgradeable ✅)
