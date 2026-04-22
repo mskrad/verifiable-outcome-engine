@@ -3,6 +3,7 @@
 node_modules/
 tmp/
 dist/
+Assets /
 artifacts/*.bin
 sdk/*.js
 sdk/*.d.ts
