@@ -84,7 +84,10 @@ function readJsonBody(req) {
 }
 
 function sendStatic(req, res, pathname) {
-  const localPath = pathname === "/" ? "/index.html" : pathname;
+  const localPath = pathname === "/" ? "/index.html"
+    : (!path.extname(pathname) && fs.existsSync(path.join(STATIC_DIR, pathname.replace(/^\/+/, "") + ".html")))
+      ? pathname + ".html"
+      : pathname;
   const abs = path.join(STATIC_DIR, localPath.replace(/^\/+/, ""));
   if (!abs.startsWith(STATIC_DIR)) {
     json(res, 400, { ok: false, error: "invalid path" });
