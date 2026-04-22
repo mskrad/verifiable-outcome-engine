@@ -19,6 +19,19 @@ https://verifiableoutcome.online/verify.html?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcK
 
 Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
 
+## Licensing
+
+The **verification SDK** is open for integration — use it to build artifacts,
+verify outcomes, and replay results from chain data.
+
+The **Solana program** (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) runs
+on a protocol fee model: each `resolveOutcome` call pays a small fee to the
+VRE treasury.
+
+**Partners** (large platforms, GameFi, NFT marketplaces) can deploy their own
+instance under a commercial agreement — no per-tx fee.
+[Contact us →](mailto:hello@verifiableoutcome.online)
+
 ## Problem
 
 On-chain apps often ask users to trust that an outcome was computed correctly:

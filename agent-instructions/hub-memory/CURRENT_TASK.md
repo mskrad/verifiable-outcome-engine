@@ -1,13 +1,13 @@
 # CURRENT TASK
 
-- Timestamp: 2026-04-21 22:10:00 +0300
-- Active Task ID: HACKATHON-PHANTOM-001
+- Timestamp: 2026-04-22 13:27:02 +0300
+- Active Task ID: HACKATHON-LICENSE-DOCS-001
 - Parent Sprint: HACKATHON-SPRINT-3 (Apr 19–25)
-- Current Stage: READY FOR ARCHITECT
-- Hub Decision: Sprint 3 continues. `HACKATHON-DESIGN-ADAPT-001` is ACCEPTED on branch `design/claude-design-v1`; merge to `main` is pending.
-- Next Owner: Architect
-- Next Action: Design read-only Phantom "Did I win?" integration for `verify.html`.
-- Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-PHANTOM-001.md`
+- Current Stage: READY FOR TESTER
+- Hub Decision: `HACKATHON-LICENSE-DOCS-001` updated public docs and licensing copy to match the accepted protocol-fee / partner-instance business model.
+- Next Owner: Tester
+- Next Action: Verify licensing/docs copy, grep for removed self-deploy/open-source claims, and run documentation verification commands.
+- Task Memory File: `agent-instructions/hub-memory/tasks/HACKATHON-LICENSE-DOCS-001.md`
 - Sprint Plan: `agent-instructions/hub-memory/HACKATHON_ROADMAP.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-CONFIG-ENGINE-001.md`
 - Previous Task Memory: `agent-instructions/hub-memory/tasks/HACKATHON-RAFFLE-FIX-001.md`
@@ -15,6 +15,7 @@
 ## Development Flow
 
 - `HACKATHON-SPRINT-3` is the active sprint-level coordination frame.
+- `HACKATHON-LICENSE-DOCS-001` is READY FOR TESTER after license/docs copy was updated for SDK MIT integration use, canonical program protocol fee, and partner instances.
 - `HACKATHON-DESIGN-ADAPT-001` is ACCEPTED on `design/claude-design-v1`; merge to `main` is pending.
 - `HACKATHON-PHANTOM-001` is READY FOR ARCHITECT and is the next active Sprint 3 task.
 - Completed Sprint 3 doc/task details remain in each task memory file; this current-task file should not imply an active handoff for already accepted work.
@@ -39,6 +40,15 @@
 
 ## Latest Evidence
 
+- HACKATHON-LICENSE-DOCS-001 document update:
+  - `LICENSE` now separates SDK MIT integration/verification use from proprietary Solana program source.
+  - `README.md` now has `## Licensing` after Quick Verify.
+  - `INTEGRATION.md` now describes the canonical program as VRE-operated and partner instances as commercial-agreement deployments.
+  - `web/public/index.html` says `Open verification SDK` instead of `MIT-licensed SDK`.
+  - `web/public/build.html` includes a Partner CTA with `mailto:hello@verifiableoutcome.online`.
+  - `git diff --check`: passed.
+  - `node --check web/server.mjs`: passed.
+  - Forbidden public-doc grep returned no matches for open-source/self-deploy/Anchor deploy/MIT homepage copy.
 - HACKATHON-DESIGN-ADAPT-001 tester result:
   - verdict: PASS; Hub accepted the task for Sprint 3.
   - branch: `design/claude-design-v1`.

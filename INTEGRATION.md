@@ -9,15 +9,18 @@ There are four distinct roles. Each requires a different level of access:
 | **Verifier** | Verify any resolved outcome on-chain | No | No |
 | **Builder** | Compile a config into a binary artifact locally | No | No |
 | **Operator** | Resolve outcomes against an existing deployed program | Yes (program admin) | No |
-| **Program Owner** | Deploy their own instance of the Solana program | Yes (funded) | Yes |
+| **Partner** | Own instance via partnership | Contact VRE team | Partner agreement |
 
 > The npm package (`verifiable-outcome-sdk`) covers Verifier, Builder, and Operator roles.  
-> The Solana program itself is open-source and lives in `programs/outcome/` — Program Owners must clone the repo and deploy it themselves.
+> The canonical Solana program (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) is operated by the VRE team.
 >
 > The SDK does **not** deploy a new Solana program instance. It builds artifacts,
 > resolves against an already deployed program, and verifies resolved outcomes.
-> To operate your own program ID, clone this repo, deploy `programs/outcome`
-> with Anchor, then use the SDK/CLI with `--program-id`.
+> To deploy your own instance under a partner agreement, contact the VRE team.
+>
+> Verification is always free. The canonical program uses a protocol fee per
+> `resolveOutcome`; partner instances can run with `fee_lamports = 0` under a
+> commercial agreement.
 
 ---
 
@@ -122,7 +125,7 @@ console.log(artifact.toString("hex"));
 
 Resolve outcomes on-chain against an **existing deployed program**. Requires the wallet that initialized that program (the program admin).
 
-> The canonical devnet program (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) is operated by the VRE team. To become your own operator, see **Part 4 — Program Owner**.
+> The canonical devnet program (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) is operated by the VRE team and is subject to the protocol fee model. For a dedicated instance, see **Part 4 — Partner Program**.
 >
 > `vre resolve` does not deploy a program. It commits an artifact and resolves
 > against the program ID you provide.
@@ -202,63 +205,30 @@ console.log("TX:", signature);
 
 ---
 
-## Part 4 — Program Owner
+## Part 4 — Partner Program
 
-Deploy your own instance of the Solana program so you control the admin wallet.
+Large platforms, GameFi projects, and NFT marketplaces can run a dedicated VRE
+program instance under a partner agreement.
 
-### Prerequisites
+### What a partner instance gives you
 
-- [Rust](https://rustup.rs)
-- [Anchor CLI](https://www.anchor-lang.com/docs/installation) v0.32+
-- Solana CLI + funded devnet wallet (see Part 3 prerequisites)
+- Full control over your program ID and admin wallet.
+- `fee_lamports = 0` for your dedicated deployment.
+- A commercial agreement that covers program source access, deployment support,
+  and operational terms.
+- The same public verification flow: anyone can still run `vre verify` against
+  your program ID.
 
-### Clone the repo
+### How to get one
 
-```bash
-git clone https://github.com/mskrad/verifiable-outcome-engine
-cd verifiable-outcome-engine
-yarn install
-```
+Contact the VRE team at [hello@verifiableoutcome.online](mailto:hello@verifiableoutcome.online).
+The team will coordinate source access, deployment, fee configuration, and the
+program ID you should pass to the SDK/CLI.
 
-### Generate a new program keypair
+### Use your partner program
 
-```bash
-solana-keygen new --outfile target/deploy/outcome-keypair.json
-solana address -k target/deploy/outcome-keypair.json
-```
-
-Copy the printed address — this will be your program ID.
-
-### Update the program ID in two places
-
-**`Anchor.toml`** — replace both `localnet` and `devnet` entries:
-
-```toml
-[programs.localnet]
-outcome = "<YOUR_PROGRAM_ID>"
-
-[programs.devnet]
-outcome = "<YOUR_PROGRAM_ID>"
-```
-
-**`programs/outcome/src/lib.rs`** — update the `declare_id!` macro:
-
-```rust
-declare_id!("<YOUR_PROGRAM_ID>");
-```
-
-### Build and deploy
-
-```bash
-anchor build
-anchor deploy --provider.cluster devnet
-```
-
-Anchor will use `target/deploy/outcome-keypair.json` as the program authority.
-
-### Use your program
-
-The first `vre resolve` against a fresh program ID will automatically call `initializeProgramConfig` and set your wallet as the admin.
+After your partner instance is deployed and initialized, resolve against the
+program ID provided by the VRE team:
 
 ```bash
 vre resolve \
@@ -301,7 +271,7 @@ vre resolve
 ## Troubleshooting
 
 **`ProgramConfig admin mismatch`**  
-You are calling `resolve` against a program that was initialized by a different wallet. Use the correct admin wallet for that program, or operate your own program instance by cloning this repo, deploying `programs/outcome` with Anchor, then passing `--program-id` (Part 4).
+You are calling `resolve` against a program that was initialized by a different wallet. Use the correct admin wallet for that program, or contact the VRE team for a partner instance and pass the provided `--program-id` (Part 4).
 
 **`airdrop` fails / rate limit**  
 Wait 30 seconds and retry, or use [faucet.solana.com](https://faucet.solana.com).

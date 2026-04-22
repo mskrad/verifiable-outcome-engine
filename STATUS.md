@@ -1,0 +1,307 @@
+# Status
+
+- Updated: 2026-04-22 13:27:02 +0300
+- Repo role: standalone hackathon repo for `Verifiable Outcome Engine`
+- Ecosystem repo: maintained separately in the main monorepo
+- Current repo focus:
+  - canonical `outcome` Rust/Anchor program source
+  - replay-by-signature verifier
+  - operator/reference operator resolve helper
+  - reviewer-facing web flow
+  - bundled devnet evidence for hackathon review
+- Current state:
+  - `HACKATHON-RUST-SOURCE-001` accepted and closed
+  - `HACKATHON-RAFFLE-FIX-001` accepted and committed
+  - `HACKATHON-CONFIG-ENGINE-001` accepted
+  - `HACKATHON-TIMELINE-001` accepted after Tester re-verified mobile overflow fix
+  - `HACKATHON-DEPLOY-001` accepted after public HTTPS deploy verification
+  - `HACKATHON-DEVPAGE-001` accepted and committed as `db12eeb`
+  - `HACKATHON-ARTIFACT-DECODE-001` ready for Tester after implementation and focused local verification
+  - `HACKATHON-NPM-PUBLISH-001` ready for Hub acceptance after Tester verified SDK package build and npm dry-run
+  - `HACKATHON-SDK-CLI-001` ready for Hub acceptance after Tester verified SDK CLI package surface and devnet verify flow
+  - `HACKATHON-COPY-BOUNDARY-001` ready for Tester after site/docs cleanup of SDK/npm/program-owner claim boundaries
+  - `HACKATHON-README-QS-001` ready for Tester after README Quick Verify and Before/After table update
+  - `HACKATHON-ERROR-TAXONOMY-001` ready for Tester after public verification error reference was added
+  - `HACKATHON-ERROR-SURFACE-001` ready for Hub acceptance after Tester verified verification error code surfaces
+  - `HACKATHON-LICENSE-DOCS-001` ready for Tester after LICENSE, README, INTEGRATION, index, and build copy were updated for the accepted protocol-fee / partner-instance business model
+  - `HACKATHON-WIDGET-001` ready for Hub server test after widget.js, interactive widget form, /widget.html, Widget nav item, 5-link nav CSS, and scoped CORS implementation
+  - `HACKATHON-AIRDROP-DEMO-001` ready for Hub acceptance after Tester verified airdrop and prediction devnet blessed signatures
+  - `HACKATHON-USECASES-UI-001` ready for Hub acceptance after Tester verified frontend use-case labels/badges and Prediction Market copy
+  - `HACKATHON-DESIGN-ADAPT-001` ready for Hub acceptance after Tester verified Claude Design API wiring, widget flow, keeper video, and mobile overflow
+  - minimal canonical Rust source is present under `programs/outcome/`
+  - operator `--raffle` devnet flow now creates a sorted compiled artifact and replays as `MATCH / OK`
+  - JSON artifact configs and SDK entrypoints are available under `examples/`, `scripts/build_artifact.ts`, and `sdk/`
+  - reviewer web flow now has a pre-commitment timeline endpoint/UI implementation with mobile overflow re-verified
+  - public click-to-verify deployment is live at `https://verifiableoutcome.online/`
+  - local blessed signature bundle now has 5 active devnet signatures
+  - `play.html` now visually separates Loot, Raffle, Airdrop, and Prediction blessed signatures with use-case badges
+  - developer-facing `/build.html` page is implemented locally and CSS-only `play.html` long-hash overflow fix is re-verified
+  - `verify.html` now shows decoded committed rules after `MATCH`, including outcomes/participants, weights, and teal winner highlight
+  - SDK package can build into `dist/sdk/` for npm dry-run packaging
+  - SDK package now includes `vre` CLI binary for `verify` and `resolve`
+  - docs/build page now clarify that npm SDK does not deploy a Solana program; own instances require partner agreement with the VRE team
+  - license/docs now split the open TypeScript verification SDK from proprietary Solana program source and document canonical protocol-fee usage plus partner instances
+  - license/docs verification: `git diff --check` passed; `node --check web/server.mjs` passed; forbidden public-doc grep returned no matches
+  - next active owner: Tester for `HACKATHON-LICENSE-DOCS-001`
+  - `slot`, `wheel`, monorepo-only examples, deploy artifacts, and target outputs remain excluded
+- Latest design adaptation tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - branch: `design/claude-design-v1`
+  - HTML asset paths now use absolute `/assets/`, `/css/`, and `/js/` paths
+  - `index.html` uses keeper video sources `/assets/keeper_new.webm` and `/assets/keeper_new.mp4`
+  - `play.js` fetches `/api/health` and `/api/blessed-signatures`, renders active blessed entries, renders use-case badges, and calls `/api/timeline`
+  - `/play.html` browser check: 5 cards, badges `Loot`, `Loot`, `Raffle`, `Airdrop`, `Prediction`, and 5 timeline rows
+  - `verify.js` uses `POST /api/replay` and `POST /api/timeline`; frontend local `weightedPick` replay path removed
+  - `/verify.html?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh` browser check: `MATCH / OK`, Committed Rules, Pre-commitment Timeline, and Raw output
+  - `/widget.html` browser check: live widget and form flow both rendered `MATCH / OK` and `Raffle · slot 455693113`
+  - `css/style.css` includes `.error-table`, use-case badge colors, widget styles, keeper video styles, and mobile overflow guards
+  - `node --check web/public/js/play.js`: passed
+  - `node --check web/public/js/verify.js`: passed
+  - `node --check web/server.mjs`: passed
+  - `npx tsc --noEmit`: passed
+  - `git diff --check`: passed
+  - local HTTP smoke: `/`, `/play.html`, `/verify.html`, `/build.html`, `/widget.html`, `/spec.html` returned HTTP `200`
+  - local API smoke: `/api/health` returned `ok:true` and `blessed_signatures_count=5`; `/api/blessed-signatures` returned 5 entries
+  - network evidence included `/api/health`, `/api/blessed-signatures`, `/api/replay`, and `/api/timeline`
+  - Brave headless 375px sweep: all 6 pages had `clientWidth=375`, `scrollWidth=375`, `overflow=false`
+  - scope guard: no diff in `web/server.mjs`, SDK, Rust/Anchor code, artifacts, or `scripts/resolve_operator.ts`
+- Latest error surface tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - `spec.html` includes `Verification Reason Codes` with `id="error-codes"`
+  - `spec.html` includes `.error-table` with 20 reason codes and a GitHub link to `VERIFICATION_ERRORS.md`
+  - `build.html` example links include `Error Code Reference`
+  - `verify.html` MISMATCH result-sub includes `See error codes →` linking to `/spec.html#error-codes`
+  - mocked MISMATCH browser check rendered `MISMATCH / ERR_OUTPUT_MISMATCH` and the expected `/spec.html#error-codes` link
+  - `app.css` includes `.error-table` styles and mobile wrapping guard
+  - `node --check web/server.mjs`: passed
+  - `npx tsc --noEmit`: passed
+  - `git diff --check`: passed
+  - local `/spec.html`, `/build.html`, `/verify.html`: HTTP `200`
+  - Brave headless `/spec.html#error-codes` at 375px: `clientWidth=375`, `scrollWidth=375`, `overflow=false`, `rows=20`, `offenders=[]`
+  - scope guard: no diff in `web/server.mjs`, SDK, Rust/Anchor code, or `scripts/resolve_operator.ts`
+- Latest error taxonomy update:
+  - `VERIFICATION_ERRORS.md` added
+  - all `OK` plus 19 unique `ERR_*` reason codes from `sdk/verify.ts` documented
+  - README links to `VERIFICATION_ERRORS.md` after Quick Verify
+  - code, SDK, server, and Rust were not changed
+- Latest widget implementation:
+  - `web/public/widget.js` defines `<vre-verify>` as zero-dependency plain JS Shadow DOM component
+  - `web/public/widget.js` also defines `<vre-verify-form>` for the paste-your-own-signature flow
+  - `widget.js` hardcodes `https://verifiableoutcome.online` and posts `signature`, `rpc`, `programId`
+  - `widget.js` keeps a localhost-only fallback to `location.origin` for local demo verification after a public-origin fetch failure
+  - `widget.js` size: `4065` bytes
+  - `web/public/widget.html` added with a blessed live widget demo, embed code for custom transactions with `sig`, `rpc`, and `program-id`, and interactive `<vre-verify-form>`
+  - `README.md`, `DEMO_RUNBOOK.md`, and `RUNBOOK.md` document both embed modes: fixed-signature `<vre-verify>` and paste-your-own-signature `<vre-verify-form>`
+  - Widget nav item added to all public HTML pages
+  - `web/server.mjs` scoped CORS to `/api/replay` and `/api/health`
+  - `OPTIONS /api/replay`: HTTP `204` with CORS headers
+  - `GET /api/health`: HTTP `200` with CORS headers
+  - `node --check web/server.mjs`: passed
+  - `node --check web/public/widget.js`: passed
+  - `npx tsc --noEmit`: passed
+  - `git diff --check`: passed
+  - `test "$(wc -c < web/public/widget.js)" -lt 5120`: passed
+  - `curl -fsS http://127.0.0.1:8787/widget.html >/tmp/widget.html`: passed
+  - `curl -fsS http://127.0.0.1:8787/widget.js >/tmp/widget.js`: passed; served size `4065` bytes
+  - Brave headless `/widget.html` at 375px: `clientWidth=375`, `scrollWidth=375`
+  - Brave headless live demo rendered `✅ MATCH / OK` and `Raffle · slot 455693113`
+  - Brave headless `<vre-verify-form>` check: 3 inputs; form submission with blessed raffle signature rendered `✅ MATCH / OK` and `Raffle · slot 455693113`
+  - caveat: external embeds require public deployment of the new `widget.js` and scoped CORS headers
+  - current handoff: user requested Hub server-side verification instead of local Tester verification
+- Latest widget architecture plan:
+  - `HACKATHON-WIDGET-001` status: ready for Engineer
+  - planned files: `web/public/widget.js`, `web/public/widget.html`, `web/server.mjs`, `web/public/app.css`, and nav updates in all public HTML pages
+  - CORS remains scoped to `/api/replay` and `/api/health`
+  - widget public API call uses `signature`, `rpc`, and `programId`
+  - generic `/api/replay` does not expose slot/label; blessed raffle widget display uses a tiny known-signature map for `Raffle · slot 455693113`
+- Latest README quick-start update:
+  - `README.md` now starts with `Quick Verify` immediately after the title
+  - Quick Verify uses `npm install -g verifiable-outcome-sdk` and `vre verify --sig mUXwae...`
+  - Quick Verify includes expected `MATCH / OK`
+  - live verifier URL for `https://verifiableoutcome.online/verify.html?sig=...` added
+  - Before/After table added after the `Problem` section
+  - `git diff --check`: pending Tester re-run
+- Latest use-cases UI tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - `play.html` renders labels/descriptions and colored use-case badges for all active signature cards
+  - badge colors matched expected values: raffle `#14f195`, airdrop `#6366f1`, prediction `#f59e0b`, loot `#a855f7`
+  - `build.html` use case cards: `Raffle`, `Loot`, `Airdrop`, `Prediction Market`
+  - `build.html` includes required Prediction Market copy
+  - `index.html` Drop-in feature card includes `prediction market`
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - `git diff --check`: passed
+  - local `GET /`, `GET /play.html`, `GET /build.html`: HTTP `200`
+  - Brave headless `/play.html` at 375px: `clientWidth=375`, `scrollWidth=375`, `overflow=false`, `offenders=[]`, labels `Loot`, `Loot`, `Raffle`, `Airdrop`, `Prediction`
+  - Brave headless `/build.html`: required 4 cards and Prediction Market copy present
+  - scope guard: no diff in `web/server.mjs`, SDK, Rust/Anchor code, or `scripts/resolve_operator.ts`
+- Latest raffle evidence:
+  - signature: `mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`
+  - runtime_id: `06695059d916d903a26087c0770533c5`
+  - compiled_artifact_hash: `4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7`
+  - replay result: `MATCH / OK`
+  - decoded outcomes: `7`
+  - decoded winner: `3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9`
+- Latest airdrop/prediction demo evidence:
+  - tester verdict: PASS, ready for Hub acceptance
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - blessed_signatures_count: `5`
+  - airdrop signature: `24rAiXuQehJE6ruAH4wunGJw6yirbcjDAhjam7kTKWk7z88k1HJGcq2MHfhNTDADYBkC9NBX4jaNm51qhKBf8b9t`
+  - airdrop runtime_id: `2af0d5d0696d6cb4308a13c4667b8528`
+  - airdrop compiled_artifact_hash: `dc5e40691ec9b536ac35e6e47a24d657a7c31a2788535d6371a8d858c55f0b73`
+  - airdrop replay result: `MATCH / OK`
+  - airdrop outcome_id: `CktRuQ2mQFucF77t4vZ4QGWJv2a9oW1P1bL6n6LJ9m5H`
+  - prediction signature: `4qXC2BkboXan2KsDXhW8g9XLD8Zm8yQPQXHsZH7x3fp7AiaPZeUKrjWELPfeBnVd5zwFx2YCZd1DVs1mymAKZh3y`
+  - prediction runtime_id: `2f9f0156ed3235f126509bfc88e356ad`
+  - prediction compiled_artifact_hash: `08052c81661aa2ec630cb205224bb551e2ccc8b1ccd229bd6e954875d4816b14`
+  - prediction replay result: `MATCH / OK`
+  - prediction outcome_id: `Solana ecosystem wins`
+  - local `GET /api/health`: returned `blessed_signatures_count:5`
+  - local `GET /api/blessed-signatures`: returned both new labels and descriptions
+  - local `GET /play.html`: HTTP `200`
+  - local `/verify.html?sig=...`: both new signatures replayed to visible `MATCH / OK`
+  - source-of-truth check: `web/server.mjs` reads `artifacts/outcome_devnet_blessed_signatures.json`; no hardcoded new signatures or `BLESSED_SIGNATURES` array found
+- Latest config engine evidence:
+  - config signature: `5pEb9MWfFoeaohctsDQ5yKS9oAKCvyY3SCNmPubGnak73hS98AkhN1kSzxru3mAhP9LuKi1iSom6YosBDFfkzwjP`
+  - config runtime_id: `25f615a7b4d515d835053db9b4f637e5`
+  - shorthand signature: `61K8rjNeQsTC8xjxeLd22RdoJ5Nv9pQ9V4GN8t8GiRbJxF2puKmMgVfzqvV2AJ5xMEn3JCqCPe6ojr6wbWV7QMRK`
+  - shorthand runtime_id: `4cb3f34519cc3450f7ca34bcf917b003`
+  - default signature: `2nGY3iRwEF8Qx9TXuPX1wuS4xuCnKqLinbPJA4pav7axySSd7YPH1kbXRiK1vLfb6e7H6PBEghYmHwMG9FcEqxGo`
+  - config replay result: `MATCH / OK`
+- Latest timeline evidence:
+  - signature: `mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`
+  - compiled_artifact_hash: `4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7`
+  - artifact_slot: `455663125`
+  - resolution_slot: `455693113`
+  - gap_slots: `29988`
+- Latest timeline tester result:
+  - API expected slots: passed
+  - verify MATCH-only timeline: passed
+  - verify hide on MISMATCH/ERROR/timeline failure: passed
+  - play compact timeline rows and nonblocking card render: passed
+  - mobile `.timeline-track` wrapping: passed
+  - mobile no horizontal overflow: passed at 375px viewport, `clientWidth=375`, `scrollWidth=375`, `NAV.nav right=359`
+  - desktop regression: passed at 1280px viewport, `clientWidth=1280`, `scrollWidth=1280`
+- Latest public deploy evidence:
+  - URL: `https://verifiableoutcome.online/`
+  - `GET /`: HTTP `200`
+  - `GET /api/health`: `ok:true`, canonical devnet program id, `blessed_signatures_count:3`
+  - `POST /api/replay`: `MATCH / OK` for blessed signature `mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`
+  - `POST /api/timeline`: `artifact_slot:455663125`, `resolution_slot:455693113`, `gap_slots:29988`
+  - VPS certbot dry-run renewal: passed
+- Latest developer page implementation:
+  - `web/public/build.html` added with raffle, loot, and airdrop cards
+  - 3-step config-to-chain-to-verify stepper added
+  - SDK snippet added with `buildArtifact` and `verifyOutcome`
+  - npm install line includes a copy button
+  - Build nav link added across web pages
+  - `index.html` has `Build with VRE` CTA
+- Latest developer page tester result:
+  - `GET /build.html`: HTTP `200`
+  - build page cards, stepper, SDK snippet, copy button, config links: passed
+  - Build nav link on index/play/verify/spec/build: passed
+  - `index.html` Build with VRE CTA: passed
+  - `node --check web/server.mjs`: passed
+  - `npx tsc --noEmit`: passed
+  - build page 375px page-level overflow: passed, `clientWidth=375`, `scrollWidth=375`
+  - strict touched-page mobile overflow: failed on `play.html`, `clientWidth=375`, `scrollWidth=457`, offenders are long runtime/artifact hash spans
+- Latest developer page fix:
+  - CSS-only fix applied to `.sig-meta` and `.sig-meta-row span`
+  - long hash spans now have `max-width:100%`, `overflow-wrap:anywhere`, and `word-break:break-word`
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - `yarn web`: started successfully on local port `8877`
+  - local `GET /build.html` and `GET /play.html`: HTTP `200`
+- Latest developer page focused tester re-test:
+  - Brave headless used; Chrome was not required
+  - `/build.html` at 375px: `clientWidth=375`, `scrollWidth=375`, `overflow=false`, `offenders=[]`
+  - `/play.html` at 375px: `clientWidth=375`, `scrollWidth=375`, `overflow=false`, `offenders=[]`
+  - runtime id, resolve id, artifact hash, and compact timeline rows are contained inside signature cards
+  - devpage content, SDK snippet, copy behavior, config links, nav links, and index CTA rechecked successfully
+- Latest artifact decode implementation:
+  - `VerifyResult` exposes `outcomes?: Array<{ id: string; weight: number }>`
+  - replay JSON includes decoded `outcomes`
+  - `verify.html` renders `Committed Rules` after `MATCH`
+  - raffle signature `mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`: `MATCH / OK`, 7 participants, winner `3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9`
+  - loot-style signature `3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1`: `MATCH / OK`, labels `common`, `rare`
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - `yarn web`: started successfully on local port `8787`
+  - local `POST /api/replay`: returned `ok:true` with `replay.outcomes`
+  - Brave headless 375px raffle check: `clientWidth=375`, `scrollWidth=375`, rules card visible, rows `7`, winner rows `1`, raw JSON contains `outcomes`
+  - Brave headless 375px loot check: `clientWidth=375`, `scrollWidth=375`, labels `common`, `rare`, winner `common`
+- Latest npm package implementation:
+  - `sdk/internals.ts` added with SDK-local hash/PDA helpers and constants
+  - `sdk/idl.ts` generated from `artifacts/outcome_idl.json`
+  - `sdk/verify.ts` now uses SDK-local internals and embedded IDL instead of `../scripts/outcome_public_sdk.ts`
+  - `tsconfig.build.json` added for declaration-emitting SDK build into `dist/sdk/`
+  - `package.json` now has `build`
+  - `yarn build`: passed
+  - `npx tsc --noEmit`: passed
+  - `yarn install --frozen-lockfile`: passed
+  - `node -e "import('./dist/sdk/index.js').then(m => console.log(typeof m.verifyOutcome))"`: printed `function`
+  - `rg "../scripts|outcome_public_sdk|outcomeIdlPath" sdk dist/sdk`: no matches
+  - `npm publish --dry-run --cache /tmp/npm-cache-vre`: passed; tarball contains `dist/sdk/*`, `README.md`, and npm-required `package.json`
+- Latest npm package tester result:
+  - `yarn build`: passed and created `dist/sdk/`
+  - `npx tsc --noEmit`: passed
+  - `dist/sdk/index.js` and `dist/sdk/index.d.ts`: exist
+  - SDK runtime import check printed `function` for `verifyOutcome`
+  - `sdk/verify.ts` and `dist/sdk/verify.js`: no `../scripts`, `outcome_public_sdk`, or `outcomeIdlPath` references
+  - `sdk/idl.ts`: exists and contains `export const OUTCOME_IDL`
+  - `npm publish --dry-run --cache /tmp/npm-cache-vre`: passed
+  - real `npm publish`: not run
+- Latest SDK CLI implementation:
+  - `sdk/operator.ts` added with SDK-local `resolveOperator(opts)` implementation
+  - `sdk/cli.ts` added with executable shebang and `verify` / `resolve` commands
+  - `package.json` bin maps `vre` to `dist/sdk/cli.js`
+  - `yarn build`: passed
+  - `npx tsc --noEmit`: passed
+  - `dist/sdk/cli.js`: exists, starts with `#!/usr/bin/env node`, executable bit set
+  - `node dist/sdk/cli.js verify --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh --rpc https://api.devnet.solana.com`: returned `MATCH / OK`
+  - `npm publish --dry-run --cache /tmp/npm-cache-vre`: passed and includes `dist/sdk/cli.js`
+  - real `npm publish` was not run
+  - on-chain `resolve` was not run because it requires a funded wallet and creates a devnet transaction
+- Latest SDK / partner boundary docs:
+  - Correction note: older Program Owner clone + Anchor deploy copy has been superseded by the accepted protocol-fee / partner-instance model.
+  - `INTEGRATION.md` separates Verifier, Builder, Operator, and Partner roles
+  - `INTEGRATION.md` states npm SDK does not deploy a Solana program and points dedicated instances to partner agreement with the VRE team
+  - `web/public/build.html` includes a Partner CTA for dedicated instances
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+- Latest SDK CLI tester result:
+  - `yarn build`: passed
+  - `npx tsc --noEmit`: passed
+  - `dist/sdk/cli.js`: exists, starts with `#!/usr/bin/env node`, executable bit set
+  - package bin: `dist/sdk/cli.js`
+  - `rg "../scripts|outcome_public_sdk|outcomeIdlPath" sdk dist/sdk`: no matches
+  - `node dist/sdk/cli.js resolve --help`: printed verify/resolve usage
+  - initial non-escalated devnet verify returned `ERR_REPLAY_UNHANDLED`; escalated network rerun returned `MATCH / OK`
+  - `node dist/sdk/cli.js verify ... --json`: returned `MATCH / OK`, runtime `06695059d916d903a26087c0770533c5`, artifact hash `4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7`, winner `3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9`
+  - `npm exec --cache /tmp/npm-cache-vre --package . -- vre verify ... --json`: returned `MATCH / OK`
+  - `npm exec --cache /tmp/npm-cache-vre --package . -- vre resolve --help`: printed verify/resolve usage
+  - `npm publish --dry-run --cache /tmp/npm-cache-vre`: passed and included `dist/sdk/cli.js`
+  - real `npm publish`: not run
+  - on-chain `resolve`: not run because it creates a devnet transaction and requires a funded wallet
+- Latest copy-boundary task:
+  - `HACKATHON-COPY-BOUNDARY-001` ready for Tester
+  - scope: public site/docs and handoff-facing task memories
+  - npm publish verified via `npm view verifiable-outcome-sdk --json`: latest `0.1.1`, bin `vre`, versions `0.1.0` and `0.1.1`
+  - public copy now uses `npm install -g verifiable-outcome-sdk` with executable `vre`, or `npx -p verifiable-outcome-sdk vre ...`
+  - goal: remove or qualify copy that implies npm SDK deploys a Solana program, `npx verifiable-outcome-sdk ...` is the recommended command, or own program operation does not require clone + Anchor deploy
+  - history policy: do not rewrite historical task sections; update current/public instructions and add correction notes where needed
+  - task memory: `agent-instructions/hub-memory/tasks/HACKATHON-COPY-BOUNDARY-001.md`
+- Reviewer/runtime entrypoints:
+  - `README.md`
+  - `RUNBOOK.md`
+  - `DEMO_RUNBOOK.md`
+  - `scripts/`
+  - `web/`
+  - `artifacts/`
+  - `programs/outcome/`
+- Non-goals in this repo:
+  - runtime redesign
+  - replay semantics changes
+  - reintroducing monorepo-only dependencies
+  - ecosystem expansion work outside hackathon scope

@@ -1,21 +1,12 @@
-MIT License
+Copyright (c) 2026 Timur Kurmangaliev. All rights reserved.
 
-Copyright (c) 2026 Timur Kurmangaliev
+The Verifiable Outcome Engine SDK (TypeScript, located in sdk/) is
+available under the MIT License for integration and verification use.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+The Solana program source (located in programs/) is proprietary and
+confidential. Use of the canonical deployed program
+(3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq) is subject to the
+protocol fee described in INTEGRATION.md.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Partner deployments of the program source are available under a
+separate commercial agreement. Contact: hello@verifiableoutcome.online
