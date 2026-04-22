@@ -1,22 +1,14 @@
 import * as anchor from "@coral-xyz/anchor";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { PublicKey } from "@solana/web3.js";
 
-import {
-  CHUNK_SIZE,
-  DEFAULT_PROGRAM_ID,
-  deriveApprovedArtifactChunkPda,
-  deriveApprovedArtifactPda,
-  deriveOutcomeConfigPda,
-  deriveOutcomeResolutionPda,
-  deriveProgramConfigPda,
-  sha256,
-  toHex,
-} from "./internals.js";
-import { OUTCOME_IDL } from "./idl.js";
 import type { VerifyOutcomeOptions, VerifyResult } from "./types.js";
 
+const DEFAULT_PROGRAM_ID = "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq";
+const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
+const CHUNK_SIZE = 1024;
 const MAX_OUTCOME_ID_BYTES = 64;
 const EFFECT_ENTRY_BYTES = 16;
 const FORMAT_VERSION_V1 = 1;
@@ -25,6 +17,189 @@ const STATUS_PENDING = 0;
 const STATUS_APPROVED = 1;
 const STATUS_DEPRECATED = 3;
 const EFFECT_TYPE_TRANSFER_SOL = 1;
+
+const OUTCOME_ACCOUNT_IDL = {
+  address: DEFAULT_PROGRAM_ID,
+  metadata: {
+    name: "outcome",
+    version: "0.1.0",
+    spec: "0.1.0",
+  },
+  instructions: [],
+  accounts: [
+    { name: "ApprovedOutcomeArtifact", discriminator: [110, 158, 83, 35, 113, 203, 146, 35] },
+    { name: "ApprovedOutcomeArtifactChunk", discriminator: [172, 72, 71, 77, 233, 238, 194, 12] },
+    { name: "OutcomeConfig", discriminator: [140, 119, 82, 148, 43, 47, 24, 122] },
+    { name: "OutcomeResolution", discriminator: [117, 184, 192, 23, 132, 189, 98, 178] },
+    { name: "ProgramConfig", discriminator: [196, 210, 90, 231, 144, 149, 140, 63] },
+  ],
+  types: [
+    {
+      name: "ApprovedOutcomeArtifact",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
+          { name: "publisher", type: "pubkey" },
+          { name: "status", type: "u8" },
+          { name: "is_finalized", type: "bool" },
+          { name: "format_version", type: "u16" },
+          { name: "blob_len", type: "u32" },
+          { name: "chunk_count", type: "u16" },
+          { name: "artifact_uri_len", type: "u16" },
+          { name: "artifact_uri", type: { array: ["u8", 200] } },
+          { name: "audit_hash", type: { array: ["u8", 32] } },
+          { name: "created_at", type: "i64" },
+          { name: "updated_at", type: "i64" },
+          { name: "bump", type: "u8" },
+          { name: "reserved", type: { array: ["u8", 31] } },
+        ],
+      },
+    },
+    {
+      name: "ApprovedOutcomeArtifactChunk",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
+          { name: "chunk_index", type: "u32" },
+          { name: "written_len", type: "u16" },
+          { name: "data", type: { array: ["u8", 1024] } },
+        ],
+      },
+    },
+    {
+      name: "OutcomeConfig",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "runtime_id", type: { array: ["u8", 16] } },
+          { name: "authority", type: "pubkey" },
+          { name: "treasury", type: "pubkey" },
+          { name: "min_input_lamports", type: "u64" },
+          { name: "max_input_lamports", type: "u64" },
+          { name: "next_resolve_id", type: "u64" },
+          { name: "is_paused", type: "bool" },
+          { name: "bump", type: "u8" },
+          { name: "vault_bump", type: "u8" },
+          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
+          { name: "master_seed", type: { array: ["u8", 32] } },
+          { name: "last_seed_slot", type: "u64" },
+          { name: "reserved", type: { array: ["u8", 63] } },
+        ],
+      },
+    },
+    {
+      name: "OutcomeResolution",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "runtime_id", type: { array: ["u8", 16] } },
+          { name: "resolve_id", type: "u64" },
+          { name: "actor", type: "pubkey" },
+          { name: "input_lamports", type: "u64" },
+          { name: "status", type: "u8" },
+          { name: "total_output_lamports", type: "u64" },
+          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
+          { name: "randomness", type: { array: ["u8", 32] } },
+          { name: "outcome_id_len", type: "u8" },
+          { name: "outcome_id", type: { array: ["u8", 64] } },
+          { name: "effect_count", type: "u16" },
+          { name: "effects_digest", type: { array: ["u8", 32] } },
+          { name: "bump", type: "u8" },
+          { name: "reserved", type: { array: ["u8", 31] } },
+        ],
+      },
+    },
+    {
+      name: "ProgramConfig",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "admin", type: "pubkey" },
+          { name: "allow_unreviewed_binding", type: "bool" },
+          { name: "bump", type: "u8" },
+          { name: "fee_lamports", type: "u64" },
+          { name: "treasury", type: "pubkey" },
+          { name: "reserved", type: { array: ["u8", 22] } },
+        ],
+      },
+    },
+  ],
+};
+
+function u32le(value: number): Buffer {
+  const out = Buffer.alloc(4);
+  out.writeUInt32LE(value, 0);
+  return out;
+}
+
+function u64le(value: bigint): Buffer {
+  const out = Buffer.alloc(8);
+  out.writeBigUInt64LE(value, 0);
+  return out;
+}
+
+function sha256(bytes: Buffer): Buffer {
+  return crypto.createHash("sha256").update(bytes).digest();
+}
+
+function toHex(bytes: number[] | Buffer): string {
+  return Buffer.from(bytes).toString("hex");
+}
+
+function deriveProgramConfigPda(programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("outcome_program_config")],
+    programId
+  )[0];
+}
+
+function deriveApprovedArtifactPda(
+  programId: PublicKey,
+  compiledArtifactHash: Buffer
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("approved_outcome_artifact"), compiledArtifactHash],
+    programId
+  )[0];
+}
+
+function deriveApprovedArtifactChunkPda(
+  programId: PublicKey,
+  compiledArtifactHash: Buffer,
+  chunkIndex: number
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("approved_outcome_artifact_chunk"),
+      compiledArtifactHash,
+      u32le(chunkIndex),
+    ],
+    programId
+  )[0];
+}
+
+function deriveOutcomeConfigPda(
+  programId: PublicKey,
+  runtimeId: Buffer
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("outcome_config"), runtimeId],
+    programId
+  )[0];
+}
+
+function deriveOutcomeResolutionPda(
+  programId: PublicKey,
+  runtimeId: Buffer,
+  resolveId: bigint
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("outcome_resolution"), runtimeId, u64le(resolveId)],
+    programId
+  )[0];
+}
 
 type OutcomeResolvedEvent = {
   runtimeId: Buffer;
@@ -84,7 +259,7 @@ function mismatch(code: string, message: string): never {
 }
 
 function loadIdl(): any {
-  return OUTCOME_IDL;
+  return OUTCOME_ACCOUNT_IDL;
 }
 
 function anchorEventDiscriminator(name: string): Buffer {

@@ -57,6 +57,11 @@ type OutcomeConfigState = {
   nextResolveId: bigint;
 };
 
+type ProgramConfigState = {
+  feeLamports: bigint;
+  treasury: PublicKey;
+};
+
 export type ResolveOperatorOptions = {
   configPath: string;
   walletPath?: string;
@@ -169,7 +174,10 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
   );
   if (!info) {
     await (client.program.methods as any)
-      .initializeProgramConfig()
+      .initializeProgramConfig({
+        feeLamports: new BN(0),
+        treasury: client.authority.publicKey,
+      })
       .accounts({
         payer: client.authority.publicKey,
         programConfig: programConfigPda,
@@ -195,6 +203,8 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
       .setProgramConfig({
         newAdmin: client.authority.publicKey,
         allowUnreviewedBinding: false,
+        feeLamports: new BN(0),
+        treasury: client.authority.publicKey,
       })
       .accounts({
         programConfig: programConfigPda,
@@ -566,6 +576,19 @@ async function fetchOutcomeConfigState(
   };
 }
 
+async function fetchProgramConfigState(
+  client: OutcomeClient
+): Promise<ProgramConfigState> {
+  const decoded = await (client.program.account as any).programConfig.fetch(
+    deriveProgramConfigPda(client.programId),
+    "confirmed"
+  );
+  return {
+    feeLamports: asBigInt(decoded.feeLamports ?? decoded.fee_lamports),
+    treasury: new PublicKey(decoded.treasury),
+  };
+}
+
 async function resolveOutcomeAndConfirm(
   client: OutcomeClient,
   opts: {
@@ -575,6 +598,7 @@ async function resolveOutcomeAndConfirm(
     compiledArtifactHash: Buffer;
     actor?: Keypair;
     treasury?: PublicKey;
+    protocolTreasury?: PublicKey;
   }
 ): Promise<{ signature: string; resolveId: bigint }> {
   const actor = opts.actor ?? client.authority;
@@ -600,7 +624,8 @@ async function resolveOutcomeAndConfirm(
         client.programId,
         opts.compiledArtifactHash
       ),
-      treasury: opts.treasury ?? client.authority.publicKey,
+      outcomeTreasury: opts.treasury ?? client.authority.publicKey,
+      protocolTreasury: opts.protocolTreasury ?? client.authority.publicKey,
       systemProgram: SystemProgram.programId,
     })
     .remainingAccounts(
@@ -666,12 +691,18 @@ export async function resolveOperator(
     newMasterSeed: Buffer.alloc(32, 2),
   });
 
+  const programConfig = await fetchProgramConfigState(client);
+  const protocolTreasury =
+    programConfig.feeLamports > 0n
+      ? programConfig.treasury
+      : client.authority.publicKey;
   const resolution = await resolveOutcomeAndConfirm(client, {
     runtimeId: runtime.runtimeId,
     inputLamports: runtime.minInputLamports,
     chunkPdas: runtime.chunkPdas,
     compiledArtifactHash: runtime.compiledArtifactHash,
     treasury: runtime.treasury,
+    protocolTreasury,
   });
 
   const partialResult = {

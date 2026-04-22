@@ -881,7 +881,11 @@ export const OUTCOME_IDL = {
           }
         },
         {
-          "name": "treasury",
+          "name": "outcome_treasury",
+          "writable": true
+        },
+        {
+          "name": "protocol_treasury",
           "writable": true
         },
         {
@@ -1648,7 +1652,11 @@ export const OUTCOME_IDL = {
         "kind": "struct",
         "fields": [
           {
-            "name": "admin",
+            "name": "fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
             "type": "pubkey"
           }
         ]
@@ -2033,11 +2041,19 @@ export const OUTCOME_IDL = {
             "type": "u8"
           },
           {
+            "name": "fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                62
+                22
               ]
             }
           }
@@ -2128,6 +2144,14 @@ export const OUTCOME_IDL = {
           {
             "name": "allow_unreviewed_binding",
             "type": "bool"
+          },
+          {
+            "name": "fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "treasury",
+            "type": "pubkey"
           }
         ]
       }

@@ -1,8 +1,21 @@
 {
   "name": "verifiable-outcome-sdk",
-  "version": "0.1.1",
-  "description": "Configurable on-chain outcome engine for Solana - verifiable raffle, loot, and airdrop selection",
+  "version": "0.2.0",
+  "description": "Build and verify outcomes with Verifiable Outcome Engine on Solana",
   "license": "MIT",
+  "keywords": [
+    "solana",
+    "verifiable",
+    "outcome",
+    "raffle",
+    "airdrop",
+    "sdk"
+  ],
+  "homepage": "https://verifiableoutcome.online",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mskrad/verifiable-outcome-engine.git"
+  },
   "type": "module",
   "main": "dist/sdk/index.js",
   "types": "dist/sdk/index.d.ts",
@@ -12,11 +25,15 @@
       "types": "./dist/sdk/index.d.ts"
     }
   },
-  "bin": {
-    "vre": "dist/sdk/cli.js"
-  },
   "files": [
-    "dist/sdk",
+    "dist/sdk/index.js",
+    "dist/sdk/index.d.ts",
+    "dist/sdk/verify.js",
+    "dist/sdk/verify.d.ts",
+    "dist/sdk/artifact.js",
+    "dist/sdk/artifact.d.ts",
+    "dist/sdk/types.js",
+    "dist/sdk/types.d.ts",
     "README.md"
   ],
   "publishConfig": {
@@ -31,12 +48,12 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
-    "@solana/web3.js": "^1.98.4",
+    "@solana/web3.js": "^1.98.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
     "bn.js": "^5.2.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
-  },
-  "devDependencies": {
-    "@types/node": "^24.6.0"
   }
 }

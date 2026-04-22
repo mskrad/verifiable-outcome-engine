@@ -1,6 +1,6 @@
 # Status
 
-- Updated: 2026-04-22 13:27:02 +0300
+- Updated: 2026-04-22 15:24:00 +0300
 - Repo role: standalone hackathon repo for `Verifiable Outcome Engine`
 - Ecosystem repo: maintained separately in the main monorepo
 - Current repo focus:
@@ -23,7 +23,9 @@
   - `HACKATHON-README-QS-001` ready for Tester after README Quick Verify and Before/After table update
   - `HACKATHON-ERROR-TAXONOMY-001` ready for Tester after public verification error reference was added
   - `HACKATHON-ERROR-SURFACE-001` ready for Hub acceptance after Tester verified verification error code surfaces
-  - `HACKATHON-LICENSE-DOCS-001` ready for Tester after LICENSE, README, INTEGRATION, index, and build copy were updated for the accepted protocol-fee / partner-instance business model
+  - `HACKATHON-LICENSE-DOCS-001` ready for Hub acceptance after Tester verified LICENSE, README, INTEGRATION, index, and build copy for the accepted protocol-fee / partner-instance business model
+  - `HACKATHON-PROTOCOL-FEE-001` ready for Hub acceptance after Tester verified build/typecheck, devnet upgrade state, ProgramConfig fee disabled state, new/old replay, and blessed signature bundle
+  - `HACKATHON-NPM-REPUBLISH-001` blocked on npm 24-hour republish cooldown after clean `0.2.0` dry-run
   - `HACKATHON-WIDGET-001` ready for Hub server test after widget.js, interactive widget form, /widget.html, Widget nav item, 5-link nav CSS, and scoped CORS implementation
   - `HACKATHON-AIRDROP-DEMO-001` ready for Hub acceptance after Tester verified airdrop and prediction devnet blessed signatures
   - `HACKATHON-USECASES-UI-001` ready for Hub acceptance after Tester verified frontend use-case labels/badges and Prediction Market copy
@@ -33,7 +35,7 @@
   - JSON artifact configs and SDK entrypoints are available under `examples/`, `scripts/build_artifact.ts`, and `sdk/`
   - reviewer web flow now has a pre-commitment timeline endpoint/UI implementation with mobile overflow re-verified
   - public click-to-verify deployment is live at `https://verifiableoutcome.online/`
-  - local blessed signature bundle now has 5 active devnet signatures
+  - local blessed signature bundle now has 6 active devnet signatures
   - `play.html` now visually separates Loot, Raffle, Airdrop, and Prediction blessed signatures with use-case badges
   - developer-facing `/build.html` page is implemented locally and CSS-only `play.html` long-hash overflow fix is re-verified
   - `verify.html` now shows decoded committed rules after `MATCH`, including outcomes/participants, weights, and teal winner highlight
@@ -41,9 +43,86 @@
   - SDK package now includes `vre` CLI binary for `verify` and `resolve`
   - docs/build page now clarify that npm SDK does not deploy a Solana program; own instances require partner agreement with the VRE team
   - license/docs now split the open TypeScript verification SDK from proprietary Solana program source and document canonical protocol-fee usage plus partner instances
+  - npm package `verifiable-outcome-sdk@0.2.0` packaging is ready; tarball contains only public SDK build output plus README/LICENSE/package metadata; real publish can be retried after 2026-04-22 23:24:07 MSK
+  - protocol fee verification: `anchor build`, `npx tsc --noEmit`, `node --check web/server.mjs`, and `git diff --check` passed; devnet ProgramConfig has `feeLamports=0` and treasury `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`; new and old blessed signatures replayed `MATCH / OK`
   - license/docs verification: `git diff --check` passed; `node --check web/server.mjs` passed; forbidden public-doc grep returned no matches
-  - next active owner: Tester for `HACKATHON-LICENSE-DOCS-001`
+  - next active owner: Engineer for `HACKATHON-NPM-REPUBLISH-001` retry after npm cooldown
   - `slot`, `wheel`, monorepo-only examples, deploy artifacts, and target outputs remain excluded
+- Latest npm republish implementation:
+  - status: BLOCKED ON NPM COOLDOWN
+  - `package.json` version updated to `0.2.0`
+  - package metadata updated with public description, keywords, homepage, and repository
+  - package `files` allowlist includes only `dist/sdk/index`, `dist/sdk/verify`, `dist/sdk/artifact`, `dist/sdk/types`, and `README.md`; npm auto-includes `LICENSE`, `README.md`, and `package.json`
+  - `sdk/index.ts` no longer exports `resolveOperator` or operator types
+  - `sdk/verify.ts` no longer imports `sdk/idl.ts` or `sdk/internals.ts`; it embeds the minimal account IDL and PDA/hash helpers required for public verification runtime
+  - `npm run build`: passed
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - `git diff --check`: passed
+  - built SDK runtime exports: `buildArtifact,verifyOutcome`
+  - dist grep found no `operator`, `OUTCOME_IDL`, or imports from `./operator`, `./idl`, `./internals`
+  - `npm publish --dry-run --cache /tmp/npm-cache-vre --registry https://registry.npmjs.org/`: passed
+  - `npm pack --dry-run --json --cache /tmp/npm-cache-vre --registry https://registry.npmjs.org/`: package contains 11 files: `LICENSE`, `README.md`, `dist/sdk/artifact.d.ts`, `dist/sdk/artifact.js`, `dist/sdk/index.d.ts`, `dist/sdk/index.js`, `dist/sdk/types.d.ts`, `dist/sdk/types.js`, `dist/sdk/verify.d.ts`, `dist/sdk/verify.js`, `package.json`
+  - excluded from package: `programs/`, `web/`, `scripts/`, `agent-instructions/`, `artifacts/`, `sdk/operator.ts`, `sdk/idl.ts`, `sdk/internals.ts`, `Anchor.toml`, `Cargo.toml`, `tsconfig.json`
+  - `npm view verifiable-outcome-sdk version --cache /tmp/npm-cache-vre --registry https://registry.npmjs.org/` returned `E404 Unpublished on 2026-04-21T20:24:07.251Z`
+  - user-run `npm publish --access public` returned `E403 Forbidden - verifiable-outcome-sdk cannot be republished until 24 hours have passed`
+  - retry after `2026-04-22T20:24:07Z` / `2026-04-22 23:24:07 MSK`
+- Latest protocol fee tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - branch: `main`
+  - `anchor build`: passed; standard cargo/SBF warnings observed, no fee-specific warning identified
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - `git diff --check`: passed
+  - `solana program show 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq --url https://api.devnet.solana.com`: Program ID unchanged; ProgramData `AqZY6pmSFQasMgebvEHhsRWwShmiqX5AenEqdRPhFUpV`; Authority `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`; Last Deployed Slot `457279970`; Data Length `479120`
+  - initial sandboxed replay attempts returned `MISMATCH / ERR_REPLAY_UNHANDLED`; direct Node RPC diagnostic showed `getaddrinfo ENOTFOUND api.devnet.solana.com`; rerun with devnet access passed
+  - new signature `5ig5N5buSA7Cw3WGz3RpdDWvXuR3Gdh9QgkpYjufyCvj79d2NjQf8WyjE4wPegY1vxKZoXqx2mEJGwnn7g2TmJfp`: replay `MATCH / OK`, runtime `7c42be58979e5adc1010bc41c244e2fa`, resolve `0`, artifact hash `c7a19da303433427976b43fa87aeccdfa49f30fe307b183eecfb31d310484f94`, outcome `rare`
+  - old raffle signature `mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`: replay `MATCH / OK`, runtime `06695059d916d903a26087c0770533c5`, resolve `0`, artifact hash `4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7`, outcome `3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9`
+  - ProgramConfig decode via local IDL: PDA `3uipzr3icZz8DLvm2fW4Ey6PQ9dcvDQkiXMtkS23Bsxh`, account data length `104`, admin `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`, `allowUnreviewedBinding=false`, `feeLamports=0`, treasury `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+  - blessed JSON parse check: 6 entries; `outcome_core_devnet_sig_6` exists with `MATCH / OK`, label `Loot`, and description `Post-upgrade loot resolve with protocol fee disabled`
+  - `ProgramConfig::LEN` source remains `8 + 32 + 1 + 1 + 8 + 32 + 22 = 104`
+  - IDL surfaces include `fee_lamports`, `treasury`, `outcome_treasury`, and `protocol_treasury`
+  - scope guard: no diff in `programs/outcome/src/math/compiled_outcome_v1.rs`, `sdk/verify.ts`, or `web/server.mjs`
+  - risk: fee-positive transfer behavior was not exercised because devnet ProgramConfig intentionally has `feeLamports=0`
+- Latest protocol fee implementation:
+  - status: READY FOR TESTER
+  - branch: `main`
+  - `ProgramConfig` now includes `fee_lamports: u64`, `treasury: Pubkey`, and `reserved: [u8; 22]`
+  - `ProgramConfig::LEN` remains `8 + 32 + 1 + 1 + 8 + 32 + 22 = 104`
+  - `resolve_outcome` uses separate `outcome_treasury` and `protocol_treasury` accounts
+  - protocol fee transfer is skipped when `fee_lamports == 0` and runs before resolve-side effects when fee is positive
+  - `sdk/idl.ts` and `artifacts/outcome_idl.json` were synchronized with generated IDL
+  - `sdk/operator.ts` and `scripts/resolve_operator.ts` were updated for new init/set args and resolve accounts
+  - `anchor build`: passed
+  - `cp target/idl/outcome.json /tmp/outcome_new.json`: passed
+  - `npx tsc --noEmit`: passed
+  - `node --check web/server.mjs`: passed
+  - `git diff --check`: passed
+  - `anchor upgrade` failed locally before network send with macOS `system-configuration` panic; equivalent upgrade completed via `solana program deploy --program-id ... --upgrade-authority ... --keypair ...`
+  - upgrade transaction: `5ztwWFkSRfzXf8wWdncAVnhbLopYonRaXuMy6JH8n5Y8Wkgq6VfF85xkHowJHwVJbYQZwJ9JMKvXn1E26bUaubAh`
+  - Program ID remained `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`
+  - ProgramData after upgrade: `AqZY6pmSFQasMgebvEHhsRWwShmiqX5AenEqdRPhFUpV`
+  - last deployed slot after upgrade: `457279970`
+  - `setProgramConfig` transaction: `4vvSui9PMzw8vQQ6JbyRBdDzCVJfFzQvabsTNUee9tXxAX7KG5u8DfxiNnFSjQFbxGBbCUowh1scQjKWzaJNTNBG`
+  - devnet ProgramConfig after update: admin `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`, `allowUnreviewedBinding=false`, `feeLamports=0`, treasury `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+  - new blessed signature: `5ig5N5buSA7Cw3WGz3RpdDWvXuR3Gdh9QgkpYjufyCvj79d2NjQf8WyjE4wPegY1vxKZoXqx2mEJGwnn7g2TmJfp`
+  - new blessed replay result: `MATCH / OK`, outcome ID `rare`
+  - old raffle regression signature `mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh`: replay result `MATCH / OK`
+  - `artifacts/outcome_devnet_blessed_signatures.json` now includes `outcome_core_devnet_sig_6`
+  - scope guard: no intended changes to `programs/outcome/src/math/compiled_outcome_v1.rs`, randomness logic, replay semantics, `/api/replay`, or `web/server.mjs` logic
+- Latest license docs tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - branch: `main`
+  - `git diff --check`: passed
+  - `node --check web/server.mjs`: passed
+  - forbidden docs grep returned no matches for open-source/self-deploy/Anchor deploy/MIT homepage copy
+  - positive grep confirmed Partner Program, protocol fee, Open verification SDK, Licensing, canonical Solana program, `fee_lamports`, and `hello@verifiableoutcome.online` copy
+  - `README.md`: `Quick Verify` line 5, `Licensing` line 22
+  - `INTEGRATION.md`: Part 4 is `Partner Program`; no `Program Owner`, `anchor build`, or `anchor deploy` matches
+  - `LICENSE` separates SDK MIT integration/verification use from proprietary Solana program source
+  - `web/public/index.html` contains `Open verification SDK`; `MIT-licensed SDK` was not found
+  - `web/public/build.html` contains Partner CTA with `mailto:hello@verifiableoutcome.online`
+  - worktree note: unrelated untracked `Assets /` exists and was not touched
 - Latest design adaptation tester result:
   - tester verdict: PASS, ready for Hub acceptance
   - branch: `design/claude-design-v1`

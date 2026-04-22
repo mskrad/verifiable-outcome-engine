@@ -2,7 +2,7 @@
   "schema_version": "outcome_core_devnet_blessed_sigs_v1",
   "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
   "rpc_url": "https://api.devnet.solana.com",
-  "updated_utc": "2026-04-20T00:00:00Z",
+  "updated_utc": "2026-04-22T00:00:00Z",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",
@@ -77,6 +77,22 @@
       "source": "resolve_operator_prediction_2026-04-20",
       "updated_utc": "2026-04-20T00:00:00Z",
       "notes": "Prediction artifact: loot-style possible event results as outcome ids, not wallet addresses."
+    },
+    {
+      "id": "outcome_core_devnet_sig_6",
+      "signature": "5ig5N5buSA7Cw3WGz3RpdDWvXuR3Gdh9QgkpYjufyCvj79d2NjQf8WyjE4wPegY1vxKZoXqx2mEJGwnn7g2TmJfp",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "7c42be58979e5adc1010bc41c244e2fa",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "c7a19da303433427976b43fa87aeccdfa49f30fe307b183eecfb31d310484f94",
+      "label": "Loot",
+      "description": "Post-upgrade loot resolve with protocol fee disabled",
+      "source": "protocol_fee_upgrade_2026-04-22",
+      "updated_utc": "2026-04-22T00:00:00Z",
+      "notes": "Produced after protocol fee upgrade on devnet. ProgramConfig fee_lamports remained 0 and protocol treasury was set to the devnet upgrade/admin authority."
     }
   ]
 }
