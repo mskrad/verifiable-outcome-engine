@@ -9,6 +9,10 @@
 
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
   const DEFAULT_PROGRAM_ID = '3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq';
+  const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+  let lastVerifyResult = null;
+  let phantomState = { status: 'not-connected' };
 
   function el(id) { return document.getElementById(id); }
 
@@ -106,7 +110,29 @@
     };
   }
 
+  function looksLikeSolanaAddress(value) {
+    return SOLANA_ADDRESS_RE.test(String(value || '').trim());
+  }
+
+  function hasAddressOutcomes(r) {
+    const ids = (Array.isArray(r?.outcomes) ? r.outcomes : [])
+      .map((outcome) => String(outcome?.id || '').trim())
+      .filter(Boolean);
+    return ids.length > 0 && ids.every(looksLikeSolanaAddress);
+  }
+
+  function didIWin(address, r) {
+    if (!hasAddressOutcomes(r)) return 'not-applicable';
+    const candidate = String(address || '').trim();
+    const winner = String(r?.outcomeId || '').trim();
+    const ids = new Set((r.outcomes || []).map((outcome) => String(outcome?.id || '').trim()));
+    if (candidate && candidate === winner) return 'won';
+    if (candidate && ids.has(candidate)) return 'in-draw-not-selected';
+    return 'not-in-draw';
+  }
+
   function renderResult(r) {
+    lastVerifyResult = r;
     const banner = el('result-banner');
     const details = el('result-details');
     const raw = el('result-raw');
@@ -162,7 +188,7 @@
 
   function renderDetails(r) {
     const details = el('result-details');
-    details.innerHTML = renderOutcome(r) + renderRules(r) + renderTimeline(r) + renderLinks(r);
+    details.innerHTML = renderOutcome(r) + renderDidIWin(r) + renderRules(r) + renderTimeline(r) + renderLinks(r);
   }
 
   function renderOutcome(r) {
@@ -178,6 +204,66 @@
           <div class="badge ${r.status === 'MATCH' ? 'badge-match' : 'badge-mismatch'}">
             ${r.status === 'MATCH' ? '✓ replay matches' : '✕ replay diverges'}
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderDidIWin(r) {
+    if (r.status !== 'MATCH' || !hasAddressOutcomes(r)) return '';
+
+    const state = phantomState || { status: 'not-connected' };
+    if (state.status === 'not-installed') {
+      return `
+        <div class="result-section did-win-card">
+          <div class="did-win-head">
+            <div>
+              <div class="result-section-title">Did I win?</div>
+              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected outcome.</p>
+            </div>
+          </div>
+          <div class="did-win-status did-win-status-warn">
+            Phantom is not installed. <a class="text-teal" href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom</a>
+          </div>
+        </div>
+      `;
+    }
+
+    if (state.status !== 'connected') {
+      return `
+        <div class="result-section did-win-card">
+          <div class="did-win-head">
+            <div>
+              <div class="result-section-title">Did I win?</div>
+              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected outcome.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" type="button" data-connect-phantom>Connect Phantom</button>
+          </div>
+          <div class="did-win-status did-win-status-muted">Read-only wallet check. No transaction signing.</div>
+        </div>
+      `;
+    }
+
+    const result = didIWin(state.address, r);
+    const labels = {
+      won: ['🎉 You won!', 'Your connected address was selected.'],
+      'in-draw-not-selected': ['You were in this draw — not selected', 'Your address was eligible, but another outcome was selected.'],
+      'not-in-draw': ['Your address was not in this draw', 'This wallet address is not in the committed outcome list.'],
+    };
+    const [title, copy] = labels[result] || labels['not-in-draw'];
+    const modifier = result === 'won' ? 'did-win-status-won' : 'did-win-status-muted';
+
+    return `
+      <div class="result-section did-win-card">
+        <div class="did-win-head">
+          <div>
+            <div class="result-section-title">Did I win?</div>
+            <p class="did-win-copy">Connected: <span class="wallet-pill">${escapeHtml(state.shortAddress || window.vreWallet?.shortAddress?.(state.address) || state.address)}</span></p>
+          </div>
+        </div>
+        <div class="did-win-status ${modifier}">
+          <strong>${escapeHtml(title)}</strong>
+          <span>${escapeHtml(copy)}</span>
         </div>
       </div>
     `;
@@ -263,6 +349,7 @@
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Verifying…';
+    lastVerifyResult = null;
 
     el('result-banner').classList.add('hidden');
     el('result-details').classList.add('hidden');
@@ -288,6 +375,10 @@
     const form = el('verify-form');
     if (!form) return;
 
+    if (window.vreWallet?.readConnectedPhantom) {
+      phantomState = window.vreWallet.readConnectedPhantom();
+    }
+
     el('field-rpc').value = DEFAULT_RPC;
     el('field-program').value = DEFAULT_PROGRAM_ID;
 
@@ -297,6 +388,24 @@
     });
 
     form.addEventListener('submit', (e) => { e.preventDefault(); runFromForm(); });
+
+    document.addEventListener('click', async (event) => {
+      const btn = event.target.closest('[data-connect-phantom]');
+      if (!btn) return;
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Connecting...';
+      try {
+        phantomState = await window.vreWallet.connectPhantom();
+      } catch (error) {
+        phantomState = { status: 'not-connected', error: error?.message || String(error) };
+        window.vreToast('Phantom connection cancelled');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+        if (lastVerifyResult) renderDetails(lastVerifyResult);
+      }
+    });
 
     const params = new URLSearchParams(location.search);
     const sigParam = params.get('sig');
@@ -323,5 +432,6 @@
   }
 
   window.vreVerify = verify;
+  window.vreDidIWin = { looksLikeSolanaAddress, hasAddressOutcomes, didIWin };
   document.addEventListener('DOMContentLoaded', onReady);
 })();

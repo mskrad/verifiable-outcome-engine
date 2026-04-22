@@ -22,6 +22,18 @@ There are four distinct roles. Each requires a different level of access:
 > `resolveOutcome`; partner instances can run with `fee_lamports = 0` under a
 > commercial agreement.
 
+### Protocol Fee
+
+Each `resolveOutcome` call on the canonical program may collect a small protocol
+fee from the operator wallet to the VRE treasury. The fee is configured in
+`ProgramConfig.fee_lamports`.
+
+**Current fee: 0 lamports** on devnet.
+
+The fee can be updated by the VRE admin without a program upgrade. Verification
+(`/api/replay`, SDK verify, and `verify.html`) is always free. Dedicated partner
+instances can run with `fee_lamports = 0`; see [Part 4 — Partner Program](#part-4--partner-program).
+
 ---
 
 ## Part 1 — Verifier

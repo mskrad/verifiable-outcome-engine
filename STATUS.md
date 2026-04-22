@@ -1,6 +1,6 @@
 # Status
 
-- Updated: 2026-04-22 15:24:00 +0300
+- Updated: 2026-04-22 22:02:00 +0300
 - Repo role: standalone hackathon repo for `Verifiable Outcome Engine`
 - Ecosystem repo: maintained separately in the main monorepo
 - Current repo focus:
@@ -25,7 +25,10 @@
   - `HACKATHON-ERROR-SURFACE-001` ready for Hub acceptance after Tester verified verification error code surfaces
   - `HACKATHON-LICENSE-DOCS-001` ready for Hub acceptance after Tester verified LICENSE, README, INTEGRATION, index, and build copy for the accepted protocol-fee / partner-instance business model
   - `HACKATHON-PROTOCOL-FEE-001` ready for Hub acceptance after Tester verified build/typecheck, devnet upgrade state, ProgramConfig fee disabled state, new/old replay, and blessed signature bundle
+  - `HACKATHON-POSITIONING-002` ready for Hub acceptance after Tester verified canonical program and protocol fee docs in `spec.html` and `INTEGRATION.md`
   - `HACKATHON-NPM-REPUBLISH-001` blocked on npm 24-hour republish cooldown after clean `0.2.0` dry-run
+  - `HACKATHON-PHANTOM-001` ready for Hub acceptance after Tester verified read-only Phantom "Did I win?" behavior on `verify.html`
+  - `HACKATHON-LIVE-RAFFLE-001` blocked after Tester verified static/local/API checks but full on-chain live raffle failed with ProgramConfig admin mismatch under the requested `id.json` wallet
   - `HACKATHON-WIDGET-001` ready for Hub server test after widget.js, interactive widget form, /widget.html, Widget nav item, 5-link nav CSS, and scoped CORS implementation
   - `HACKATHON-AIRDROP-DEMO-001` ready for Hub acceptance after Tester verified airdrop and prediction devnet blessed signatures
   - `HACKATHON-USECASES-UI-001` ready for Hub acceptance after Tester verified frontend use-case labels/badges and Prediction Market copy
@@ -44,10 +47,64 @@
   - docs/build page now clarify that npm SDK does not deploy a Solana program; own instances require partner agreement with the VRE team
   - license/docs now split the open TypeScript verification SDK from proprietary Solana program source and document canonical protocol-fee usage plus partner instances
   - npm package `verifiable-outcome-sdk@0.2.0` packaging is ready; tarball contains only public SDK build output plus README/LICENSE/package metadata; real publish can be retried after 2026-04-22 23:24:07 MSK
+  - live raffle Tester result: `node --check web/server.mjs`, `node --check web/public/js/main.js`, `node --check web/public/js/play.js`, `npx tsc --noEmit`, and `git diff --check` passed; local `/play.html`, CORS preflight, invalid address, same-IP 429 rate-limit, and 375px no-overflow checks passed; full on-chain live raffle with requested `ANCHOR_WALLET=$HOME/.config/solana/id.json` blocked on ProgramConfig admin mismatch before producing a live signature
+  - Phantom verification: `node --check web/public/js/main.js`, `node --check web/public/js/verify.js`, `node --check web/server.mjs`, `npx tsc --noEmit`, and `git diff --check` passed; local `/verify.html` returned HTTP `200`; mocked headless browser verified no Phantom, winner, participant non-winner, non-participant, loot hidden, delegated connect, and 375px no-overflow
+  - positioning docs verification: `node --check web/server.mjs` and `git diff --check` passed; `spec.html` documents canonical program, ProgramConfig fields, and Protocol Fee; `INTEGRATION.md` contains Protocol Fee block; forbidden positioning terms returned no matches
   - protocol fee verification: `anchor build`, `npx tsc --noEmit`, `node --check web/server.mjs`, and `git diff --check` passed; devnet ProgramConfig has `feeLamports=0` and treasury `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`; new and old blessed signatures replayed `MATCH / OK`
   - license/docs verification: `git diff --check` passed; `node --check web/server.mjs` passed; forbidden public-doc grep returned no matches
-  - next active owner: Engineer for `HACKATHON-NPM-REPUBLISH-001` retry after npm cooldown
+  - next active owner: Hub for `HACKATHON-LIVE-RAFFLE-001` blocker decision
   - `slot`, `wheel`, monorepo-only examples, deploy artifacts, and target outputs remain excluded
+- Latest live raffle result:
+  - `HACKATHON-LIVE-RAFFLE-001` status: blocked after Tester verification
+  - target branch: `main`
+  - backend files changed: `sdk/operator.ts` and `web/server.mjs`
+  - frontend files changed: `web/public/play.html`, `web/public/js/play.js`, `web/public/js/main.js`, and `web/public/css/style.css`
+  - `resolveInline(config, opts)` is available from `sdk/operator.ts` for server use and is not exported from `sdk/index.ts`
+  - `POST /api/live-raffle` validates Phantom address, rate-limits 1 request/IP/60s, times out after 45s, calls `resolveInline`, and returns signature/outcome/runtime/artifact identifiers
+  - live raffle section lives on `play.html` above the current blessed signatures list and verifies the live signature through `/api/replay` before rendering result
+  - live endpoint does not mutate `artifacts/outcome_devnet_blessed_signatures.json`; successful results are intended to be independently verifiable via `/verify.html?sig=...`
+  - Tester evidence: static checks passed, local `/play.html` smoke passed, CORS preflight returned HTTP `204`, invalid address returned HTTP `400`, immediate same-IP valid retry returned HTTP `429`, and 375px overflow passed after adding `overflow-wrap:anywhere` to `.live-raffle-status`
+  - full on-chain blocker: with `ANCHOR_PROVIDER_URL=https://api.devnet.solana.com ANCHOR_WALLET=$HOME/.config/solana/id.json yarn web`, live raffle returned `ProgramConfig admin mismatch: expected CzzHx2Ckqz5x7cMJqTxF5f9FrHHYyJ9MYmQkCGFwCKVy got ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+  - wallet evidence: `id.json` pubkey is `CzzHx2Ckqz5x7cMJqTxF5f9FrHHYyJ9MYmQkCGFwCKVy`; `esjx.json` pubkey is `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+  - not verified due blocker: real live result signature/outcome rendering and `/verify.html?sig=<live_sig>` returning `MATCH / OK`
+- Latest Phantom tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - branch: `main`
+  - `node --check web/public/js/main.js`: passed
+  - `node --check web/public/js/verify.js`: passed
+  - `node --check web/server.mjs`: passed
+  - `npx tsc --noEmit`: passed
+  - `git diff --check`: passed
+  - `yarn web`: started successfully on `http://127.0.0.1:8787`
+  - `curl -fsS ... /verify.html`: sandboxed curl failed to connect to local port; rerun with local-network access returned HTTP `200`
+  - Headless Brave + CDP with mocked `/api/replay`, mocked `/api/timeline`, and mocked `window.solana`: no Phantom rendered phantom.app install link; connected winner rendered `🎉 You won!`; participant non-winner rendered `You were in this draw — not selected`; non-participant rendered `Your address was not in this draw`; loot/label outcomes hid the block
+  - section order: `Selected Outcome` → `Did I win?` → `Committed Rules` → `Pre-commitment Timeline` → `Raw output`
+  - delegated connect: `window.solana.connect()` called once; signing calls stayed `0`
+  - 375px mobile check: `clientWidth=365`, `scrollWidth=365`, `overflow=false`; browser scrollbar reduced document client width from 375 to 365, but page-level horizontal overflow was false
+  - scope guard: no diff in `web/server.mjs`, SDK, Rust/Anchor code, artifacts, or replay scripts
+  - risk: real Phantom extension injection timing was not tested; mocked `window.solana` was used in headless browser
+- Latest Phantom implementation:
+  - `HACKATHON-PHANTOM-001` status: ready for Tester
+  - target branch: `main` only
+  - changed files: `web/public/js/main.js`, `web/public/js/verify.js`, and `web/public/css/style.css`
+  - `window.vreWallet` exposes read-only Phantom helpers: `connectPhantom()`, `readConnectedPhantom()`, and `shortAddress()`
+  - `verify.html` now renders a MATCH-only `Did I win?` block after Selected Outcome and before Committed Rules when all outcomes are Solana-like addresses
+  - state rendering covers no Phantom, winner, participant non-winner, non-participant, and loot/label hidden cases
+  - verification passed: `node --check web/public/js/main.js`, `node --check web/public/js/verify.js`, `node --check web/server.mjs`, `npx tsc --noEmit`, `git diff --check`, local `/verify.html` smoke, mocked headless browser cases, and 375px no-overflow check
+  - no changes made to `/api/replay`, `web/server.mjs`, SDK, Rust, artifacts, or replay semantics
+- Latest positioning docs tester result:
+  - tester verdict: PASS, ready for Hub acceptance
+  - branch: `main`
+  - `node --check web/server.mjs`: passed
+  - `git diff --check`: passed
+  - positive grep confirmed canonical program, Program ID, upgrade authority, ProgramConfig, `fee_lamports`, treasury, Protocol Fee, and `hello@verifiableoutcome.online` copy in `web/public/spec.html` and `INTEGRATION.md`
+  - forbidden grep for `free forever`, `no fees`, `casino`, `slots`, `Layer 2`, and `Layer 3` returned no matches
+  - `web/public/spec.html` has TOC link to `#canonical-program` and `<article id="canonical-program">`
+  - Canonical Program section documents Program ID `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`, cluster `Solana devnet (mainnet pending)`, and upgrade authority `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+  - ProgramConfig table documents `admin`, `allow_unreviewed_binding`, `fee_lamports`, and `treasury`
+  - Protocol Fee copy states current devnet fee is `0 lamports`, fee is configurable through `ProgramConfig.fee_lamports` without a program upgrade, and verification is always free
+  - `INTEGRATION.md` contains `### Protocol Fee` with `ProgramConfig.fee_lamports`, current `0 lamports`, free verification, and Partner Program link
+  - scope guard: docs-only verification; content inspection limited to `web/public/spec.html`, `INTEGRATION.md`, and task memory; SDK, Rust/Anchor code, `web/server.mjs`, replay logic, and other HTML pages were not changed
 - Latest npm republish implementation:
   - status: BLOCKED ON NPM COOLDOWN
   - `package.json` version updated to `0.2.0`

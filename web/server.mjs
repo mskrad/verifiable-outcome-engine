@@ -2,7 +2,8 @@ import http from "http";
 import fs from "fs";
 import path from "path";
 import { spawnSync } from "child_process";
-import { fileURLToPath } from "url";
+import { register } from "node:module";
+import { fileURLToPath, pathToFileURL } from "url";
 import { PublicKey } from "@solana/web3.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -20,7 +21,21 @@ const DEFAULT_SUMMARY_PATH = path.join(
   "artifacts",
   "public_evidence_summary.json"
 );
-const CORS_API_PATHS = new Set(["/api/replay", "/api/health"]);
+const CORS_API_PATHS = new Set(["/api/replay", "/api/health", "/api/live-raffle"]);
+const LIVE_RAFFLE_TIMEOUT_MS = 45_000;
+const LIVE_RAFFLE_RATE_LIMIT_MS = 60_000;
+const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
+const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const LIVE_RAFFLE_PRESETS = [
+  "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9",
+  "CktRuQ2mQFucF77t4vZ4QGWJv2a9oW1P1bL6n6LJ9m5H",
+  "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
+  "7FHkpGMVfKxaRx3rVfxMkgmQJ7o6EdVYuZRpNrAcU6Ha",
+];
+
+const liveRaffleRateLimit = new Map();
+let tsSdkRegistered = false;
+let resolveInlinePromise;
 
 function loadEnvFile() {
   const envPath = path.join(REF_ROOT, ".env");
@@ -151,6 +166,91 @@ function defaultRpc() {
   return process.env.ANCHOR_PROVIDER_URL || blessed.rpc_url;
 }
 
+function ensureTsSdkRuntime() {
+  if (tsSdkRegistered) return;
+  process.env.TS_NODE_PROJECT =
+    process.env.TS_NODE_PROJECT || path.join(REF_ROOT, "tsconfig.json");
+  process.env.TS_NODE_TRANSPILE_ONLY =
+    process.env.TS_NODE_TRANSPILE_ONLY || "true";
+  register("ts-node/esm", pathToFileURL(`${REF_ROOT}/`));
+  tsSdkRegistered = true;
+}
+
+async function loadResolveInline() {
+  ensureTsSdkRuntime();
+  if (!resolveInlinePromise) {
+    resolveInlinePromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "operator.ts")).href
+    ).then((module) => {
+      if (typeof module.resolveInline !== "function") {
+        throw new Error("resolveInline export not found");
+      }
+      return module.resolveInline;
+    });
+  }
+  return resolveInlinePromise;
+}
+
+function validateSolanaAddress(value) {
+  const address = String(value || "").trim();
+  if (!SOLANA_ADDRESS_RE.test(address)) {
+    throw new Error("invalid address");
+  }
+  try {
+    new PublicKey(address);
+  } catch (_) {
+    throw new Error("invalid address");
+  }
+  return address;
+}
+
+function clientIp(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "")
+    .split(",")[0]
+    .trim();
+  return forwarded || req.socket.remoteAddress || "unknown";
+}
+
+function checkLiveRaffleRateLimit(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  for (const [key, until] of liveRaffleRateLimit) {
+    if (until <= now) liveRaffleRateLimit.delete(key);
+  }
+  const blockedUntil = liveRaffleRateLimit.get(ip) || 0;
+  if (blockedUntil > now) {
+    return { ok: false, retryAfterMs: blockedUntil - now };
+  }
+  liveRaffleRateLimit.set(ip, now + LIVE_RAFFLE_RATE_LIMIT_MS);
+  return { ok: true, retryAfterMs: 0 };
+}
+
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function buildLiveRaffleConfig(judgeAddress) {
+  const weights = new Map();
+  for (const address of LIVE_RAFFLE_PRESETS) {
+    weights.set(address, 250);
+  }
+  weights.set(judgeAddress, (weights.get(judgeAddress) || 0) + 9000);
+
+  return {
+    type: "raffle",
+    input_lamports: 10,
+    payout_lamports: 3,
+    participants: [...weights.entries()].map(([address, weight]) => ({
+      address,
+      weight,
+    })),
+  };
+}
+
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
   const args = [
     "--loader",
@@ -195,6 +295,66 @@ function runReplay({ signature, rpcUrl, programId, artifactPath }) {
     stdout,
     stderr,
   };
+}
+
+async function handleLiveRaffle(req, res) {
+  const body = await readJsonBody(req);
+  let address;
+  try {
+    address = validateSolanaAddress(body.address);
+  } catch (_) {
+    json(res, 400, { ok: false, error: "Invalid Solana address" });
+    return;
+  }
+
+  const limit = checkLiveRaffleRateLimit(req);
+  if (!limit.ok) {
+    json(res, 429, {
+      ok: false,
+      error: "Please wait 60 seconds between raffles",
+      retry_after_ms: limit.retryAfterMs,
+    });
+    return;
+  }
+
+  try {
+    const config = buildLiveRaffleConfig(address);
+    const resolveInline = await loadResolveInline();
+    const rpcUrl = process.env.LIVE_RAFFLE_RPC_URL || defaultRpc();
+    const programId = process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId();
+    const walletPath =
+      process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
+    const label = `live-raffle-${Date.now()}`;
+    const result = await withTimeout(
+      resolveInline(config, {
+        rpcUrl,
+        programId,
+        walletPath,
+        outputDir: process.env.LIVE_RAFFLE_OUTPUT_DIR || LIVE_RAFFLE_OUTPUT_DIR,
+        label,
+      }),
+      LIVE_RAFFLE_TIMEOUT_MS,
+      "Devnet is slow right now, try again"
+    );
+
+    json(res, 200, {
+      ok: true,
+      signature: result.signature,
+      outcome: result.outcome,
+      runtimeId: result.runtimeId,
+      resolveId: result.resolveId,
+      artifactHash: result.artifactHash,
+      programId: result.programId,
+      participantCount: config.participants.length,
+    });
+  } catch (error) {
+    const message = error?.message || String(error);
+    const isTimeout = message.includes("Devnet is slow");
+    json(res, isTimeout ? 504 : 500, {
+      ok: false,
+      error: isTimeout ? "Devnet is slow right now, try again" : message,
+    });
+  }
 }
 
 async function rpcCall(rpcUrl, payload, timeoutMs = 8000) {
@@ -342,6 +502,11 @@ async function handleApi(req, res, pathname) {
         stdout: replayResult.stdout,
         stderr: replayResult.stderr,
       });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/live-raffle") {
+      await handleLiveRaffle(req, res);
       return;
     }
 

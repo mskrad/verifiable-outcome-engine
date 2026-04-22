@@ -11,6 +11,9 @@
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
   const RAFFLE_SIG = 'mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh';
 
+  let liveRaffleWallet = { status: 'not-connected' };
+  let liveRaffleResult = null;
+
   const USE_CASE_BADGES = {
     raffle:     { label: 'Raffle',     cls: 'badge-use-raffle' },
     airdrop:    { label: 'Airdrop',    cls: 'badge-use-airdrop' },
@@ -38,8 +41,204 @@
       body: JSON.stringify(payload),
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.error || `POST ${path} failed`);
+    if (!res.ok || json.ok === false) throw new Error(json.error || `POST ${path} failed`);
     return json;
+  }
+
+  function normalizeReplayForDidIWin(replay) {
+    return {
+      status: replay?.verification_result || 'ERROR',
+      outcomeId: replay?.outcome_id || '',
+      outcomes: Array.isArray(replay?.outcomes) ? replay.outcomes : [],
+    };
+  }
+
+  function renderLiveRaffle(state = 'idle', data = {}) {
+    const root = document.getElementById('live-raffle');
+    if (!root) return;
+
+    if (state === 'not-installed') {
+      root.innerHTML = `
+        <div class="live-raffle-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Live raffle</span>
+            <h2>Try a real on-chain raffle</h2>
+            <p>Connect Phantom to enter a devnet raffle with your address weighted at 90%.</p>
+          </div>
+        </div>
+        <div class="live-raffle-status live-raffle-warn">
+          Phantom is not installed. <a class="text-teal" href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom</a>
+        </div>
+      `;
+      return;
+    }
+
+    if (state === 'idle') {
+      const connected = liveRaffleWallet.status === 'connected';
+      root.innerHTML = `
+        <div class="live-raffle-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Live raffle</span>
+            <h2>Try a real on-chain raffle</h2>
+            <p>${connected
+              ? `Your address: <span class="wallet-pill">${escapeHtml(liveRaffleWallet.shortAddress)}</span>`
+              : 'Connect Phantom to enter a devnet raffle with your address weighted at 90%.'}</p>
+          </div>
+          <div class="live-raffle-actions">
+            ${connected
+              ? '<button class="btn btn-primary" type="button" data-live-raffle-start>Start Raffle →</button>'
+              : '<button class="btn btn-secondary" type="button" data-live-raffle-connect>Connect Phantom</button>'}
+          </div>
+        </div>
+        <div class="live-raffle-status">
+          You will be entered with four preset participants. The result is a real devnet transaction and can be verified independently.
+        </div>
+      `;
+      return;
+    }
+
+    if (state === 'loading') {
+      root.innerHTML = `
+        <div class="loading-state live-raffle-loading">
+          <div class="spinner spinner-lg"></div>
+          <div>
+            <strong>Creating your raffle on Solana devnet...</strong>
+            <div class="text-faint">This takes about 15-45 seconds.</div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    if (state === 'error') {
+      root.innerHTML = `
+        <div class="live-raffle-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Live raffle</span>
+            <h2>Try a real on-chain raffle</h2>
+          </div>
+          <button class="btn btn-secondary" type="button" data-live-raffle-reset>Try again</button>
+        </div>
+        <div class="live-raffle-status live-raffle-error">${escapeHtml(data.message || 'Live raffle failed')}</div>
+        ${data.signature ? `
+          <div class="sig-actions mt-4">
+            <a class="btn btn-secondary btn-sm" href="verify.html?sig=${encodeURIComponent(data.signature)}">Open verifier →</a>
+            <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
+          </div>
+        ` : ''}
+      `;
+      return;
+    }
+
+    if (state === 'result') {
+      const did = data.did || 'not-in-draw';
+      const title = did === 'won'
+        ? '🎉 You won!'
+        : did === 'not-in-draw'
+        ? 'Your address was not in this draw'
+        : 'Not selected this time';
+      root.innerHTML = `
+        <div class="live-raffle-head">
+          <div>
+            <span class="eyebrow"><span class="dot"></span> Live raffle complete</span>
+            <h2>${escapeHtml(title)}</h2>
+            <p>Selected outcome: <span class="mono text-teal">${escapeHtml(window.vreShort(data.outcome || '', 8, 8))}</span></p>
+          </div>
+        </div>
+        <div class="sig-meta">
+          <div class="sig-meta-item">
+            <div class="sig-meta-label">signature</div>
+            <div class="sig-meta-value">${escapeHtml(data.signature || '—')}</div>
+          </div>
+          <div class="sig-meta-item">
+            <div class="sig-meta-label">runtime_id</div>
+            <div class="sig-meta-value">${escapeHtml(data.runtimeId || '—')}</div>
+          </div>
+          <div class="sig-meta-item">
+            <div class="sig-meta-label">artifact_hash</div>
+            <div class="sig-meta-value">${escapeHtml(window.vreShort(data.artifactHash || '—', 10, 6))}</div>
+          </div>
+        </div>
+        <div class="sig-actions">
+          <a class="btn btn-primary btn-sm" href="verify.html?sig=${encodeURIComponent(data.signature)}">Verify independently →</a>
+          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/tx/${encodeURIComponent(data.signature)}?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
+          <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
+        </div>
+      `;
+    }
+  }
+
+  async function connectLiveRaffleWallet() {
+    if (!window.vreWallet?.connectPhantom) throw new Error('Wallet helper unavailable');
+    liveRaffleWallet = await window.vreWallet.connectPhantom();
+    if (liveRaffleWallet.status === 'not-installed') {
+      renderLiveRaffle('not-installed');
+      return;
+    }
+    if (liveRaffleWallet.status !== 'connected') {
+      throw new Error('Phantom not connected');
+    }
+    renderLiveRaffle('idle');
+  }
+
+  async function startLiveRaffle() {
+    if (liveRaffleWallet.status !== 'connected') {
+      await connectLiveRaffleWallet();
+    }
+    if (liveRaffleWallet.status !== 'connected') return;
+
+    renderLiveRaffle('loading');
+    let live = null;
+    try {
+      live = await postJson('/api/live-raffle', { address: liveRaffleWallet.address });
+      const replayJson = await postJson('/api/replay', { signature: live.signature });
+      const replay = replayJson.replay || {};
+      if (replay.verification_result !== 'MATCH') {
+        throw new Error(`Replay did not match: ${replay.verification_reason || 'unknown reason'}`);
+      }
+      const normalized = normalizeReplayForDidIWin(replay);
+      const did = window.vreDidIWin?.didIWin?.(liveRaffleWallet.address, normalized) || 'not-applicable';
+
+      liveRaffleResult = {
+        signature: live.signature,
+        outcome: replay.outcome_id || live.outcome,
+        runtimeId: replay.runtime_id || live.runtimeId,
+        artifactHash: replay.compiled_artifact_hash || live.artifactHash,
+        did,
+      };
+      renderLiveRaffle('result', liveRaffleResult);
+    } catch (error) {
+      const message = error?.message || String(error);
+      renderLiveRaffle('error', {
+        message: /rate|60/i.test(message)
+          ? 'Please wait 60 seconds between raffles'
+          : /slow|timeout/i.test(message)
+          ? 'Devnet is slow right now, try again'
+          : message,
+        signature: live?.signature,
+      });
+    }
+  }
+
+  function initLiveRaffle() {
+    const root = document.getElementById('live-raffle');
+    if (!root) return;
+    liveRaffleWallet = window.vreWallet?.readConnectedPhantom?.() || { status: 'not-connected' };
+    renderLiveRaffle(liveRaffleWallet.status === 'not-installed' ? 'not-installed' : 'idle');
+
+    document.addEventListener('click', (event) => {
+      if (event.target.closest('[data-live-raffle-connect]')) {
+        connectLiveRaffleWallet().catch((error) => {
+          renderLiveRaffle('error', { message: error?.message || String(error) });
+        });
+      }
+      if (event.target.closest('[data-live-raffle-start]')) {
+        startLiveRaffle();
+      }
+      if (event.target.closest('[data-live-raffle-reset]')) {
+        renderLiveRaffle(liveRaffleWallet.status === 'not-installed' ? 'not-installed' : 'idle');
+      }
+    });
   }
 
   function inferUseCase(entry) {
@@ -188,5 +387,8 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', loadSignatures);
+  document.addEventListener('DOMContentLoaded', () => {
+    initLiveRaffle();
+    loadSignatures();
+  });
 })();

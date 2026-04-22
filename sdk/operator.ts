@@ -8,6 +8,7 @@ import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 
 import { buildArtifact } from "./artifact.js";
 import { OUTCOME_IDL } from "./idl.js";
+import { verifyOutcome } from "./verify.js";
 import {
   CHUNK_SIZE,
   DEFAULT_PROGRAM_ID,
@@ -78,6 +79,25 @@ export type ResolveOperatorResult = {
   compiled_artifact_hash: string;
   artifact_path: string;
   result_path: string;
+};
+
+export type ResolveInlineOptions = {
+  walletPath?: string;
+  rpcUrl?: string;
+  programId?: string;
+  outputDir?: string;
+  label?: string;
+};
+
+export type ResolveInlineResult = {
+  signature: string;
+  outcome: string;
+  runtimeId: string;
+  resolveId: string;
+  artifactHash: string;
+  programId: string;
+  artifactPath: string;
+  resultPath: string;
 };
 
 function expandHome(inputPath: string): string {
@@ -658,14 +678,16 @@ function defaultLabel(configPath: string): string {
   return `${base}-${Date.now()}`;
 }
 
-export async function resolveOperator(
-  opts: ResolveOperatorOptions
-): Promise<ResolveOperatorResult> {
-  if (!opts.configPath) {
-    throw new Error("Provide --config <PATH>");
+async function resolveConfig(
+  config: ArtifactConfig,
+  opts: {
+    walletPath?: string;
+    rpcUrl?: string;
+    programId?: string;
+    outputDir?: string;
+    label: string;
   }
-
-  const config = loadArtifactConfig(opts.configPath);
+): Promise<ResolveOperatorResult> {
   const inputLamports = asBigInt(config.input_lamports);
   const client = await loadOutcomeClient({
     rpcUrl: opts.rpcUrl,
@@ -675,7 +697,7 @@ export async function resolveOperator(
   await ensureWalletFunds(client);
   await ensureProgramConfig(client);
 
-  const label = defaultLabel(opts.configPath);
+  const label = opts.label;
   const outputDir = outputDirFromArg(opts.outputDir);
   ensureDirectory(outputDir);
 
@@ -719,5 +741,56 @@ export async function resolveOperator(
   return {
     ...partialResult,
     result_path: resultPath,
+  };
+}
+
+export async function resolveOperator(
+  opts: ResolveOperatorOptions
+): Promise<ResolveOperatorResult> {
+  if (!opts.configPath) {
+    throw new Error("Provide --config <PATH>");
+  }
+
+  const config = loadArtifactConfig(opts.configPath);
+  return resolveConfig(config, {
+    walletPath: opts.walletPath,
+    rpcUrl: opts.rpcUrl,
+    programId: opts.programId,
+    outputDir: opts.outputDir,
+    label: defaultLabel(opts.configPath),
+  });
+}
+
+export async function resolveInline(
+  config: ArtifactConfig,
+  opts: ResolveInlineOptions = {}
+): Promise<ResolveInlineResult> {
+  const rpcUrl = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
+  const base = await resolveConfig(config, {
+    walletPath: opts.walletPath,
+    rpcUrl,
+    programId: opts.programId,
+    outputDir: opts.outputDir,
+    label: opts.label ?? `live-raffle-${Date.now()}`,
+  });
+
+  const verified = await verifyOutcome({
+    signature: base.signature,
+    rpcUrl,
+    programId: base.program_id,
+  });
+  if (verified.status !== "MATCH") {
+    throw new Error(`live raffle replay failed after resolve: ${verified.reason}`);
+  }
+
+  return {
+    signature: base.signature,
+    outcome: verified.outcome_id,
+    runtimeId: base.runtime_id,
+    resolveId: base.resolve_id,
+    artifactHash: base.compiled_artifact_hash,
+    programId: base.program_id,
+    artifactPath: base.artifact_path,
+    resultPath: base.result_path,
   };
 }
