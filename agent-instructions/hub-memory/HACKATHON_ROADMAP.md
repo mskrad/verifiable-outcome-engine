@@ -149,6 +149,7 @@ Workstreams:
 - Tier 2 партнёры: fee_lamports = 0, свой инстанс по соглашению
 
 **WS-16: npm republish SDK v0.2.0** ← HACKATHON-NPM-REPUBLISH-001
+**WS-17: Security audit** ← HACKATHON-SECURITY-AUDIT-001
 - verifiable-outcome-sdk@0.1.1 удалён Apr 21 (защита кода)
 - Переиздать v0.2.0: IDL остаётся (не секрет), programs/ не входит
 - Добавить .npmignore, обновить package.json description + keywords
