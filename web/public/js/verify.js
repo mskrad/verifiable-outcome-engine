@@ -189,6 +189,7 @@
   function renderDetails(r) {
     const details = el('result-details');
     details.innerHTML = renderOutcome(r) + renderDidIWin(r) + renderRules(r) + renderTimeline(r) + renderLinks(r);
+    bindTimelineReload();
   }
 
   function renderOutcome(r) {
@@ -299,23 +300,79 @@
     const commitSlot = r.commitSlot;
     const resolveSlot = r.resolveSlot;
     const delta = r.gapSlots;
+    const noData = commitSlot == null || resolveSlot == null;
     return `
-      <div class="result-section">
+      <div class="result-section" id="timeline-section">
         <div class="result-section-title">Pre-commitment Timeline</div>
-        <div class="timeline-row">
-          <div class="timeline-stop">
-            <span class="timeline-stop-label">Rules committed</span>
-            <span class="timeline-stop-value">slot ${commitSlot != null ? commitSlot : '—'}</span>
+        ${noData ? `
+          <div class="pre-proof-caption" id="timeline-pending">
+            Timeline not yet available.
+            <button class="btn btn-ghost btn-sm" id="reload-timeline-btn"
+              data-sig="${escapeHtml(r.signature)}"
+              data-rpc="${escapeHtml(r.rpcUrl)}"
+              data-program="${escapeHtml(r.programId)}"
+              data-hash="${escapeHtml(r.artifactHash || '')}">
+              Reload →
+            </button>
           </div>
-          <div class="timeline-arrow">→</div>
-          <div class="timeline-stop">
-            <span class="timeline-stop-label">Outcome drawn</span>
-            <span class="timeline-stop-value">slot ${resolveSlot != null ? resolveSlot : '—'}</span>
+        ` : `
+          <div class="timeline-row">
+            <div class="timeline-stop">
+              <span class="timeline-stop-label">Rules committed</span>
+              <span class="timeline-stop-value">slot ${commitSlot}</span>
+            </div>
+            <div class="timeline-arrow">→</div>
+            <div class="timeline-stop">
+              <span class="timeline-stop-label">Outcome drawn</span>
+              <span class="timeline-stop-value">slot ${resolveSlot}</span>
+            </div>
           </div>
-        </div>
-        ${delta != null ? `<div class="pre-proof-caption">Rules were committed on-chain <strong>${delta} slot${delta === 1 ? '' : 's'}</strong> before the outcome was drawn.</div>` : '<div class="pre-proof-caption">Timeline unavailable for this signature.</div>'}
+          <div class="pre-proof-caption">Rules were committed on-chain <strong>${delta} slot${delta === 1 ? '' : 's'}</strong> before the outcome was drawn.</div>
+        `}
       </div>
     `;
+  }
+
+  function bindTimelineReload() {
+    const btn = document.getElementById('reload-timeline-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+      try {
+        const result = await fetchTimeline({
+          signature: btn.dataset.sig,
+          rpcUrl: btn.dataset.rpc,
+          programId: btn.dataset.program,
+          compiledArtifactHash: btn.dataset.hash,
+        });
+        if (result && result.artifact_slot != null) {
+          const section = document.getElementById('timeline-section');
+          const delta = result.gap_slots;
+          section.innerHTML = `
+            <div class="result-section-title">Pre-commitment Timeline</div>
+            <div class="timeline-row">
+              <div class="timeline-stop">
+                <span class="timeline-stop-label">Rules committed</span>
+                <span class="timeline-stop-value">slot ${result.artifact_slot}</span>
+              </div>
+              <div class="timeline-arrow">→</div>
+              <div class="timeline-stop">
+                <span class="timeline-stop-label">Outcome drawn</span>
+                <span class="timeline-stop-value">slot ${result.resolution_slot}</span>
+              </div>
+            </div>
+            <div class="pre-proof-caption">Rules were committed on-chain <strong>${delta} slot${delta === 1 ? '' : 's'}</strong> before the outcome was drawn.</div>
+          `;
+        } else {
+          btn.textContent = 'Retry →';
+          btn.disabled = false;
+        }
+      } catch (_) {
+        btn.textContent = 'Retry →';
+        btn.disabled = false;
+      }
+    });
   }
 
   function renderLinks(r) {
