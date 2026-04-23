@@ -7,10 +7,10 @@
 
   // Highlight active nav link based on current pathname
   function markActiveNav() {
-    const path = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    const path = (location.pathname.split('/').pop() || '').toLowerCase().replace(/\.html$/, '') || 'index';
     document.querySelectorAll('[data-nav]').forEach((link) => {
-      const key = link.getAttribute('data-nav');
-      if (path === key || (path === '' && key === 'index.html')) {
+      const key = link.getAttribute('data-nav').replace(/\.html$/, '');
+      if (path === key || (path === 'index' && key === 'index')) {
         link.classList.add('active');
       }
     });

@@ -122,7 +122,7 @@
         <div class="live-raffle-status live-raffle-error">${escapeHtml(data.message || 'Live raffle failed')}</div>
         ${data.signature ? `
           <div class="sig-actions mt-4">
-            <a class="btn btn-secondary btn-sm" href="verify.html?sig=${encodeURIComponent(data.signature)}">Open verifier →</a>
+            <a class="btn btn-secondary btn-sm" href="/verify?sig=${encodeURIComponent(data.signature)}">Open verifier →</a>
             <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
           </div>
         ` : ''}
@@ -160,7 +160,7 @@
           </div>
         </div>
         <div class="sig-actions">
-          <a class="btn btn-primary btn-sm" href="verify.html?sig=${encodeURIComponent(data.signature)}">Verify independently →</a>
+          <a class="btn btn-primary btn-sm" href="/verify?sig=${encodeURIComponent(data.signature)}">Verify independently →</a>
           <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/tx/${encodeURIComponent(data.signature)}?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
           <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
         </div>
@@ -329,7 +329,7 @@
           ${gapSlots != null ? `<span class="delta">+${gapSlots} slots</span>` : ''}
         </div>
         <div class="sig-actions">
-          <a class="btn btn-primary btn-sm" href="verify.html?sig=${encodeURIComponent(entry.signature)}">▶ Verify Now</a>
+          <a class="btn btn-primary btn-sm" href="/verify?sig=${encodeURIComponent(entry.signature)}">▶ Verify Now</a>
           <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/tx/${entry.signature}?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
           <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(entry.signature)}">Copy Sig</button>
         </div>
@@ -362,7 +362,7 @@
           <div class="empty-state">
             <div style="font-size:15px;color:var(--text);margin-bottom:6px;">No active signatures yet</div>
             <div>The blessed signature bundle has no active entries.<br/>
-                 Paste a signature on the <a href="verify.html" class="text-teal">verify page</a>.</div>
+                 Paste a signature on the <a href="/verify" class="text-teal">verify page</a>.</div>
           </div>
         `;
         statusEl.textContent = 'No active signatures';

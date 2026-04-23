@@ -141,7 +141,7 @@
     const statusClass = isMatch ? 'result-banner-match' : 'result-banner-mismatch';
     const statusIcon = isMatch ? '✓' : '✕';
     const message = isMismatch
-      ? `${escapeHtml(r.message)} <a class="text-teal" href="/spec.html#error-codes">See error codes →</a>`
+      ? `${escapeHtml(r.message)} <a class="text-teal" href="/spec#error-codes">See error codes →</a>`
       : escapeHtml(r.message);
 
     banner.classList.remove('hidden');
