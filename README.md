@@ -14,7 +14,7 @@ vre verify --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv5
 Live verifier:
 
 ```text
-https://verifiableoutcome.online/verify.html?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
+https://verifiableoutcome.online/verify?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
 ```
 
 Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
@@ -114,10 +114,10 @@ Optional: copy `.env.example` to `.env` to override defaults (port, RPC URL, pro
 
 Open:
 
-- `http://127.0.0.1:8787/play.html`
-- `http://127.0.0.1:8787/verify.html`
-- `http://127.0.0.1:8787/widget.html`
-- `http://127.0.0.1:8787/spec.html`
+- `http://127.0.0.1:8787/play`
+- `http://127.0.0.1:8787/verify`
+- `http://127.0.0.1:8787/widget`
+- `http://127.0.0.1:8787/spec`
 
 The web surface is a reviewer flow. Live browser resolve is not part of this demo path.
 
