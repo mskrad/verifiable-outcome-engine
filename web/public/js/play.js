@@ -266,7 +266,7 @@
     return {
       raffle: 'Weighted raffle draw resolved',
       airdrop: 'Weighted eligible-list selection resolved',
-      prediction: 'Prediction outcome declaration resolved',
+      dao: 'DAO proposal selection resolved',
       loot: 'Weighted loot outcome resolved',
     }[useCase] || 'Verifiable outcome resolved';
   }
