@@ -69,6 +69,30 @@ This path demonstrates the operator cycle against an existing deployed program: 
 
 ---
 
+## Optional: Metaplex Agent Registry Evidence
+
+VRE verifier is registered on Solana devnet as a Metaplex Agent Identity.
+
+```text
+Agent asset: C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX
+Mint tx: 429YX7c7p7RhZM3vrypCDXXBvPBsoPfXHyiLDLmjNVWXKHX8VeboDiecmu48vRkX9cGSiVQZUnnV9Rjk1PxUowjj
+Evidence: artifacts/metaplex_agent_registry_evidence.json
+```
+
+To re-check the registry evidence:
+
+```bash
+METAPLEX_AGENT_RPC_URL=https://api.devnet.solana.com \
+METAPLEX_AGENT_NETWORK=solana-devnet \
+METAPLEX_AGENT_URI=https://verifiableoutcome.online/agents/vre-outcome-verification-agent.json \
+yarn -s metaplex:agent:verify \
+  --asset C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX
+```
+
+Expected: AgentIdentity plugin present, lifecycle checks truthy, registration URI valid JSON, and VRE replay `MATCH / OK`.
+
+---
+
 ## Optional: Embedded Widget Path
 
 To show verification directly inside another page, use the public widget script.

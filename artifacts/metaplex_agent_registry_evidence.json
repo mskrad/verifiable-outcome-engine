@@ -1,0 +1,55 @@
+{
+  "task_id": "HACKATHON-METAPLEX-001",
+  "network": "solana-devnet",
+  "agent_name": "VRE Outcome Verification Agent",
+  "owner": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
+  "wallet_path": "/Users/timurkurmangaliev/.config/solana/esjx.json",
+  "agent_asset_address": "C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX",
+  "agent_identity_program_id": "1DREGFgysWYxLnRnKQnwrxnJQeSMk2HmGaC6whw2B2p",
+  "mint_transaction_signature": "429YX7c7p7RhZM3vrypCDXXBvPBsoPfXHyiLDLmjNVWXKHX8VeboDiecmu48vRkX9cGSiVQZUnnV9Rjk1PxUowjj",
+  "asset_metadata_uri": "https://verifiableoutcome.online/agents/vre-outcome-verification-agent.json",
+  "registration_uri": "https://api.metaplex.com/v1/agents/C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX?network=solana-devnet",
+  "registration_uri_matches_plugin_uri": true,
+  "agent_identity_plugin": {
+    "present": true,
+    "uri": "https://api.metaplex.com/v1/agents/C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX?network=solana-devnet",
+    "lifecycle_checks": {
+      "transfer": true,
+      "update": true,
+      "execute": true
+    }
+  },
+  "service_checks": [
+    {
+      "name": "web",
+      "endpoint": "https://verifiableoutcome.online/verify",
+      "status": "reachable"
+    },
+    {
+      "name": "metadata",
+      "endpoint": "https://verifiableoutcome.online/agents/vre-outcome-verification-agent.json",
+      "status": "HTTP 200 valid JSON"
+    },
+    {
+      "name": "agent-registration-uri",
+      "endpoint": "https://api.metaplex.com/v1/agents/C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX?network=solana-devnet",
+      "status": "HTTP 200 valid JSON"
+    },
+    {
+      "name": "replay-api",
+      "endpoint": "https://verifiableoutcome.online/api/replay",
+      "status": "MATCH/OK for blessed signature"
+    }
+  ],
+  "vre_program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "blessed_signature": "mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh",
+  "replay_result": {
+    "verification_result": "MATCH",
+    "verification_reason": "OK",
+    "runtime_id": "06695059d916d903a26087c0770533c5",
+    "resolve_id": "0",
+    "compiled_artifact_hash": "4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7",
+    "outcome_id": "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9"
+  },
+  "verified_at": "2026-04-24T18:30:24.512Z"
+}

@@ -155,13 +155,25 @@ Packaged evidence:
   - `artifacts/EXPECTED_TX_EXAMPLES.md`
 - evidence summary:
   - `artifacts/public_evidence_summary.json`
+- Metaplex Agent Registry evidence:
+  - `artifacts/metaplex_agent_registry_evidence.json`
 
 For this standalone hackathon repo, the reviewer-facing source of truth is the bundled evidence set in this repository:
 
 - `artifacts/outcome_devnet_blessed_signatures.json`
 - `artifacts/EXPECTED_TX_EXAMPLES.md`
 - `artifacts/public_evidence_summary.json`
+- `artifacts/metaplex_agent_registry_evidence.json`
 - `artifacts/outcome_idl.json`
+
+Metaplex Agent Registry registration:
+
+- agent asset:
+  - `C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX`
+- mint transaction:
+  - `429YX7c7p7RhZM3vrypCDXXBvPBsoPfXHyiLDLmjNVWXKHX8VeboDiecmu48vRkX9cGSiVQZUnnV9Rjk1PxUowjj`
+- registration evidence:
+  - `artifacts/metaplex_agent_registry_evidence.json`
 
 ## Operator Reference: Live Resolve
 
