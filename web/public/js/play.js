@@ -19,6 +19,7 @@
     airdrop:    { label: 'Airdrop',    cls: 'badge-use-airdrop' },
     prediction: { label: 'Prediction', cls: 'badge-use-prediction' },
     loot:       { label: 'Loot',       cls: 'badge-use-loot' },
+    agent:      { label: 'Agent',      cls: 'badge-use-agent' },
   };
 
   function escapeHtml(str) {
@@ -253,6 +254,7 @@
     if (text.includes('airdrop')) return 'airdrop';
     if (text.includes('prediction')) return 'prediction';
     if (text.includes('raffle') || entry.signature === RAFFLE_SIG) return 'raffle';
+    if (text.includes('agent')) return 'agent';
     if (text.includes('loot')) return 'loot';
     return 'loot';
   }
