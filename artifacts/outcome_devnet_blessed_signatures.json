@@ -117,7 +117,7 @@
     {
       "id": "outcome_core_devnet_sig_8",
       "signature": "3wVLHF1vz5JeiFhEmXZoWT8xiRt5S1yib7oMsRSCQMotJbNY29yXJbbckii5imqL9hPSYT7x12zoLxJxt4oePRgE",
-      "status": "active",
+      "status": "inactive",
       "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
       "verification_result": "MATCH",
       "verification_reason": "OK",
@@ -128,7 +128,23 @@
       "description": "Verifiable task assignment for an AI agent — selected from a weighted task pool",
       "source": "resolve_operator_agent_task_v2_2026-04-24",
       "updated_utc": "2026-04-24T00:00:00Z",
-      "notes": "Agent Task Assignment: 4 tasks with weights (audit_smart_contract 500, generate_market_report 300, optimize_fee_strategy 150, emergency_pause_review 50). Selected task = audit_smart_contract. Outcome IDs are readable task names, not wallet addresses."
+      "notes": "Retired — replaced by agent marketplace use case (sig_9)."
+    },
+    {
+      "id": "outcome_core_devnet_sig_9",
+      "signature": "47XDPywZrrqcRY74UJhVeotpmPrB4erfMnoDzQNMkhwntn7CTb2JEDqq4hykhHFAE2jAXVPHAUUuuBBs6qVDa4WU",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "172e269e4a8d1d16ce1de86759b5e43c",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "ad66d7d9a61d567e1539ff91c13be246c3533fd76783ea841511de209ff74a9d",
+      "label": "Agent",
+      "description": "Agent marketplace — verifiable selection of which agent gets the job. Weights = reputation score.",
+      "source": "resolve_operator_agent_marketplace_2026-04-24",
+      "updated_utc": "2026-04-24T00:00:00Z",
+      "notes": "4 agents competing for a job: agent_nexus (500), agent_forge (300), agent_scout (150), agent_nova (50). Selected = agent_nexus. Operator cannot influence which agent wins — anyone verifies the selection from the tx signature."
     }
   ]
 }
