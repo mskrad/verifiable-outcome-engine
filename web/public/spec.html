@@ -68,6 +68,7 @@
             <li><a href="#canonical-program" class="text-dim">5. Canonical Program</a></li>
             <li><a href="#output" class="text-dim">6. Output</a></li>
             <li><a href="#error-codes" class="text-dim">7. Error Codes</a></li>
+            <li><a href="#metaplex-agent" class="text-dim">8. Metaplex Agent Registry</a></li>
           </ol>
         </aside>
 
@@ -256,6 +257,81 @@
                 target="_blank"
                 rel="noopener"
               >Full reference on GitHub →</a>
+            </div>
+          </article>
+
+          <article id="metaplex-agent" class="mb-8">
+            <h2 style="margin-bottom: 16px;">8. Metaplex Agent Registry</h2>
+            <p class="mb-4">VRE is registered in the <a href="https://developers.metaplex.com/agent-registry" target="_blank" rel="noopener" class="text-teal">Metaplex Agent Registry</a> as a verification service. Other agents and dApps can discover VRE through the registry and call its endpoints to verify outcomes without trusting the operator.</p>
+
+            <div class="card mb-4">
+              <div class="result-section-title mb-3">Agent Identity</div>
+              <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim); width:180px;">Name</td>
+                    <td class="mono">VRE Outcome Verification Agent</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim);">Network</td>
+                    <td class="mono">solana-devnet</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim);">Asset address</td>
+                    <td class="mono" style="word-break:break-all;">C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim);">Mint tx</td>
+                    <td class="mono" style="word-break:break-all;"><a href="https://explorer.solana.com/tx/429YX7c7p7RhZM3vrypCDXXBvPBsoPfXHyiLDLmjNVWXKHX8VeboDiecmu48vRkX9cGSiVQZUnnV9Rjk1PxUowjj?cluster=devnet" target="_blank" rel="noopener" class="text-teal">429YX7c7…jj ↗</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 0; color:var(--text-dim);">Registration</td>
+                    <td class="mono" style="word-break:break-all;"><a href="https://api.metaplex.com/v1/agents/C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX?network=solana-devnet" target="_blank" rel="noopener" class="text-teal">api.metaplex.com ↗</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-4">
+              <div class="result-section-title mb-3">Exposed services</div>
+              <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <th style="padding:6px 0; text-align:left; color:var(--text-dim); font-weight:500;">Type</th>
+                    <th style="padding:6px 0; text-align:left; color:var(--text-dim); font-weight:500;">Endpoint</th>
+                    <th style="padding:6px 0; text-align:left; color:var(--text-dim); font-weight:500;">Purpose</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;" class="mono">web</td>
+                    <td style="padding:8px 0;" class="mono">/verify</td>
+                    <td style="padding:8px 0; color:var(--text-dim);">Browser-based outcome verifier</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;" class="mono">replay-api</td>
+                    <td style="padding:8px 0;" class="mono">/api/replay</td>
+                    <td style="padding:8px 0; color:var(--text-dim);">Programmatic verification — call from any agent</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 0;" class="mono">web</td>
+                    <td style="padding:8px 0;" class="mono">/play</td>
+                    <td style="padding:8px 0; color:var(--text-dim);">Live demo with active devnet signatures</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card" style="background: rgba(20,241,149,0.04); border-color: rgba(20,241,149,0.15);">
+              <div class="result-section-title mb-2" style="color:var(--teal);">Agent-to-agent use</div>
+              <p style="font-size:13px; margin-bottom:12px;">Any agent that selects a winner, assigns a task, or picks a DAO proposal can call <span class="mono text-teal">POST /api/replay</span> with the resolve transaction signature. VRE replays the outcome from public RPC and returns <span class="mono text-teal">MATCH / OK</span> — or an error code if the result was tampered with. No oracle, no operator trust required.</p>
+              <div class="terminal" style="font-size:12px;">
+                <div class="terminal-body"><span class="comment"># Any agent verifies a VRE outcome</span>
+<span class="prompt">$</span> curl -s https://verifiableoutcome.online/api/replay \
+    -H "content-type: application/json" \
+    -d '{"signature":"&lt;resolve_tx_sig&gt;","programId":"3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"}'
+<span class="out">→ { "ok": true, "replay": { "verification_result": "MATCH", "verification_reason": "OK", … } }</span></div>
+              </div>
             </div>
           </article>
 
