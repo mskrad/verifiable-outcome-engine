@@ -15,8 +15,7 @@
   let liveRaffleResult = null;
 
   const USE_CASE_BADGES = {
-    raffle:     { label: 'Raffle',       cls: 'badge-use-raffle' },
-    airdrop:    { label: 'Airdrop',      cls: 'badge-use-airdrop' },
+    rewards:    { label: 'Rewards Selection', cls: 'badge-use-rewards' },
     dao:        { label: 'DAO Proposal', cls: 'badge-use-dao' },
     loot:       { label: 'Loot',         cls: 'badge-use-loot' },
     agent:      { label: 'Agent',        cls: 'badge-use-agent' },
@@ -251,10 +250,10 @@
       entry.id,
     ].filter(Boolean).join(' ').toLowerCase();
 
-    if (text.includes('airdrop')) return 'airdrop';
+    if (text.includes('airdrop')) return 'rewards';
     if (text.includes('dao') || text.includes('proposal')) return 'dao';
     if (text.includes('prediction')) return 'dao';
-    if (text.includes('raffle') || entry.signature === RAFFLE_SIG) return 'raffle';
+    if (text.includes('raffle') || entry.signature === RAFFLE_SIG) return 'rewards';
     if (text.includes('agent')) return 'agent';
     if (text.includes('loot')) return 'loot';
     return 'loot';
@@ -264,8 +263,7 @@
     if (entry.description) return entry.description;
     if (entry.notes) return entry.notes;
     return {
-      raffle: 'Weighted raffle draw resolved',
-      airdrop: 'Weighted eligible-list selection resolved',
+      rewards: 'Weighted recipient selection resolved',
       dao: 'DAO proposal selection resolved',
       loot: 'Weighted loot outcome resolved',
     }[useCase] || 'Verifiable outcome resolved';
