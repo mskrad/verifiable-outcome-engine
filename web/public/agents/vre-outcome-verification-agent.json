@@ -1,0 +1,44 @@
+{
+  "name": "VRE Outcome Verification Agent",
+  "symbol": "VREVERIFY",
+  "description": "A deterministic Solana outcome verification agent for Verifiable Outcome Engine. It points reviewers to public VRE surfaces that replay outcome transactions from public RPC data and compare the recomputed output with the on-chain record.",
+  "image": "https://verifiableoutcome.online/assets/og-image.png",
+  "external_url": "https://verifiableoutcome.online/verify",
+  "attributes": [
+    {
+      "trait_type": "Project",
+      "value": "Verifiable Outcome Engine"
+    },
+    {
+      "trait_type": "Cluster",
+      "value": "Solana devnet"
+    },
+    {
+      "trait_type": "Program ID",
+      "value": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
+    },
+    {
+      "trait_type": "Verification Mode",
+      "value": "Deterministic replay"
+    },
+    {
+      "trait_type": "LLM-dependent verification",
+      "value": "false"
+    }
+  ],
+  "properties": {
+    "category": "agent",
+    "files": [
+      {
+        "uri": "https://verifiableoutcome.online/assets/og-image.png",
+        "type": "image/png"
+      }
+    ],
+    "links": {
+      "website": "https://verifiableoutcome.online/",
+      "verify": "https://verifiableoutcome.online/verify",
+      "replayApi": "https://verifiableoutcome.online/api/replay",
+      "repository": "https://github.com/mskrad/verifiable-outcome-engine"
+    }
+  }
+}
