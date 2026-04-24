@@ -15,11 +15,11 @@
   let liveRaffleResult = null;
 
   const USE_CASE_BADGES = {
-    raffle:     { label: 'Raffle',     cls: 'badge-use-raffle' },
-    airdrop:    { label: 'Airdrop',    cls: 'badge-use-airdrop' },
-    prediction: { label: 'Prediction', cls: 'badge-use-prediction' },
-    loot:       { label: 'Loot',       cls: 'badge-use-loot' },
-    agent:      { label: 'Agent',      cls: 'badge-use-agent' },
+    raffle:     { label: 'Raffle',       cls: 'badge-use-raffle' },
+    airdrop:    { label: 'Airdrop',      cls: 'badge-use-airdrop' },
+    dao:        { label: 'DAO Proposal', cls: 'badge-use-dao' },
+    loot:       { label: 'Loot',         cls: 'badge-use-loot' },
+    agent:      { label: 'Agent',        cls: 'badge-use-agent' },
   };
 
   function escapeHtml(str) {
@@ -252,7 +252,8 @@
     ].filter(Boolean).join(' ').toLowerCase();
 
     if (text.includes('airdrop')) return 'airdrop';
-    if (text.includes('prediction')) return 'prediction';
+    if (text.includes('dao') || text.includes('proposal')) return 'dao';
+    if (text.includes('prediction')) return 'dao';
     if (text.includes('raffle') || entry.signature === RAFFLE_SIG) return 'raffle';
     if (text.includes('agent')) return 'agent';
     if (text.includes('loot')) return 'loot';

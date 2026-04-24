@@ -76,8 +76,8 @@
       "runtime_id": "2f9f0156ed3235f126509bfc88e356ad",
       "resolve_id": "0",
       "compiled_artifact_hash": "08052c81661aa2ec630cb205224bb551e2ccc8b1ccd229bd6e954875d4816b14",
-      "label": "Prediction",
-      "description": "Verifiable outcome declaration — pre-committed before resolution",
+      "label": "DAO Proposal",
+      "description": "Multiple approved proposals, weights set by vote count. VRE picks one — no one can influence the draw after weights are committed.",
       "source": "resolve_operator_prediction_2026-04-20",
       "updated_utc": "2026-04-20T00:00:00Z",
       "notes": "Prediction artifact: loot-style possible event results as outcome ids, not wallet addresses."

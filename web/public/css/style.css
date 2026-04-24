@@ -392,6 +392,7 @@ p {
 .badge-use-airdrop    { background: rgba(99, 102, 241, 0.1); color: #8b8dff; border: 1px solid rgba(99, 102, 241, 0.25); }
 .badge-use-prediction { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
 .badge-use-loot       { background: rgba(168, 85, 247, 0.1); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); }
+.badge-use-dao        { background: rgba(245, 158, 11, 0.1); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
 .badge-use-agent      { background: rgba(20, 184, 166, 0.1); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.25); }
 
 /* ================================================================
