@@ -2,7 +2,7 @@
   "schema_version": "outcome_core_devnet_blessed_sigs_v1",
   "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
   "rpc_url": "https://api.devnet.solana.com",
-  "updated_utc": "2026-04-22T00:00:00Z",
+  "updated_utc": "2026-04-24T00:00:00Z",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",
@@ -14,6 +14,8 @@
       "runtime_id": "d5a06b25163399079d071f1efddb6772",
       "resolve_id": "0",
       "compiled_artifact_hash": "f6150d16407e764efd55bdb3482aa82fc32726eb53c1e7da02994da20b55ace2",
+      "label": "Loot",
+      "description": "Weighted loot drop — common, uncommon, rare outcomes",
       "source": "engineer_devnet_setup_2026-03-30",
       "updated_utc": "2026-03-30T18:26:03Z",
       "notes": "Produced via existing outcome smoke helper on devnet after canonical deploy."
@@ -21,7 +23,7 @@
     {
       "id": "outcome_core_devnet_sig_2",
       "signature": "KMsg6dqUWWNoYfNs6FZhVFWyC76MJN5U8vN61FeeVjTHAZrS9vyAJYDykxUQftvVyrJhV2phSCMXZV41LDbnE8q",
-      "status": "active",
+      "status": "inactive",
       "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
       "verification_result": "MATCH",
       "verification_reason": "OK",
@@ -30,7 +32,7 @@
       "compiled_artifact_hash": "598c5fd6d661520a368c24dc8cd2aab6059a5959c322049d666cd4ac729d6b82",
       "source": "engineer_devnet_setup_2026-03-30",
       "updated_utc": "2026-03-30T18:26:03Z",
-      "notes": "Produced via existing outcome smoke helper on devnet after canonical deploy."
+      "notes": "Retired — replaced by Agent Task Assignment use case (sig_7)."
     },
     {
       "id": "outcome_core_devnet_sig_3",
@@ -42,6 +44,8 @@
       "runtime_id": "06695059d916d903a26087c0770533c5",
       "resolve_id": "0",
       "compiled_artifact_hash": "4a3304a5cb2804331078c6e09b687fdbce1545e2cda5d77ef0c1eb3ab7688ed7",
+      "label": "Raffle",
+      "description": "Winner selection from 7 participant wallets",
       "source": "resolve_operator_raffle_2026-04-15",
       "updated_utc": "2026-04-15T00:00:00Z",
       "notes": "Raffle artifact: 7 real participant wallet addresses as outcomes. Winner = resolved outcome_id (Solana pubkey)."
@@ -93,6 +97,22 @@
       "source": "protocol_fee_upgrade_2026-04-22",
       "updated_utc": "2026-04-22T00:00:00Z",
       "notes": "Produced after protocol fee upgrade on devnet. ProgramConfig fee_lamports remained 0 and protocol treasury was set to the devnet upgrade/admin authority."
+    },
+    {
+      "id": "outcome_core_devnet_sig_7",
+      "signature": "f8aua1vidMcKy1D7uEjoYUqrVYHANtdpoR7Y6FPjGFXD8QWnm78N4bPwGyDAZTD9gk9xeWwhRvNMZgj2UZZSkX8",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "139f4d33ae85012a250a48a7794a86ff",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "1106b5efc469808fdfe8ef35cf0609cfc950c63127fbc486a27993ace7e58b13",
+      "label": "Agent",
+      "description": "Verifiable task assignment for an AI agent — selected from a weighted task pool",
+      "source": "resolve_operator_agent_task_2026-04-24",
+      "updated_utc": "2026-04-24T00:00:00Z",
+      "notes": "Agent Task Assignment: 4 tasks with weights (audit_smart_contract 500, generate_market_report 300, optimize_fee_strategy 150, emergency_pause_review 50). Selected task = audit_smart_contract. Produced after security hardening upgrade on devnet."
     }
   ]
 }
