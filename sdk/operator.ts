@@ -25,6 +25,9 @@ import {
 import type { ArtifactConfig } from "./types.js";
 
 const DEFAULT_WALLET_PATH = "~/.config/solana/id.json";
+const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey(
+  "BPFLoaderUpgradeab1e11111111111111111111111"
+);
 const STATUS_APPROVED = 1;
 const CHUNK_WRITE_BYTES = 900;
 
@@ -188,6 +191,10 @@ async function ensureWalletFunds(
 
 async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
   const programConfigPda = deriveProgramConfigPda(client.programId);
+  const [programDataPda] = PublicKey.findProgramAddressSync(
+    [client.programId.toBuffer()],
+    BPF_LOADER_UPGRADEABLE_PROGRAM_ID
+  );
   const info = await client.provider.connection.getAccountInfo(
     programConfigPda,
     "confirmed"
@@ -200,6 +207,9 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
       })
       .accounts({
         payer: client.authority.publicKey,
+        program: client.programId,
+        programData: programDataPda,
+        upgradeAuthority: client.authority.publicKey,
         programConfig: programConfigPda,
         systemProgram: SystemProgram.programId,
       })

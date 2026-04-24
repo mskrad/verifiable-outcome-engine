@@ -1,6 +1,6 @@
 # Status
 
-- Updated: 2026-04-22 22:02:00 +0300
+- Updated: 2026-04-24 15:39:59 +0300
 - Repo role: standalone hackathon repo for `Verifiable Outcome Engine`
 - Ecosystem repo: maintained separately in the main monorepo
 - Current repo focus:
@@ -33,6 +33,7 @@
   - `HACKATHON-AIRDROP-DEMO-001` ready for Hub acceptance after Tester verified airdrop and prediction devnet blessed signatures
   - `HACKATHON-USECASES-UI-001` ready for Hub acceptance after Tester verified frontend use-case labels/badges and Prediction Market copy
   - `HACKATHON-DESIGN-ADAPT-001` ready for Hub acceptance after Tester verified Claude Design API wiring, widget flow, keeper video, and mobile overflow
+  - `HACKATHON-SECURITY-AUDIT-001` ready for Hub acceptance after Tester verified build/typecheck, negative API hardening, rate limiting, artifact path containment, and devnet operator replay against the initialized `ProgramConfig`
   - minimal canonical Rust source is present under `programs/outcome/`
   - operator `--raffle` devnet flow now creates a sorted compiled artifact and replays as `MATCH / OK`
   - JSON artifact configs and SDK entrypoints are available under `examples/`, `scripts/build_artifact.ts`, and `sdk/`
@@ -48,6 +49,7 @@
   - license/docs now split the open TypeScript verification SDK from proprietary Solana program source and document canonical protocol-fee usage plus partner instances
   - npm package `verifiable-outcome-sdk@0.2.0` packaging is ready; tarball contains only public SDK build output plus README/LICENSE/package metadata; real publish can be retried after 2026-04-22 23:24:07 MSK
   - live raffle Tester result: `node --check web/server.mjs`, `node --check web/public/js/main.js`, `node --check web/public/js/play.js`, `npx tsc --noEmit`, and `git diff --check` passed; local `/play.html`, CORS preflight, invalid address, same-IP 429 rate-limit, and 375px no-overflow checks passed; full on-chain live raffle with requested `ANCHOR_WALLET=$HOME/.config/solana/id.json` blocked on ProgramConfig admin mismatch before producing a live signature
+  - security audit Tester result: `anchor build`, `npx tsc --noEmit`, `node --check web/server.mjs`, and `git diff --check` passed; `/api/replay` malformed signature returned HTTP `400`, disabled RPC override returned HTTP `400`, disabled artifact override returned HTTP `400`, oversized JSON returned HTTP `413`, enabled override with `/etc/passwd` returned HTTP `400`, and same-IP replay rate limiting returned HTTP `429`; devnet operator flow with `esjx.json` produced signature `PBuQDKN4a3SvY3TAVwqMtoWzhHsY9tegjzXfSXr3eBU7r2cPRngCm5cbScM5NN4SdmNNcnkdUkhLpUKZ3ygWjje`, replay `MATCH / OK`
   - Phantom verification: `node --check web/public/js/main.js`, `node --check web/public/js/verify.js`, `node --check web/server.mjs`, `npx tsc --noEmit`, and `git diff --check` passed; local `/verify.html` returned HTTP `200`; mocked headless browser verified no Phantom, winner, participant non-winner, non-participant, loot hidden, delegated connect, and 375px no-overflow
   - positioning docs verification: `node --check web/server.mjs` and `git diff --check` passed; `spec.html` documents canonical program, ProgramConfig fields, and Protocol Fee; `INTEGRATION.md` contains Protocol Fee block; forbidden positioning terms returned no matches
   - protocol fee verification: `anchor build`, `npx tsc --noEmit`, `node --check web/server.mjs`, and `git diff --check` passed; devnet ProgramConfig has `feeLamports=0` and treasury `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`; new and old blessed signatures replayed `MATCH / OK`

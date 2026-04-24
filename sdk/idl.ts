@@ -215,7 +215,46 @@ export const OUTCOME_IDL = {
         },
         {
           "name": "approved_outcome_artifact",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "approved_outcome_artifact.compiled_artifact_hash",
+                "account": "ApprovedOutcomeArtifact"
+              }
+            ]
+          }
         }
       ],
       "args": []
@@ -537,6 +576,17 @@ export const OUTCOME_IDL = {
         {
           "name": "payer",
           "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program",
+          "address": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "upgrade_authority",
           "signer": true
         },
         {
@@ -957,7 +1007,46 @@ export const OUTCOME_IDL = {
         },
         {
           "name": "approved_outcome_artifact",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "approved_outcome_artifact.compiled_artifact_hash",
+                "account": "ApprovedOutcomeArtifact"
+              }
+            ]
+          }
         }
       ],
       "args": [

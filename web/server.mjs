@@ -1,7 +1,8 @@
 import http from "http";
 import fs from "fs";
 import path from "path";
-import { spawnSync } from "child_process";
+import { spawn } from "child_process";
+import net from "net";
 import { register } from "node:module";
 import { fileURLToPath, pathToFileURL } from "url";
 import { PublicKey } from "@solana/web3.js";
@@ -22,10 +23,20 @@ const DEFAULT_SUMMARY_PATH = path.join(
   "public_evidence_summary.json"
 );
 const CORS_API_PATHS = new Set(["/api/replay", "/api/health", "/api/live-raffle"]);
+const JSON_BODY_LIMIT_BYTES = Number(process.env.JSON_BODY_LIMIT_BYTES || 16_384);
+const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
+const API_RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000);
+const API_RATE_LIMIT_MAX = Number(process.env.API_RATE_LIMIT_MAX || 60);
+const REPLAY_RATE_LIMIT_MAX = Number(process.env.REPLAY_RATE_LIMIT_MAX || 12);
 const LIVE_RAFFLE_TIMEOUT_MS = 45_000;
 const LIVE_RAFFLE_RATE_LIMIT_MS = 60_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
+const SAFE_ARTIFACT_ROOTS = [
+  path.join(REF_ROOT, "artifacts"),
+  path.join(REF_ROOT, "tmp", "live-raffle"),
+];
 const LIVE_RAFFLE_PRESETS = [
   "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9",
   "CktRuQ2mQFucF77t4vZ4QGWJv2a9oW1P1bL6n6LJ9m5H",
@@ -34,6 +45,7 @@ const LIVE_RAFFLE_PRESETS = [
 ];
 
 const liveRaffleRateLimit = new Map();
+const apiRateLimit = new Map();
 let tsSdkRegistered = false;
 let resolveInlinePromise;
 
@@ -67,19 +79,38 @@ function applyCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function readJsonBody(req) {
+function httpError(statusCode, message) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+}
+
+function readJsonBody(req, limitBytes = JSON_BODY_LIMIT_BYTES) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
+    let received = 0;
+    let rejected = false;
+    req.on("data", (chunk) => {
+      received += chunk.length;
+      if (received > limitBytes) {
+        rejected = true;
+        reject(httpError(413, "JSON body too large"));
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => {
+      if (rejected) return;
       try {
         const text = Buffer.concat(chunks).toString("utf8");
         resolve(text ? JSON.parse(text) : {});
       } catch (error) {
-        reject(error);
+        reject(httpError(400, "Invalid JSON body"));
       }
     });
-    req.on("error", reject);
+    req.on("error", (error) => {
+      if (!rejected) reject(error);
+    });
   });
 }
 
@@ -88,8 +119,9 @@ function sendStatic(req, res, pathname) {
     : (!path.extname(pathname) && fs.existsSync(path.join(STATIC_DIR, pathname.replace(/^\/+/, "") + ".html")))
       ? pathname + ".html"
       : pathname;
-  const abs = path.join(STATIC_DIR, localPath.replace(/^\/+/, ""));
-  if (!abs.startsWith(STATIC_DIR)) {
+  const abs = path.resolve(STATIC_DIR, localPath.replace(/^\/+/, ""));
+  const staticRoot = path.resolve(STATIC_DIR);
+  if (abs !== staticRoot && !abs.startsWith(`${staticRoot}${path.sep}`)) {
     json(res, 400, { ok: false, error: "invalid path" });
     return;
   }
@@ -169,6 +201,124 @@ function defaultRpc() {
   return process.env.ANCHOR_PROVIDER_URL || blessed.rpc_url;
 }
 
+function allowReplayOverrides() {
+  return process.env.VRE_ALLOW_REPLAY_OVERRIDES === "1";
+}
+
+function normalizeRpcUrl(value) {
+  let parsed;
+  try {
+    parsed = new URL(String(value || "").trim());
+  } catch (_) {
+    throw httpError(400, "rpc must be a valid HTTPS URL");
+  }
+  if (parsed.protocol !== "https:") {
+    throw httpError(400, "rpc must use HTTPS");
+  }
+  parsed.hash = "";
+  parsed.username = "";
+  parsed.password = "";
+  return parsed.toString();
+}
+
+function isPrivateIp(hostname) {
+  const version = net.isIP(hostname);
+  if (version === 4) {
+    const parts = hostname.split(".").map((part) => Number(part));
+    const [a, b] = parts;
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254) ||
+      a === 0
+    );
+  }
+  if (version === 6) {
+    const lower = hostname.toLowerCase();
+    return lower === "::1" || lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80:");
+  }
+  return false;
+}
+
+function validateRpcHost(rpcUrl) {
+  const parsed = new URL(rpcUrl);
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    isPrivateIp(hostname)
+  ) {
+    throw httpError(400, "rpc host is not allowed");
+  }
+}
+
+function allowedRpcUrls() {
+  const urls = new Set([normalizeRpcUrl(defaultRpc())]);
+  for (const raw of String(process.env.VRE_ALLOWED_RPC_URLS || "").split(",")) {
+    const trimmed = raw.trim();
+    if (trimmed) urls.add(normalizeRpcUrl(trimmed));
+  }
+  return urls;
+}
+
+function resolveRpcUrl(candidate, defaultValue = defaultRpc()) {
+  const fallback = normalizeRpcUrl(defaultValue);
+  const rpcUrl = normalizeRpcUrl(candidate || fallback);
+  validateRpcHost(rpcUrl);
+  if (!allowedRpcUrls().has(rpcUrl) && !allowReplayOverrides()) {
+    throw httpError(400, "custom rpc override is disabled");
+  }
+  return rpcUrl;
+}
+
+function validateSignature(value) {
+  const signature = String(value || "").trim();
+  if (!SOLANA_SIGNATURE_RE.test(signature)) {
+    throw httpError(400, "signature must be a base58 transaction signature");
+  }
+  return signature;
+}
+
+function validateProgramId(value) {
+  const programId = String(value || "").trim();
+  try {
+    return new PublicKey(programId).toBase58();
+  } catch (_) {
+    throw httpError(400, "programId must be a valid Solana public key");
+  }
+}
+
+function pathInside(candidate, root) {
+  const resolved = path.resolve(candidate);
+  const resolvedRoot = path.resolve(root);
+  return resolved === resolvedRoot || resolved.startsWith(`${resolvedRoot}${path.sep}`);
+}
+
+function resolveArtifactPath(bodyArtifactPath) {
+  const rawPath = bodyArtifactPath || process.env.ARTIFACT_PATH || "";
+  if (!rawPath) return undefined;
+  if (bodyArtifactPath && !allowReplayOverrides()) {
+    throw httpError(400, "artifact override is disabled");
+  }
+  const artifactPath = path.resolve(REF_ROOT, String(rawPath));
+  if (!SAFE_ARTIFACT_ROOTS.some((root) => pathInside(artifactPath, root))) {
+    throw httpError(400, "artifact path is outside allowed artifact roots");
+  }
+  let stat;
+  try {
+    stat = fs.statSync(artifactPath);
+  } catch (_) {
+    throw httpError(400, "artifact path does not exist");
+  }
+  if (!stat.isFile()) {
+    throw httpError(400, "artifact path must point to a file");
+  }
+  return artifactPath;
+}
+
 function ensureTsSdkRuntime() {
   if (tsSdkRegistered) return;
   process.env.TS_NODE_PROJECT =
@@ -208,10 +358,42 @@ function validateSolanaAddress(value) {
 }
 
 function clientIp(req) {
-  const forwarded = String(req.headers["x-forwarded-for"] || "")
-    .split(",")[0]
-    .trim();
-  return forwarded || req.socket.remoteAddress || "unknown";
+  if (process.env.TRUST_PROXY === "1") {
+    const forwarded = String(req.headers["x-forwarded-for"] || "")
+      .split(",")[0]
+      .trim();
+    if (forwarded) return forwarded;
+  }
+  return req.socket.remoteAddress || "unknown";
+}
+
+function checkRateLimit(store, key, maxRequests, windowMs) {
+  const now = Date.now();
+  const current = store.get(key);
+  if (!current || current.resetAt <= now) {
+    store.set(key, { count: 1, resetAt: now + windowMs });
+    return { ok: true, retryAfterMs: 0 };
+  }
+  if (current.count >= maxRequests) {
+    return { ok: false, retryAfterMs: current.resetAt - now };
+  }
+  current.count += 1;
+  return { ok: true, retryAfterMs: 0 };
+}
+
+function enforceApiRateLimit(req, pathname, maxRequests = API_RATE_LIMIT_MAX) {
+  for (const [key, value] of apiRateLimit) {
+    if (value.resetAt <= Date.now()) apiRateLimit.delete(key);
+  }
+  const limit = checkRateLimit(
+    apiRateLimit,
+    `${clientIp(req)}:${pathname}`,
+    maxRequests,
+    API_RATE_LIMIT_WINDOW_MS
+  );
+  if (!limit.ok) {
+    throw httpError(429, `rate limit exceeded; retry in ${Math.ceil(limit.retryAfterMs / 1000)}s`);
+  }
 }
 
 function checkLiveRaffleRateLimit(req) {
@@ -278,26 +460,51 @@ function runReplay({ signature, rpcUrl, programId, artifactPath }) {
     ANCHOR_PROVIDER_URL: rpcUrl,
     PROGRAM_ID: programId,
   };
-  const out = spawnSync(process.execPath, args, {
-    cwd: REF_ROOT,
-    env,
-    encoding: "utf8",
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, args, {
+      cwd: REF_ROOT,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, REPLAY_TIMEOUT_MS);
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on("close", (status) => {
+      clearTimeout(timer);
+      if (timedOut) {
+        reject(httpError(504, "replay timed out"));
+        return;
+      }
+      const parsed = parseReplayJson(stdout);
+      if (!parsed) {
+        const details = [stdout, stderr].filter(Boolean).join("\n");
+        const error = new Error("Replay output did not return JSON");
+        error.details = details;
+        reject(error);
+        return;
+      }
+      resolve({
+        status: status ?? 0,
+        replay: parsed,
+        stdout,
+        stderr,
+      });
+    });
   });
-  const stdout = out.stdout || "";
-  const stderr = out.stderr || "";
-  const parsed = parseReplayJson(stdout);
-  if (!parsed) {
-    const details = [stdout, stderr].filter(Boolean).join("\n");
-    const error = new Error("Replay output did not return JSON");
-    error.details = details;
-    throw error;
-  }
-  return {
-    status: out.status ?? 0,
-    replay: parsed,
-    stdout,
-    stderr,
-  };
 }
 
 async function handleLiveRaffle(req, res) {
@@ -323,8 +530,8 @@ async function handleLiveRaffle(req, res) {
   try {
     const config = buildLiveRaffleConfig(address);
     const resolveInline = await loadResolveInline();
-    const rpcUrl = process.env.LIVE_RAFFLE_RPC_URL || defaultRpc();
-    const programId = process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId();
+    const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
+    const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
     const walletPath =
       process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
     const label = `live-raffle-${Date.now()}`;
@@ -389,9 +596,9 @@ async function fetchTimeline({
   programId,
   compiledArtifactHash,
 }) {
-  if (!signature) throw new Error("signature is required");
-  if (!rpcUrl) throw new Error("rpcUrl is required");
-  if (!programId) throw new Error("programId is required");
+  signature = validateSignature(signature);
+  rpcUrl = resolveRpcUrl(rpcUrl);
+  programId = validateProgramId(programId);
   if (!/^[0-9a-fA-F]{64}$/.test(compiledArtifactHash || "")) {
     throw new Error("compiledArtifactHash must be 32-byte hex");
   }
@@ -482,18 +689,13 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "POST" && pathname === "/api/replay") {
+      enforceApiRateLimit(req, pathname, REPLAY_RATE_LIMIT_MAX);
       const body = await readJsonBody(req);
-      const signature = String(body.signature || body.sig || "");
-      if (!signature) {
-        json(res, 400, { ok: false, error: "signature is required" });
-        return;
-      }
-      const rpcUrl = String(body.rpc || defaultRpc());
-      const programId = String(body.programId || defaultProgramId());
-      const artifactPath = body.artifactPath
-        ? path.resolve(REF_ROOT, String(body.artifactPath))
-        : process.env.ARTIFACT_PATH || undefined;
-      const replayResult = runReplay({
+      const signature = validateSignature(body.signature || body.sig || "");
+      const rpcUrl = resolveRpcUrl(body.rpc || defaultRpc());
+      const programId = validateProgramId(body.programId || defaultProgramId());
+      const artifactPath = resolveArtifactPath(body.artifactPath);
+      const replayResult = await runReplay({
         signature,
         rpcUrl,
         programId,
@@ -515,6 +717,7 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/timeline") {
       try {
+        enforceApiRateLimit(req, pathname);
         const body = await readJsonBody(req);
         const timeline = await fetchTimeline({
           signature: String(body.signature || body.sig || ""),
@@ -537,10 +740,11 @@ async function handleApi(req, res, pathname) {
 
     json(res, 404, { ok: false, error: "api route not found" });
   } catch (error) {
-    json(res, 500, {
+    const statusCode = error?.statusCode || 500;
+    json(res, statusCode, {
       ok: false,
       error: error?.message || String(error),
-      details: error?.details || undefined,
+      details: statusCode >= 500 ? error?.details || undefined : undefined,
     });
   }
 }

@@ -175,10 +175,12 @@ This path is optional. The default reviewer flow uses included devnet signatures
 
 1. Submits a compiled artifact (outcome rules) to the program.
 2. Initializes an outcome runtime.
-3. Resolves the outcome — the program selects a result using on-chain randomness.
+3. Resolves the outcome — the program selects a result using deterministic RNG v1.
 4. Returns the transaction signature.
 
 The returned signature can be passed directly to `yarn replay` to verify the result.
+For economic adversarial use, read `SECURITY.md`; RNG v1 is replay-friendly but
+predictable from public state.
 
 ### Requirements
 
