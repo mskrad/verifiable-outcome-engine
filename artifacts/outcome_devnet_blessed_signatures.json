@@ -141,7 +141,7 @@
       "resolve_id": "0",
       "compiled_artifact_hash": "ad66d7d9a61d567e1539ff91c13be246c3533fd76783ea841511de209ff74a9d",
       "label": "Agent",
-      "description": "Agent marketplace — verifiable selection of which agent gets the job. Weights = reputation score.",
+      "description": "Agents earn reputation through completed work. Higher reputation = higher selection weight. The marketplace cannot secretly favor an agent — the weighted draw is committed on-chain before resolution.",
       "source": "resolve_operator_agent_marketplace_2026-04-24",
       "updated_utc": "2026-04-24T00:00:00Z",
       "notes": "4 agents competing for a job: agent_nexus (500), agent_forge (300), agent_scout (150), agent_nova (50). Selected = agent_nexus. Operator cannot influence which agent wins — anyone verifies the selection from the tx signature."
