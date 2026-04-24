@@ -53,50 +53,9 @@
   </header>
 
   <!-- ============================================================
-       Use cases
-       ============================================================ -->
-  <section style="padding-top: 16px;">
-    <div class="container">
-      <div class="section-heading">
-        <span class="eyebrow"><span class="dot"></span> Use cases</span>
-        <h2>Five shapes out of the box.</h2>
-        <p>The kernel is always the same: committed rules → deterministic replay → on-chain signature. The shape you pick is just a semantic label.</p>
-      </div>
-
-      <div class="usecase-grid">
-        <div class="usecase-card">
-          <span class="usecase-card-emoji">🎟</span>
-          <h3>Raffle</h3>
-          <p>Select a winner (or N winners) from a weighted participant list. Seed derived from resolve slot.</p>
-        </div>
-        <div class="usecase-card">
-          <span class="usecase-card-emoji">🎁</span>
-          <h3>Loot</h3>
-          <p>Roll a weighted outcome table — legendary / rare / common. Same kernel, different label.</p>
-        </div>
-        <div class="usecase-card">
-          <span class="usecase-card-emoji">🪂</span>
-          <h3>Airdrop</h3>
-          <p>Weighted eligible-list selection. Experimental multi-winner output with per-address caps.</p>
-        </div>
-        <div class="usecase-card">
-          <span class="usecase-card-emoji">🗳️</span>
-          <h3>DAO Proposal</h3>
-          <p>Multiple approved proposals, weights set by vote count. VRE picks one — no one can influence the draw after weights are committed.</p>
-        </div>
-        <div class="usecase-card">
-          <span class="usecase-card-emoji">🤖</span>
-          <h3>Agent Selection</h3>
-          <p>Agents earn reputation through completed work. Higher reputation = higher selection weight. The marketplace cannot secretly favor an agent — the weighted draw is committed on-chain before resolution.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
        How it works — 3-step stepper
        ============================================================ -->
-  <section>
+  <section style="padding-top: 16px;">
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> How it works</span>
@@ -206,40 +165,6 @@
         <a class="btn btn-primary" href="/spec">Read the spec →</a>
         <a class="btn btn-secondary" href="/verify">Try a verification →</a>
         <a class="btn btn-ghost" href="https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md" target="_blank" rel="noopener">Error Code Reference</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       Determinism explainer
-       ============================================================ -->
-  <section>
-    <div class="container">
-      <div class="section-heading">
-        <span class="eyebrow"><span class="dot"></span> Invariants</span>
-        <h2>What VRE actually guarantees.</h2>
-      </div>
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon">1</div>
-          <h3>Pre-commitment</h3>
-          <p>The ruleset hash is on-chain before the resolve transaction. Slot ordering is enforced by the validator, not by VRE.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">2</div>
-          <h3>Determinism</h3>
-          <p>The selection function is a pure mapping from (seed, rules) to outcome. Same inputs, same output — forever.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">3</div>
-          <h3>Public seed</h3>
-          <p>Seed is derived from a future slot's block hash — unknowable at commit time, public after resolution.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">4</div>
-          <h3>No oracles</h3>
-          <p>Every input the verifier needs is already on-chain. Public RPC is the only dependency.</p>
-        </div>
       </div>
     </div>
   </section>
