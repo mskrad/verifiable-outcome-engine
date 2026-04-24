@@ -85,7 +85,7 @@
     {
       "id": "outcome_core_devnet_sig_6",
       "signature": "5ig5N5buSA7Cw3WGz3RpdDWvXuR3Gdh9QgkpYjufyCvj79d2NjQf8WyjE4wPegY1vxKZoXqx2mEJGwnn7g2TmJfp",
-      "status": "active",
+      "status": "inactive",
       "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
       "verification_result": "MATCH",
       "verification_reason": "OK",
@@ -96,12 +96,12 @@
       "description": "Post-upgrade loot resolve with protocol fee disabled",
       "source": "protocol_fee_upgrade_2026-04-22",
       "updated_utc": "2026-04-22T00:00:00Z",
-      "notes": "Produced after protocol fee upgrade on devnet. ProgramConfig fee_lamports remained 0 and protocol treasury was set to the devnet upgrade/admin authority."
+      "notes": "Retired — duplicate loot entry. Replaced by sig_8 Agent use case."
     },
     {
       "id": "outcome_core_devnet_sig_7",
       "signature": "f8aua1vidMcKy1D7uEjoYUqrVYHANtdpoR7Y6FPjGFXD8QWnm78N4bPwGyDAZTD9gk9xeWwhRvNMZgj2UZZSkX8",
-      "status": "active",
+      "status": "inactive",
       "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
       "verification_result": "MATCH",
       "verification_reason": "OK",
@@ -112,7 +112,23 @@
       "description": "Verifiable task assignment for an AI agent — selected from a weighted task pool",
       "source": "resolve_operator_agent_task_2026-04-24",
       "updated_utc": "2026-04-24T00:00:00Z",
-      "notes": "Agent Task Assignment: 4 tasks with weights (audit_smart_contract 500, generate_market_report 300, optimize_fee_strategy 150, emergency_pause_review 50). Selected task = audit_smart_contract. Produced after security hardening upgrade on devnet."
+      "notes": "Retired — used wallet addresses as outcome IDs, replaced by sig_8 with readable task names."
+    },
+    {
+      "id": "outcome_core_devnet_sig_8",
+      "signature": "3wVLHF1vz5JeiFhEmXZoWT8xiRt5S1yib7oMsRSCQMotJbNY29yXJbbckii5imqL9hPSYT7x12zoLxJxt4oePRgE",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "c555a8d36d21c96928cd45735970dca0",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "863c20edbd6aea3921a164dcf4da3bc512759ffb686372dcb1cc377c67c1eacd",
+      "label": "Agent",
+      "description": "Verifiable task assignment for an AI agent — selected from a weighted task pool",
+      "source": "resolve_operator_agent_task_v2_2026-04-24",
+      "updated_utc": "2026-04-24T00:00:00Z",
+      "notes": "Agent Task Assignment: 4 tasks with weights (audit_smart_contract 500, generate_market_report 300, optimize_fee_strategy 150, emergency_pause_review 50). Selected task = audit_smart_contract. Outcome IDs are readable task names, not wallet addresses."
     }
   ]
 }
