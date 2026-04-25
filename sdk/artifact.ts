@@ -13,7 +13,9 @@ import type {
 
 const MAGIC = "W3O1";
 const FORMAT_VERSION_V1 = 1;
+const FORMAT_VERSION_V2 = 2;
 const MAX_OUTCOME_ID_BYTES = 64;
+const MAX_WINNERS = 32;
 const EFFECT_TYPE_TRANSFER_SOL = 1;
 const MAX_U16 = 0xffff;
 const MAX_U32 = 0xffffffff;
@@ -77,6 +79,23 @@ function validateOutcomeCount(count: number, label: string): void {
   }
 }
 
+function validateWinnersCount(value: unknown, outcomeCount: number): number {
+  const winnersCount = value === undefined ? 1 : value;
+  if (!Number.isInteger(winnersCount)) {
+    throw new TypeError("winners_count must be an integer");
+  }
+  if ((winnersCount as number) <= 0) {
+    throw new RangeError("winners_count must be > 0");
+  }
+  if ((winnersCount as number) > outcomeCount) {
+    throw new RangeError("winners_count must be <= outcome count");
+  }
+  if ((winnersCount as number) > MAX_WINNERS) {
+    throw new RangeError(`winners_count must be <= ${MAX_WINNERS}`);
+  }
+  return winnersCount as number;
+}
+
 function validateAddress(value: unknown, label: string): string {
   if (typeof value !== "string") {
     throw new TypeError(`${label} must be a string`);
@@ -137,9 +156,11 @@ function fixedAscii(text: string, len: number): Buffer {
 
 function normalizeEntries(
   idsAndWeights: Array<{ id: string; weight: number; payoutLamports: bigint }>,
-  inputLamports: bigint
+  inputLamports: bigint,
+  winnersCount = 1
 ): W3O1Config {
   validateOutcomeCount(idsAndWeights.length, "outcomes");
+  validateWinnersCount(winnersCount, idsAndWeights.length);
   const sorted = [...idsAndWeights].sort((left, right) =>
     Buffer.compare(Buffer.from(left.id, "ascii"), Buffer.from(right.id, "ascii"))
   );
@@ -167,7 +188,8 @@ function normalizeEntries(
   }
 
   return {
-    format_version: FORMAT_VERSION_V1,
+    format_version: winnersCount > 1 ? FORMAT_VERSION_V2 : FORMAT_VERSION_V1,
+    winners_count: winnersCount,
     min_input_lamports: inputLamports,
     max_input_lamports: inputLamports,
     outcomes,
@@ -188,7 +210,11 @@ function buildRaffleConfig(config: RaffleConfig): W3O1Config {
       payoutLamports,
     };
   });
-  return normalizeEntries(entries, inputLamports);
+  return normalizeEntries(
+    entries,
+    inputLamports,
+    validateWinnersCount(config.winners_count, entries.length)
+  );
 }
 
 function buildLootConfig(config: LootConfig): W3O1Config {
@@ -228,7 +254,11 @@ function buildAirdropConfig(config: AirdropConfig): W3O1Config {
       payoutLamports,
     };
   });
-  return normalizeEntries(entries, inputLamports);
+  return normalizeEntries(
+    entries,
+    inputLamports,
+    validateWinnersCount(config.winners_count, entries.length)
+  );
 }
 
 function toW3O1Config(config: ArtifactConfig): W3O1Config {
@@ -244,6 +274,13 @@ function toW3O1Config(config: ArtifactConfig): W3O1Config {
 function serializeW3O1(config: W3O1Config): Buffer {
   validateOutcomeCount(config.outcomes.length, "outcomes");
   validateOutcomeCount(config.effects.length, "effects");
+  validateWinnersCount(config.winners_count, config.outcomes.length);
+  if (config.format_version !== FORMAT_VERSION_V1 && config.format_version !== FORMAT_VERSION_V2) {
+    throw new RangeError("format_version must be 1 or 2");
+  }
+  if (config.winners_count > 1 && config.format_version !== FORMAT_VERSION_V2) {
+    throw new RangeError("winners_count > 1 requires W3O1 format version 2");
+  }
 
   const parts: Buffer[] = [];
   parts.push(Buffer.from(MAGIC, "ascii"));
@@ -252,7 +289,12 @@ function serializeW3O1(config: W3O1Config): Buffer {
   parts.push(u64le(config.max_input_lamports));
   parts.push(u16le(config.outcomes.length));
   parts.push(u16le(config.effects.length));
-  parts.push(Buffer.alloc(8, 0));
+  if (config.format_version === FORMAT_VERSION_V2) {
+    parts.push(u16le(config.winners_count));
+    parts.push(Buffer.alloc(6, 0));
+  } else {
+    parts.push(Buffer.alloc(8, 0));
+  }
 
   for (const outcome of config.outcomes) {
     const outcomeIdBytes = Buffer.from(outcome.id, "ascii");

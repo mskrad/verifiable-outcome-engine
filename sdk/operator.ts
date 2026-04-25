@@ -95,6 +95,9 @@ export type ResolveInlineOptions = {
 export type ResolveInlineResult = {
   signature: string;
   outcome: string;
+  outcomeIds?: string[];
+  winnersCount?: number;
+  artifactFormatVersion?: number;
   runtimeId: string;
   resolveId: string;
   artifactHash: string;
@@ -276,6 +279,13 @@ function writeArtifactFixture(
   return { artifactPath, compiledArtifactHash, compiledArtifactHashHex };
 }
 
+function artifactFormatVersion(blob: Buffer): number {
+  if (blob.length < 6 || blob.subarray(0, 4).toString("ascii") !== "W3O1") {
+    throw new Error("Invalid W3O1 artifact header");
+  }
+  return blob.readUInt16LE(4);
+}
+
 async function submitApprovedArtifact(
   client: OutcomeClient,
   opts: {
@@ -363,7 +373,7 @@ async function submitApprovedArtifact(
   await (client.program.methods as any)
     .submitCompiledArtifact({
       compiledArtifactHash: [...compiledArtifactHash],
-      formatVersion: 1,
+      formatVersion: artifactFormatVersion(opts.blob),
       blobLen: opts.blob.length,
     })
     .accounts({
@@ -796,6 +806,9 @@ export async function resolveInline(
   return {
     signature: base.signature,
     outcome: verified.outcome_id,
+    outcomeIds: verified.outcome_ids,
+    winnersCount: verified.winners_count,
+    artifactFormatVersion: verified.artifact_format_version,
     runtimeId: base.runtime_id,
     resolveId: base.resolve_id,
     artifactHash: base.compiled_artifact_hash,

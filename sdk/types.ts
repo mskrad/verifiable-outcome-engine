@@ -5,6 +5,7 @@ export type RaffleConfig = {
   input_lamports: LamportsValue;
   participants: Array<{ address: string; weight: number }>;
   payout_lamports?: LamportsValue;
+  winners_count?: number;
 };
 
 export type LootConfig = {
@@ -23,6 +24,7 @@ export type AirdropConfig = {
   slots: number;
   eligible: Array<{ address: string; weight: number }>;
   payout_lamports?: LamportsValue;
+  winners_count?: number;
 };
 
 export type ArtifactConfig = RaffleConfig | LootConfig | AirdropConfig;
@@ -38,6 +40,9 @@ export type VerifyResult = {
   status: "MATCH" | "MISMATCH";
   reason: string;
   outcome_id: string;
+  outcome_ids?: string[];
+  winners_count?: number;
+  artifact_format_version?: number;
   outcomes?: Array<{ id: string; weight: number }>;
   resolve_id: string;
   compiled_artifact_hash: string;
@@ -58,7 +63,8 @@ export type W3O1Outcome = {
 };
 
 export type W3O1Config = {
-  format_version: 1;
+  format_version: 1 | 2;
+  winners_count: number;
   min_input_lamports: bigint;
   max_input_lamports: bigint;
   outcomes: W3O1Outcome[];

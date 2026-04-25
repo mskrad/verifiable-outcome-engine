@@ -178,6 +178,7 @@ function loadArtifactConfig(configPath: string): ArtifactConfig {
 }
 
 function artifactBounds(blob: Buffer): {
+  formatVersion: number;
   minInputLamports: bigint;
   maxInputLamports: bigint;
 } {
@@ -185,6 +186,7 @@ function artifactBounds(blob: Buffer): {
     throw new Error("Invalid W3O1 artifact header");
   }
   return {
+    formatVersion: blob.readUInt16LE(4),
     minInputLamports: blob.readBigUInt64LE(6),
     maxInputLamports: blob.readBigUInt64LE(14),
   };
@@ -440,7 +442,7 @@ async function submitApprovedArtifact(
   await (client.program.methods as any)
     .submitCompiledArtifact({
       compiledArtifactHash: [...compiledArtifactHash],
-      formatVersion: 1,
+      formatVersion: artifactBounds(opts.blob).formatVersion,
       blobLen: opts.blob.length,
     })
     .accounts({

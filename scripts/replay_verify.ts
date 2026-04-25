@@ -16,6 +16,9 @@ type ReplayOutput = {
   resolve_id: string;
   compiled_artifact_hash: string;
   outcome_id: string;
+  outcome_ids?: string[];
+  winners_count?: number;
+  artifact_format_version?: number;
   outcomes: Array<{ id: string; weight: number }>;
 };
 
@@ -53,6 +56,13 @@ function buildReplayOutput(
     resolve_id: result.resolve_id,
     compiled_artifact_hash: result.compiled_artifact_hash,
     outcome_id: result.outcome_id,
+    ...(result.outcome_ids
+      ? {
+          outcome_ids: result.outcome_ids,
+          winners_count: result.winners_count,
+          artifact_format_version: result.artifact_format_version,
+        }
+      : {}),
     outcomes: result.outcomes ?? [],
   };
 }
@@ -65,6 +75,11 @@ function printOutput(output: ReplayOutput, asJson: boolean): void {
   console.log("verification_result :", output.verification_result);
   console.log("verification_reason :", output.verification_reason);
   console.log("outcome_id          :", output.outcome_id);
+  if (output.outcome_ids) {
+    console.log("outcome_ids         :", output.outcome_ids.join(","));
+    console.log("winners_count       :", output.winners_count);
+    console.log("artifact_format_version :", output.artifact_format_version);
+  }
   console.log("signature           :", output.signature);
   console.log("program_id          :", output.program_id);
   console.log("runtime_id          :", output.runtime_id);

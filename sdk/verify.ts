@@ -12,6 +12,9 @@ const CHUNK_SIZE = 1024;
 const MAX_OUTCOME_ID_BYTES = 64;
 const EFFECT_ENTRY_BYTES = 16;
 const FORMAT_VERSION_V1 = 1;
+const FORMAT_VERSION_V2 = 2;
+const MAX_WINNERS = 32;
+const MULTI_WINNER_DOMAIN = "VRE_MULTI_WINNER_V1";
 const MAGIC = "W3O1";
 const STATUS_PENDING = 0;
 const STATUS_APPROVED = 1;
@@ -31,6 +34,7 @@ const OUTCOME_ACCOUNT_IDL = {
     { name: "ApprovedOutcomeArtifactChunk", discriminator: [172, 72, 71, 77, 233, 238, 194, 12] },
     { name: "OutcomeConfig", discriminator: [140, 119, 82, 148, 43, 47, 24, 122] },
     { name: "OutcomeResolution", discriminator: [117, 184, 192, 23, 132, 189, 98, 178] },
+    { name: "OutcomeResolutionV2", discriminator: [255, 71, 158, 89, 88, 61, 199, 217] },
     { name: "ProgramConfig", discriminator: [196, 210, 90, 231, 144, 149, 140, 63] },
   ],
   types: [
@@ -108,6 +112,32 @@ const OUTCOME_ACCOUNT_IDL = {
           { name: "effects_digest", type: { array: ["u8", 32] } },
           { name: "bump", type: "u8" },
           { name: "reserved", type: { array: ["u8", 31] } },
+        ],
+      },
+    },
+    {
+      name: "OutcomeResolutionV2",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "runtime_id", type: { array: ["u8", 16] } },
+          { name: "resolve_id", type: "u64" },
+          { name: "actor", type: "pubkey" },
+          { name: "input_lamports", type: "u64" },
+          { name: "status", type: "u8" },
+          { name: "artifact_format_version", type: "u16" },
+          { name: "winner_count", type: "u16" },
+          { name: "total_output_lamports", type: "u64" },
+          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
+          { name: "randomness", type: { array: ["u8", 32] } },
+          { name: "outcome_id_len", type: "u8" },
+          { name: "outcome_id", type: { array: ["u8", 64] } },
+          { name: "outcome_id_lens", type: { vec: "u8" } },
+          { name: "outcome_ids", type: { vec: { array: ["u8", 64] } } },
+          { name: "effect_count", type: "u16" },
+          { name: "effects_digest", type: { array: ["u8", 32] } },
+          { name: "bump", type: "u8" },
+          { name: "reserved", type: { array: ["u8", 29] } },
         ],
       },
     },
@@ -210,8 +240,12 @@ type OutcomeResolvedEvent = {
   masterSeed: Buffer;
   randomness: Buffer;
   compiledArtifactHash: Buffer;
+  artifactFormatVersion: number;
+  winnerCount: number;
   outcomeIdLen: number;
   outcomeId: Buffer;
+  outcomeIdLens: number[];
+  outcomeIds: Buffer[];
   effectCount: number;
   effectsDigest: Buffer;
 };
@@ -229,6 +263,8 @@ type ParsedEffect = {
 };
 
 type ParsedArtifact = {
+  formatVersion: number;
+  winnersCount: number;
   minInputLamports: bigint;
   maxInputLamports: bigint;
   totalEffectCount: number;
@@ -241,6 +277,8 @@ type SelectedOutcome = {
   totalOutputLamports: bigint;
   outcomeIdLen: number;
   outcomeId: Buffer;
+  outcomeIdLens: number[];
+  outcomeIds: Buffer[];
   effectCount: number;
   effectsDigest: Buffer;
 };
@@ -306,6 +344,20 @@ function readBytes(buf: Buffer, offset: { value: number }, len: number): Buffer 
   return out;
 }
 
+function readVecU8(buf: Buffer, offset: { value: number }): number[] {
+  const len = readU32LE(buf, offset);
+  return [...readBytes(buf, offset, len)];
+}
+
+function readVecOutcomeIds(buf: Buffer, offset: { value: number }): Buffer[] {
+  const len = readU32LE(buf, offset);
+  const out: Buffer[] = [];
+  for (let index = 0; index < len; index += 1) {
+    out.push(readBytes(buf, offset, MAX_OUTCOME_ID_BYTES));
+  }
+  return out;
+}
+
 function pick<T>(obj: any, snake: string, camel: string): T {
   if (obj && obj[snake] !== undefined) return obj[snake] as T;
   if (obj && obj[camel] !== undefined) return obj[camel] as T;
@@ -360,8 +412,57 @@ function decodeOutcomeResolvedV1(line: string): OutcomeResolvedEvent | null {
     masterSeed,
     randomness,
     compiledArtifactHash,
+    artifactFormatVersion: FORMAT_VERSION_V1,
+    winnerCount: 1,
     outcomeIdLen,
     outcomeId,
+    outcomeIdLens: [outcomeIdLen],
+    outcomeIds: [outcomeId],
+    effectCount,
+    effectsDigest,
+  };
+}
+
+function decodeOutcomeResolvedV2(line: string): OutcomeResolvedEvent | null {
+  if (!line.startsWith("Program data: ")) return null;
+  const encoded = line.slice("Program data: ".length).trim();
+  const buf = Buffer.from(encoded, "base64");
+  const discriminator = anchorEventDiscriminator("OutcomeResolvedV2");
+  if (buf.length < 8 || !buf.subarray(0, 8).equals(discriminator)) return null;
+
+  const offset = { value: 8 };
+  const runtimeId = readBytes(buf, offset, 16);
+  const resolveId = readU64LE(buf, offset);
+  const actor = new PublicKey(readBytes(buf, offset, 32));
+  const inputLamports = readU64LE(buf, offset);
+  const totalOutputLamports = readU64LE(buf, offset);
+  const masterSeed = readBytes(buf, offset, 32);
+  const randomness = readBytes(buf, offset, 32);
+  const compiledArtifactHash = readBytes(buf, offset, 32);
+  const artifactFormatVersion = readU16LE(buf, offset);
+  const winnerCount = readU16LE(buf, offset);
+  const outcomeIdLens = readVecU8(buf, offset);
+  const outcomeIds = readVecOutcomeIds(buf, offset);
+  const effectCount = readU16LE(buf, offset);
+  const effectsDigest = readBytes(buf, offset, 32);
+  const outcomeIdLen = outcomeIdLens[0] ?? 0;
+  const outcomeId = outcomeIds[0] ?? Buffer.alloc(MAX_OUTCOME_ID_BYTES, 0);
+
+  return {
+    runtimeId,
+    resolveId,
+    actor,
+    inputLamports,
+    totalOutputLamports,
+    masterSeed,
+    randomness,
+    compiledArtifactHash,
+    artifactFormatVersion,
+    winnerCount,
+    outcomeIdLen,
+    outcomeId,
+    outcomeIdLens,
+    outcomeIds,
     effectCount,
     effectsDigest,
   };
@@ -398,7 +499,7 @@ function findOutcomeResolvedEvent(
     if (!line.startsWith("Program data: ")) continue;
     if (stack.length === 0) continue;
     const currentProgramId = stack[stack.length - 1];
-    const event = decodeOutcomeResolvedV1(line);
+    const event = decodeOutcomeResolvedV2(line) ?? decodeOutcomeResolvedV1(line);
     if (currentProgramId === expectedProgramId) {
       sawProgramDataForExpected = true;
       if (event) return event;
@@ -412,7 +513,7 @@ function findOutcomeResolvedEvent(
   if (outcomeEventProgramMismatch) {
     mismatch(
       "ERR_PROGRAM_ID_MISMATCH",
-      `OutcomeResolvedV1 was emitted by ${outcomeEventProgramMismatch}, not expected program ${expectedProgramId}`
+      `OutcomeResolved event was emitted by ${outcomeEventProgramMismatch}, not expected program ${expectedProgramId}`
     );
   }
 
@@ -425,12 +526,12 @@ function findOutcomeResolvedEvent(
   if (sawProgramDataForExpected) {
     mismatch(
       "ERR_EVENT_DISCRIMINATOR_MISMATCH",
-      "Program data was found for expected program, but OutcomeResolvedV1 discriminator did not match"
+      "Program data was found for expected program, but OutcomeResolved discriminator did not match"
     );
   }
   mismatch(
     "ERR_EVENT_NOT_FOUND_FOR_PROGRAM",
-    `OutcomeResolvedV1 not found for program ${expectedProgramId}`
+    `OutcomeResolved event not found for program ${expectedProgramId}`
   );
 }
 
@@ -474,6 +575,40 @@ async function fetchDecodedAccount(
   }
 }
 
+async function fetchDecodedOutcomeResolution(
+  connection: anchor.web3.Connection,
+  coder: any,
+  pubkey: PublicKey
+): Promise<{ accountName: "OutcomeResolution" | "OutcomeResolutionV2"; decoded: any }> {
+  const info = await connection.getAccountInfo(pubkey, "confirmed");
+  if (!info) {
+    mismatch(
+      "ERR_RESOLUTION_ACCOUNT_NOT_FOUND",
+      `OutcomeResolution not found: ${pubkey.toBase58()}`
+    );
+  }
+  try {
+    return {
+      accountName: "OutcomeResolutionV2",
+      decoded: coder.accounts.decode("OutcomeResolutionV2", info.data),
+    };
+  } catch (_) {
+    try {
+      return {
+        accountName: "OutcomeResolution",
+        decoded: coder.accounts.decode("OutcomeResolution", info.data),
+      };
+    } catch (error) {
+      mismatch(
+        "ERR_RESOLUTION_ACCOUNT_NOT_FOUND",
+        `Failed to decode OutcomeResolution account: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+  }
+}
+
 function expectedChunkLen(blobLen: number, chunkIndex: number): number {
   const chunkBase = chunkIndex * CHUNK_SIZE;
   return Math.min(CHUNK_SIZE, blobLen - chunkBase);
@@ -489,7 +624,7 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
 
   const offset = { value: 4 };
   const formatVersion = readU16LE(blob, offset);
-  if (formatVersion !== FORMAT_VERSION_V1) {
+  if (formatVersion !== FORMAT_VERSION_V1 && formatVersion !== FORMAT_VERSION_V2) {
     throw new Error("Unsupported format version");
   }
   const minInputLamports = readU64LE(blob, offset);
@@ -502,8 +637,17 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
   if (outcomeCount === 0) {
     throw new Error("Outcome directory is empty");
   }
-  if (!readBytes(blob, offset, 8).equals(Buffer.alloc(8, 0))) {
+  let winnersCount = 1;
+  if (formatVersion === FORMAT_VERSION_V2) {
+    winnersCount = readU16LE(blob, offset);
+    if (!readBytes(blob, offset, 6).equals(Buffer.alloc(6, 0))) {
+      throw new Error("Reserved header bytes must be zero");
+    }
+  } else if (!readBytes(blob, offset, 8).equals(Buffer.alloc(8, 0))) {
     throw new Error("Reserved header bytes must be zero");
+  }
+  if (winnersCount < 1 || winnersCount > outcomeCount || winnersCount > MAX_WINNERS) {
+    throw new Error("Invalid winners_count");
   }
 
   const outcomes: ParsedOutcome[] = [];
@@ -543,6 +687,9 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
       throw new Error("Outcome effect slice is out of bounds");
     }
     for (let effectIndex = firstEffectIndex; effectIndex < endEffectIndex; effectIndex += 1) {
+      if (formatVersion === FORMAT_VERSION_V2 && referencedEffects[effectIndex]) {
+        throw new Error("V2 outcome effect ranges must not overlap");
+      }
       referencedEffects[effectIndex] = true;
     }
 
@@ -581,6 +728,8 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
   }
 
   return {
+    formatVersion,
+    winnersCount,
     minInputLamports,
     maxInputLamports,
     totalEffectCount,
@@ -608,7 +757,20 @@ function chooseWeightedIndex(weights: number[], rolled: bigint): number {
   throw new Error("Weighted choice failed");
 }
 
-function selectOutcome(
+function rollForRound(randomness: Buffer, round: number): bigint {
+  if (round === 0) return randomness.readBigUInt64LE(0);
+  const roundBytes = Buffer.alloc(2);
+  roundBytes.writeUInt16LE(round, 0);
+  return sha256(
+    Buffer.concat([
+      Buffer.from(MULTI_WINNER_DOMAIN, "ascii"),
+      randomness,
+      roundBytes,
+    ])
+  ).readBigUInt64LE(0);
+}
+
+function selectOutcomes(
   blob: Buffer,
   parsed: ParsedArtifact,
   randomness: Buffer,
@@ -621,31 +783,44 @@ function selectOutcome(
     throw new Error("Replay input is outside artifact bounds");
   }
 
-  const selectedIndex = chooseWeightedIndex(
-    parsed.outcomes.map((outcome) => outcome.weight),
-    randomness.readBigUInt64LE(0)
-  );
-  const selected = parsed.outcomes[selectedIndex];
-  const effectStart =
-    parsed.effectsOffset + selected.firstEffectIndex * EFFECT_ENTRY_BYTES;
-  const effectEnd = effectStart + selected.effectCount * EFFECT_ENTRY_BYTES;
-  const effectsDigest = sha256(blob.subarray(effectStart, effectEnd));
-
+  const remaining = parsed.outcomes.map((_, index) => index);
+  const outcomeIdLens: number[] = [];
+  const outcomeIds: Buffer[] = [];
+  const effectChunks: Buffer[] = [];
   let totalOutputLamports = 0n;
-  for (
-    let index = selected.firstEffectIndex;
-    index < selected.firstEffectIndex + selected.effectCount;
-    index += 1
-  ) {
-    totalOutputLamports += parsed.effects[index].amountLamports;
+  let effectCount = 0;
+
+  for (let round = 0; round < parsed.winnersCount; round += 1) {
+    const selectedRemainingIndex = chooseWeightedIndex(
+      remaining.map((index) => parsed.outcomes[index].weight),
+      rollForRound(randomness, round)
+    );
+    const selectedIndex = remaining.splice(selectedRemainingIndex, 1)[0];
+    const selected = parsed.outcomes[selectedIndex];
+    const effectStart =
+      parsed.effectsOffset + selected.firstEffectIndex * EFFECT_ENTRY_BYTES;
+    const effectEnd = effectStart + selected.effectCount * EFFECT_ENTRY_BYTES;
+    effectChunks.push(blob.subarray(effectStart, effectEnd));
+    outcomeIdLens.push(selected.outcomeIdLen);
+    outcomeIds.push(selected.outcomeId);
+    effectCount += selected.effectCount;
+    for (
+      let index = selected.firstEffectIndex;
+      index < selected.firstEffectIndex + selected.effectCount;
+      index += 1
+    ) {
+      totalOutputLamports += parsed.effects[index].amountLamports;
+    }
   }
 
   return {
     totalOutputLamports,
-    outcomeIdLen: selected.outcomeIdLen,
-    outcomeId: selected.outcomeId,
-    effectCount: selected.effectCount,
-    effectsDigest,
+    outcomeIdLen: outcomeIdLens[0],
+    outcomeId: outcomeIds[0],
+    outcomeIdLens,
+    outcomeIds,
+    effectCount,
+    effectsDigest: sha256(Buffer.concat(effectChunks)),
   };
 }
 
@@ -769,13 +944,12 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     "OutcomeConfig",
     "ERR_OUTCOME_CONFIG_NOT_FOUND"
   );
-  const outcomeResolution = await fetchDecodedAccount(
+  const outcomeResolutionAccount = await fetchDecodedOutcomeResolution(
     connection,
     coder,
-    outcomeResolutionPda,
-    "OutcomeResolution",
-    "ERR_RESOLUTION_ACCOUNT_NOT_FOUND"
+    outcomeResolutionPda
   );
+  const outcomeResolution = outcomeResolutionAccount.decoded;
   const approvedArtifact = await fetchDecodedAccount(
     connection,
     coder,
@@ -954,7 +1128,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     );
   }
 
-  const selected = selectOutcome(blob, parsed, recomputedRandomness, replayInput);
+  const selected = selectOutcomes(blob, parsed, recomputedRandomness, replayInput);
   const resolutionOutput = asBigInt(
     pick(outcomeResolution, "total_output_lamports", "totalOutputLamports")
   );
@@ -992,6 +1166,90 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     );
   }
 
+  const resolutionArtifactFormatVersion =
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+      ? Number(
+          pick(
+            outcomeResolution,
+            "artifact_format_version",
+            "artifactFormatVersion"
+          )
+        )
+      : FORMAT_VERSION_V1;
+  const resolutionWinnerCount =
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+      ? Number(pick(outcomeResolution, "winner_count", "winnerCount"))
+      : 1;
+  if (
+    event.artifactFormatVersion !== resolutionArtifactFormatVersion ||
+    event.artifactFormatVersion !== parsed.formatVersion
+  ) {
+    mismatch(
+      "ERR_ARTIFACT_FORMAT_VERSION_MISMATCH",
+      "Artifact format version differs between event, resolution, and artifact"
+    );
+  }
+  if (
+    event.winnerCount !== resolutionWinnerCount ||
+    event.winnerCount !== parsed.winnersCount ||
+    event.winnerCount !== selected.outcomeIds.length
+  ) {
+    mismatch(
+      "ERR_WINNER_COUNT_MISMATCH",
+      "Winner count differs between event, resolution, artifact, and replay recomputation"
+    );
+  }
+
+  const resolutionOutcomeIdLens =
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+      ? (pick<number[]>(outcomeResolution, "outcome_id_lens", "outcomeIdLens") ?? [])
+      : [resolutionOutcomeIdLen];
+  const resolutionOutcomeIds =
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+      ? (pick<number[][]>(outcomeResolution, "outcome_ids", "outcomeIds") ?? []).map((id) =>
+          Buffer.from(id)
+        )
+      : [resolutionOutcomeId];
+  if (
+    event.outcomeIdLens.length !== event.winnerCount ||
+    event.outcomeIds.length !== event.winnerCount ||
+    resolutionOutcomeIdLens.length !== event.winnerCount ||
+    resolutionOutcomeIds.length !== event.winnerCount
+  ) {
+    mismatch(
+      "ERR_OUTCOME_ID_MISMATCH",
+      "Winner outcome array length differs from winner count"
+    );
+  }
+  const seenOutcomeIds = new Set<string>();
+  for (let index = 0; index < event.winnerCount; index += 1) {
+    const eventId = event.outcomeIds[index];
+    const resolutionId = resolutionOutcomeIds[index];
+    const selectedId = selected.outcomeIds[index];
+    const eventLen = event.outcomeIdLens[index];
+    const resolutionLen = resolutionOutcomeIdLens[index];
+    const selectedLen = selected.outcomeIdLens[index];
+    expectZeroPadding(eventId, eventLen, "ERR_OUTCOME_ID_MISMATCH");
+    expectZeroPadding(resolutionId, resolutionLen, "ERR_OUTCOME_ID_MISMATCH");
+    expectZeroPadding(selectedId, selectedLen, "ERR_OUTCOME_ID_MISMATCH");
+    if (
+      eventLen !== resolutionLen ||
+      eventLen !== selectedLen ||
+      !eventId.equals(resolutionId) ||
+      !eventId.equals(selectedId)
+    ) {
+      mismatch(
+        "ERR_OUTCOME_ID_MISMATCH",
+        "Winner outcome id differs between event, resolution, and replay recomputation"
+      );
+    }
+    const canonical = outcomeIdString(eventId, eventLen);
+    if (seenOutcomeIds.has(canonical)) {
+      mismatch("ERR_OUTCOME_ID_MISMATCH", "Winner outcome ids must be distinct");
+    }
+    seenOutcomeIds.add(canonical);
+  }
+
   const resolutionEffectCount = Number(
     pick(outcomeResolution, "effect_count", "effectCount")
   );
@@ -1014,6 +1272,15 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     status: "MATCH",
     reason: "OK",
     outcome_id: outcomeIdString(event.outcomeId, event.outcomeIdLen),
+    ...(event.winnerCount > 1
+      ? {
+          outcome_ids: event.outcomeIds.map((id, index) =>
+            outcomeIdString(id, event.outcomeIdLens[index])
+          ),
+          winners_count: event.winnerCount,
+          artifact_format_version: event.artifactFormatVersion,
+        }
+      : {}),
     outcomes: parsed.outcomes.map((outcome) => ({
       id: outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen),
       weight: outcome.weight,

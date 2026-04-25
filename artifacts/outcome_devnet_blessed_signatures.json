@@ -2,7 +2,7 @@
   "schema_version": "outcome_core_devnet_blessed_sigs_v1",
   "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
   "rpc_url": "https://api.devnet.solana.com",
-  "updated_utc": "2026-04-24T00:00:00Z",
+  "updated_utc": "2026-04-25T09:40:00Z",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",
@@ -145,6 +145,30 @@
       "source": "resolve_operator_agent_marketplace_2026-04-24",
       "updated_utc": "2026-04-24T00:00:00Z",
       "notes": "4 agents competing for a job: agent_nexus (500), agent_forge (300), agent_scout (150), agent_nova (50). Selected = agent_nexus. Operator cannot influence which agent wins — anyone verifies the selection from the tx signature."
+    },
+    {
+      "id": "outcome_core_devnet_sig_10",
+      "signature": "5yDt76upuvYvJ9dNPkhpdUC418dYphciFuxbKcLGN9cmBGRe3Rgpa62ncwou89N1ssEQPYgV2Lb6iSS3Vod4DTiA",
+      "status": "active",
+      "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+      "verification_result": "MATCH",
+      "verification_reason": "OK",
+      "runtime_id": "03e00c00919f03f74be8c76ef19947db",
+      "resolve_id": "0",
+      "compiled_artifact_hash": "c2dfa364fd9bdfccdd198398764f02aa08aa653174c285639c9a22c2861854ef",
+      "label": "Rewards Selection",
+      "description": "Multi-winner raffle: one devnet resolve selects three distinct winners from the same committed weighted participant list.",
+      "winners_count": 3,
+      "artifact_format_version": 2,
+      "outcome_id": "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4",
+      "outcome_ids": [
+        "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4",
+        "BKo2rXwCgPTtwkNcFV5E7G9SxYW6wByDzSbswhR6oNa4",
+        "5a38vhRuQhKPQwRQFcgDAw3SYNQcGo7XKuWyvFDK5xjP"
+      ],
+      "source": "resolve_operator_multi_winner_2026-04-25",
+      "updated_utc": "2026-04-25T09:40:00Z",
+      "notes": "W3O1 v2 artifact includes winners_count=3. OutcomeResolutionV2 and OutcomeResolvedV2 store/emit all selected winner ids; outcome_id remains the primary first winner for backwards-compatible consumers."
     }
   ]
 }

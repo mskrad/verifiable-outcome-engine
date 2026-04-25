@@ -16,6 +16,7 @@
 
   const USE_CASE_BADGES = {
     rewards:    { label: 'Rewards Selection', cls: 'badge-use-rewards' },
+    'multi-winner': { label: 'Multi-Winner', cls: 'badge-use-multi-winner' },
     dao:        { label: 'DAO Proposal', cls: 'badge-use-dao' },
     loot:       { label: 'Loot',         cls: 'badge-use-loot' },
     agent:      { label: 'Agent',        cls: 'badge-use-agent' },
@@ -49,6 +50,7 @@
     return {
       status: replay?.verification_result || 'ERROR',
       outcomeId: replay?.outcome_id || '',
+      outcomeIds: Array.isArray(replay?.outcome_ids) ? replay.outcome_ids : [],
       outcomes: Array.isArray(replay?.outcomes) ? replay.outcomes : [],
     };
   }
@@ -242,6 +244,8 @@
   }
 
   function inferUseCase(entry) {
+    const winnersCount = Number(entry.winners_count || 0);
+    const labelText = String(entry.label || '').toLowerCase();
     const text = [
       entry.label,
       entry.description,
@@ -250,6 +254,7 @@
       entry.id,
     ].filter(Boolean).join(' ').toLowerCase();
 
+    if (winnersCount > 1 || text.includes('multi') || labelText.includes('winner')) return 'multi-winner';
     if (text.includes('airdrop')) return 'rewards';
     if (text.includes('dao') || text.includes('proposal')) return 'dao';
     if (text.includes('prediction')) return 'dao';
@@ -264,9 +269,31 @@
     if (entry.notes) return entry.notes;
     return {
       rewards: 'Weighted recipient selection resolved',
+      'multi-winner': 'Multiple winners selected from one committed weighted list',
       dao: 'DAO proposal selection resolved',
       loot: 'Weighted loot outcome resolved',
     }[useCase] || 'Verifiable outcome resolved';
+  }
+
+  function outcomeIds(entry) {
+    return (Array.isArray(entry.outcome_ids) ? entry.outcome_ids : [])
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+  }
+
+  function renderWinnerList(entry) {
+    const ids = outcomeIds(entry);
+    if (!ids.length) return '';
+    return `
+      <div class="winner-list" aria-label="Selected winners">
+        ${ids.map((id, index) => `
+          <div class="winner-row">
+            <span class="winner-index">${index + 1}</span>
+            <span class="winner-address">${escapeHtml(id)}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   async function loadTimeline(entry, health) {
@@ -309,6 +336,7 @@
           <span class="text-faint mono" style="font-size:11px;">${escapeHtml(updated)} UTC</span>
         </div>
         <div class="sig-card-desc">${escapeHtml(describe(entry, useCase))}</div>
+        ${renderWinnerList(entry)}
         <div class="sig-hash" data-copy-target="${escapeHtml(entry.signature)}">${escapeHtml(short)}</div>
         <div class="sig-meta">
           <div class="sig-meta-item">

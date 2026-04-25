@@ -87,6 +87,7 @@
       gapSlots: timeline?.gap_slots ?? null,
       artifactHash: replay.compiled_artifact_hash || null,
       outcomeId: replay.outcome_id || null,
+      outcomeIds: Array.isArray(replay.outcome_ids) ? replay.outcome_ids : [],
       outcomes: Array.isArray(replay.outcomes) ? replay.outcomes : [],
     };
   }
@@ -104,6 +105,7 @@
       code,
       message,
       outcomes: [],
+      outcomeIds: [],
       replay: {},
       timeline: null,
       ...extra,
@@ -121,12 +123,20 @@
     return ids.length > 0 && ids.every(looksLikeSolanaAddress);
   }
 
+  function selectedOutcomeIds(r) {
+    const ids = (Array.isArray(r?.outcomeIds) ? r.outcomeIds : [])
+      .map((id) => String(id || '').trim())
+      .filter(Boolean);
+    if (ids.length) return ids;
+    return r?.outcomeId ? [String(r.outcomeId).trim()] : [];
+  }
+
   function didIWin(address, r) {
     if (!hasAddressOutcomes(r)) return 'not-applicable';
     const candidate = String(address || '').trim();
-    const winner = String(r?.outcomeId || '').trim();
+    const winners = new Set(selectedOutcomeIds(r));
     const ids = new Set((r.outcomes || []).map((outcome) => String(outcome?.id || '').trim()));
-    if (candidate && candidate === winner) return 'won';
+    if (candidate && winners.has(candidate)) return 'won';
     if (candidate && ids.has(candidate)) return 'in-draw-not-selected';
     return 'not-in-draw';
   }
@@ -180,6 +190,7 @@
       gapSlots: r.gapSlots,
       artifactHash: r.artifactHash,
       outcomeId: r.outcomeId,
+      outcomeIds: r.outcomeIds,
       outcomes: r.outcomes,
       replay: r.replay,
       timeline: r.timeline,
@@ -193,14 +204,25 @@
   }
 
   function renderOutcome(r) {
-    if (!r.outcomeId) return '';
+    const winners = selectedOutcomeIds(r);
+    if (!winners.length) return '';
+    const isMulti = winners.length > 1;
     return `
       <div class="result-section">
-        <div class="result-section-title">Selected Outcome</div>
+        <div class="result-section-title">${isMulti ? 'Selected Winners' : 'Selected Outcome'}</div>
         <div class="outcome-selected">
           <div>
-            <div class="outcome-id text-faint mb-2">outcome_id</div>
-            <div class="outcome-winner">${escapeHtml(r.outcomeId)}</div>
+            <div class="outcome-id text-faint mb-2">${isMulti ? 'outcome_ids' : 'outcome_id'}</div>
+            ${isMulti ? `
+              <div class="winner-list">
+                ${winners.map((id, index) => `
+                  <div class="winner-row">
+                    <span class="winner-index">${index + 1}</span>
+                    <span class="winner-address">${escapeHtml(id)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : `<div class="outcome-winner">${escapeHtml(winners[0])}</div>`}
           </div>
           <div class="badge ${r.status === 'MATCH' ? 'badge-match' : 'badge-mismatch'}">
             ${r.status === 'MATCH' ? '✓ replay matches' : '✕ replay diverges'}
@@ -220,7 +242,7 @@
           <div class="did-win-head">
             <div>
               <div class="result-section-title">Did I win?</div>
-              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected outcome.</p>
+              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected winner list.</p>
             </div>
           </div>
           <div class="did-win-status did-win-status-warn">
@@ -236,7 +258,7 @@
           <div class="did-win-head">
             <div>
               <div class="result-section-title">Did I win?</div>
-              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected outcome.</p>
+              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected winner list.</p>
             </div>
             <button class="btn btn-secondary btn-sm" type="button" data-connect-phantom>Connect Phantom</button>
           </div>
@@ -272,9 +294,10 @@
 
   function renderRules(r) {
     if (!r.outcomes.length) return '';
+    const winners = new Set(selectedOutcomeIds(r));
     const rows = r.outcomes.map((outcome) => {
       const id = String(outcome.id ?? '');
-      const isWinner = id === r.outcomeId;
+      const isWinner = winners.has(id);
       return `<tr class="${isWinner ? 'winner' : ''}">
         <td>${escapeHtml(id)}</td>
         <td>${escapeHtml(String(outcome.weight ?? '—'))}</td>

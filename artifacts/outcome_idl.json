@@ -1365,16 +1365,16 @@
       ]
     },
     {
-      "name": "OutcomeResolution",
+      "name": "OutcomeResolutionV2",
       "discriminator": [
-        117,
-        184,
-        192,
-        23,
-        132,
-        189,
-        98,
-        178
+        255,
+        71,
+        158,
+        89,
+        88,
+        61,
+        199,
+        217
       ]
     },
     {
@@ -1442,6 +1442,19 @@
         185,
         165,
         67
+      ]
+    },
+    {
+      "name": "OutcomeResolvedV2",
+      "discriminator": [
+        64,
+        82,
+        211,
+        23,
+        225,
+        215,
+        196,
+        237
       ]
     }
   ],
@@ -1904,7 +1917,7 @@
       }
     },
     {
-      "name": "OutcomeResolution",
+      "name": "OutcomeResolutionV2",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1932,6 +1945,14 @@
           {
             "name": "status",
             "type": "u8"
+          },
+          {
+            "name": "artifact_format_version",
+            "type": "u16"
+          },
+          {
+            "name": "winner_count",
+            "type": "u16"
           },
           {
             "name": "total_output_lamports",
@@ -1969,6 +1990,21 @@
             }
           },
           {
+            "name": "outcome_id_lens",
+            "type": "bytes"
+          },
+          {
+            "name": "outcome_ids",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  64
+                ]
+              }
+            }
+          },
+          {
             "name": "effect_count",
             "type": "u16"
           },
@@ -1990,7 +2026,7 @@
             "type": {
               "array": [
                 "u8",
-                31
+                29
               ]
             }
           }
@@ -2094,6 +2130,102 @@
                 "u8",
                 64
               ]
+            }
+          },
+          {
+            "name": "effect_count",
+            "type": "u16"
+          },
+          {
+            "name": "effects_digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutcomeResolvedV2",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "input_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "total_output_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "master_seed",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "randomness",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "compiled_artifact_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "artifact_format_version",
+            "type": "u16"
+          },
+          {
+            "name": "winner_count",
+            "type": "u16"
+          },
+          {
+            "name": "outcome_id_lens",
+            "type": "bytes"
+          },
+          {
+            "name": "outcome_ids",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  64
+                ]
+              }
             }
           },
           {
