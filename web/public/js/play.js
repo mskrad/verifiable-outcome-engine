@@ -254,7 +254,7 @@
       entry.id,
     ].filter(Boolean).join(' ').toLowerCase();
 
-    if (winnersCount > 1 || text.includes('multi') || labelText.includes('winner')) return 'multi-winner';
+    if (winnersCount > 1 || labelText === 'multi-winner' || text.includes('multi-winner')) return 'multi-winner';
     if (text.includes('airdrop')) return 'rewards';
     if (text.includes('dao') || text.includes('proposal')) return 'dao';
     if (text.includes('prediction')) return 'dao';
