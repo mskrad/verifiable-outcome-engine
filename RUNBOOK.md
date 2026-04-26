@@ -68,3 +68,107 @@ It does not require:
 - `core/contracts/*`
 - localnet historical sample signatures
 - adapters code
+
+## 7) Program upgrade authority
+
+The canonical devnet program upgrade authority is held by a Squads multisig:
+
+- Program: `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`
+- Squads multisig: `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ`
+- Threshold: `1-of-1` for the hackathon devnet demo
+- Member: `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+
+Verify the current authority:
+
+```bash
+solana program show 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --url https://api.devnet.solana.com
+```
+
+Expected authority:
+
+```text
+Authority: 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ
+```
+
+Future upgrades should be proposed and approved through Squads governance, then executed after the multisig threshold is met. ProgramConfig admin remains `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` and is intentionally separate from upgrade authority.
+
+### How to upgrade the program via Squads
+
+**Step 1 — Build new program binary**
+```bash
+anchor build
+# output: target/deploy/outcome.so
+```
+
+**Step 2 — Write the buffer**
+
+Upload the new binary to a buffer account (does not affect the live program yet):
+```bash
+solana program write-buffer target/deploy/outcome.so \
+  --keypair ~/.config/solana/esjx.json \
+  --url https://api.devnet.solana.com
+# outputs: Buffer: <BUFFER_ADDRESS>
+```
+
+**Step 3 — Set buffer authority to the Squads multisig**
+
+The buffer must be owned by the Squads PDA before it can be used in a proposal:
+```bash
+solana program set-buffer-authority <BUFFER_ADDRESS> \
+  --new-buffer-authority 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
+  --keypair ~/.config/solana/esjx.json \
+  --url https://api.devnet.solana.com
+```
+
+**Step 4 — Create upgrade proposal via Squads CLI**
+```bash
+squads-multisig-cli program-upgrade \
+  --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
+  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --buffer <BUFFER_ADDRESS> \
+  --spill-address ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT \
+  --keypair ~/.config/solana/esjx.json \
+  --url https://api.devnet.solana.com
+# outputs: Transaction index: <INDEX>
+```
+
+**Step 5 — Approve the proposal**
+```bash
+squads-multisig-cli transaction approve \
+  --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
+  --transaction-index <INDEX> \
+  --keypair ~/.config/solana/esjx.json \
+  --url https://api.devnet.solana.com
+```
+
+**Step 6 — Execute**
+```bash
+squads-multisig-cli transaction execute \
+  --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
+  --transaction-index <INDEX> \
+  --keypair ~/.config/solana/esjx.json \
+  --url https://api.devnet.solana.com
+```
+
+**Step 7 — Verify**
+```bash
+solana program show 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --url https://api.devnet.solana.com
+# Authority should still be 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ
+# Last Deployed In Slot should be updated
+```
+
+### Alternatively — Squads web UI
+
+Open https://squads.so/multisig and connect `esjx.json` wallet (devnet). The multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` will appear in your dashboard. Create → Program Upgrade proposal, paste buffer address, approve, execute.
+
+### Key addresses
+
+| Name | Address |
+|---|---|
+| Program | `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq` |
+| Squads multisig PDA | `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` |
+| Member / operator key | `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` |
+| ProgramConfig admin | `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` (separate from upgrade authority) |
+| Evidence | `artifacts/squads_multisig_evidence.json` |
