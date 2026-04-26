@@ -181,6 +181,30 @@
               </table>
             </div>
 
+            <h3 style="margin-bottom: 12px;">Operator Security</h3>
+            <p class="mb-4">
+              VRE separates two security concerns: who can <strong>upgrade the program</strong> and who can <strong>operate it</strong>.
+            </p>
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Layer</th><th>Mechanism</th><th>Address</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="text-teal">Program upgrades</td>
+                    <td><a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads multisig</a> — governance-gated, no single key can push a new version</td>
+                    <td><code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code></td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal">Operator signing</td>
+                    <td><a href="https://build.onswig.com" target="_blank" rel="noopener">Swig smart wallet</a> — delegated key scoped to VRE program with daily SOL spending cap. Master keypair kept offline.</td>
+                    <td>Actor: <code>E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <h3 style="margin-bottom: 12px;">Protocol Fee</h3>
             <p class="mb-4">
               Each <code>resolveOutcome</code> call may collect a protocol fee from the calling operator.
