@@ -48,6 +48,7 @@ const liveRaffleRateLimit = new Map();
 const apiRateLimit = new Map();
 let tsSdkRegistered = false;
 let resolveInlinePromise;
+let swigOperatorConfig;
 
 function loadEnvFile() {
   const envPath = path.join(REF_ROOT, ".env");
@@ -357,6 +358,32 @@ function validateSolanaAddress(value) {
   return address;
 }
 
+function parseSwigOperatorConfig() {
+  const swigAddress = String(process.env.SWIG_WALLET_ADDRESS || "").trim();
+  const delegateKeypairPath = String(process.env.SWIG_DELEGATE_KEYPAIR || "").trim();
+  if ((swigAddress && !delegateKeypairPath) || (!swigAddress && delegateKeypairPath)) {
+    throw new Error(
+      "SWIG_WALLET_ADDRESS and SWIG_DELEGATE_KEYPAIR must be set together"
+    );
+  }
+  if (!swigAddress) return undefined;
+
+  const roleRaw = String(process.env.SWIG_ROLE_ID || "").trim();
+  let roleId;
+  if (roleRaw) {
+    roleId = Number(roleRaw);
+    if (!Number.isSafeInteger(roleId) || roleId < 0) {
+      throw new Error("SWIG_ROLE_ID must be a non-negative integer");
+    }
+  }
+
+  return {
+    swigAddress: validateSolanaAddress(swigAddress),
+    delegateKeypairPath,
+    roleId,
+  };
+}
+
 function clientIp(req) {
   if (process.env.TRUST_PROXY === "1") {
     const forwarded = String(req.headers["x-forwarded-for"] || "")
@@ -532,14 +559,16 @@ async function handleLiveRaffle(req, res) {
     const resolveInline = await loadResolveInline();
     const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
     const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
-    const walletPath =
-      process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
+    const walletPath = swigOperatorConfig
+      ? undefined
+      : process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
     const label = `live-raffle-${Date.now()}`;
     const result = await withTimeout(
       resolveInline(config, {
         rpcUrl,
         programId,
         walletPath,
+        swigWallet: swigOperatorConfig,
         outputDir: process.env.LIVE_RAFFLE_OUTPUT_DIR || LIVE_RAFFLE_OUTPUT_DIR,
         label,
       }),
@@ -750,6 +779,7 @@ async function handleApi(req, res, pathname) {
 }
 
 loadEnvFile();
+swigOperatorConfig = parseSwigOperatorConfig();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);

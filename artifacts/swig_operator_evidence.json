@@ -1,0 +1,48 @@
+{
+  "swig_address": "gkgwSUqijr6aYazVdGFXVVbNyETPv9w6r24BNUabYyZ",
+  "swig_wallet_address": "E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf",
+  "delegate_pubkey": "CuHMxp83PDaQgHrBaRYLc9NoW2U73Yu8r5x8zNd3C9Cc",
+  "role_id": 3,
+  "create_tx": "4vBXzxfv9gZnaDEGDKrntEZcszUD8DNmxD13CrkbhnRmYM7N52TUp5389a2rvwdiMZGuBfkzH88tBwwiJVdXQy3w",
+  "add_delegate_tx": "3NXLpZxfvfk2ZZMUmhGHHfTW9JqDhVsZu9V8DU17KpQXhJ7PyrHu7H8PTkaNNKbHMybWZYSRkYVLMnXbToXgGuWe",
+  "fund_tx": "2nginaECB1vi4KSGEHBsXKQQnNtTQnHGYbf2kEwyTeBVfcaAEM3M7Sbr2J3o5LdBCxuQG5La9JNMRg5RrcbPvBo5",
+  "delegate_fee_fund_tx": "3buwP5wZR4TXWkWKFkNPc8wVVTauDui4JujWHdBqzoiFReHzvJPZNxH6quMC9NQFEZapxgvfxbKnjk5Bv6j7xgW3",
+  "program_config_admin_transfer": {
+    "skipped": false,
+    "tx": "3k6gGpqQV8wEiR3k9i2BP2gJMyvkvpd7cJGEeWJVSJFgzQeuZFr53VygSDYLjgjip6VgqgJKVWqRWonfuLrCY7Fb",
+    "new_admin": "E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf"
+  },
+  "program_config_after": {
+    "pda": "3uipzr3icZz8DLvm2fW4Ey6PQ9dcvDQkiXMtkS23Bsxh",
+    "admin": "E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf",
+    "allowUnreviewedBinding": false,
+    "feeLamports": "0",
+    "treasury": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT"
+  },
+  "policy": {
+    "programLimit": {
+      "programId": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
+    },
+    "solRecurringLimit": {
+      "recurring_amount_lamports": "2000000000",
+      "window_slots": "86400"
+    },
+    "programScopeRecurringLimit": {
+      "used": false,
+      "reason": "Swig 1.9.1 programScopeRecurringLimit requires one target account; live raffle creates and writes multiple VRE accounts."
+    }
+  },
+  "network": "devnet",
+  "rpc_url": "https://api.devnet.solana.com",
+  "live_raffle": {
+    "signature": "2wz4CBB2yTu9nFKo9hkqYUbVABa9AYu3xgfweJTfPECAGJR3p7pJ1qf6eZWmaVhvGQqZukVAoS3a25mGuoJAKrjZ",
+    "verification_result": "MATCH",
+    "verification_reason": "OK",
+    "runtime_id": "0555782b788c791e2460eee02542d395",
+    "resolve_id": "0",
+    "compiled_artifact_hash": "03a298f6b08ece73bbe09794844aba5c9bf1ebc7ba77e554d7e23fb5800ee8b6",
+    "outcome_id": "CuHMxp83PDaQgHrBaRYLc9NoW2U73Yu8r5x8zNd3C9Cc"
+  },
+  "created_at": "2026-04-26T15:31:15.583Z",
+  "verified_at": "2026-04-26T15:53:19Z"
+}

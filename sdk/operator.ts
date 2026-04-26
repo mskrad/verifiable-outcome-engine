@@ -4,7 +4,14 @@ import crypto from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
+import {
+  Keypair,
+  PublicKey,
+  sendAndConfirmTransaction,
+  SystemProgram,
+  Transaction,
+  type TransactionInstruction,
+} from "@solana/web3.js";
 
 import { buildArtifact } from "./artifact.js";
 import { OUTCOME_IDL } from "./idl.js";
@@ -34,9 +41,20 @@ const CHUNK_WRITE_BYTES = 900;
 type OutcomeClient = {
   provider: anchor.AnchorProvider;
   program: anchor.Program;
-  authority: Keypair;
+  authority: OperatorAuthority;
   programId: PublicKey;
 };
+
+type OperatorAuthority =
+  | { kind: "keypair"; keypair: Keypair; publicKey: PublicKey }
+  | {
+      kind: "swig";
+      swigAddress: PublicKey;
+      swigWalletAddress: PublicKey;
+      delegate: Keypair;
+      roleId?: number;
+      publicKey: PublicKey;
+    };
 
 type ApprovedArtifactResult = {
   blob: Buffer;
@@ -90,6 +108,14 @@ export type ResolveInlineOptions = {
   programId?: string;
   outputDir?: string;
   label?: string;
+  swigWallet?: ResolveInlineSwigWallet;
+};
+
+export type ResolveInlineSwigWallet = {
+  swigAddress: string;
+  delegateKeypairPath?: string;
+  delegateKeypair?: Keypair;
+  roleId?: number;
 };
 
 export type ResolveInlineResult = {
@@ -135,6 +161,11 @@ function loadKeypair(walletPath: string): Keypair {
   return Keypair.fromSecretKey(Uint8Array.from(raw));
 }
 
+async function loadSwigClassic() {
+  const mod = await import("@swig-wallet/classic");
+  return ((mod as any).default ?? mod) as typeof import("@swig-wallet/classic");
+}
+
 function loadArtifactConfig(configPath: string): ArtifactConfig {
   const resolvedPath = path.isAbsolute(configPath)
     ? configPath
@@ -146,15 +177,52 @@ async function loadOutcomeClient(opts: {
   rpcUrl?: string;
   walletPath?: string;
   programId?: string;
+  swigWallet?: ResolveInlineSwigWallet;
 }): Promise<OutcomeClient> {
   const url = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
-  const walletPath = expandHome(
-    opts.walletPath ?? process.env.ANCHOR_WALLET ?? DEFAULT_WALLET_PATH
-  );
-  const authority = loadKeypair(walletPath);
-  const wallet = new anchor.Wallet(authority);
+  const connection = new anchor.web3.Connection(url, { commitment: "confirmed" });
+  let authority: OperatorAuthority;
+  let wallet: anchor.Wallet;
+
+  if (opts.swigWallet) {
+    const delegate =
+      opts.swigWallet.delegateKeypair ??
+      (opts.swigWallet.delegateKeypairPath
+        ? loadKeypair(expandHome(opts.swigWallet.delegateKeypairPath))
+        : undefined);
+    if (!delegate) {
+      throw new Error("Swig operator requires delegateKeypairPath or delegateKeypair");
+    }
+    const swigAddress = new PublicKey(opts.swigWallet.swigAddress);
+    const { fetchSwig, getSwigWalletAddress } = await loadSwigClassic();
+    const swig = await fetchSwig(connection, swigAddress, {
+      commitment: "confirmed",
+    });
+    const swigWalletAddress = await getSwigWalletAddress(swig);
+    authority = {
+      kind: "swig",
+      swigAddress,
+      swigWalletAddress,
+      delegate,
+      roleId: opts.swigWallet.roleId,
+      publicKey: swigWalletAddress,
+    };
+    wallet = new anchor.Wallet(delegate);
+  } else {
+    const walletPath = expandHome(
+      opts.walletPath ?? process.env.ANCHOR_WALLET ?? DEFAULT_WALLET_PATH
+    );
+    const keypair = loadKeypair(walletPath);
+    authority = {
+      kind: "keypair",
+      keypair,
+      publicKey: keypair.publicKey,
+    };
+    wallet = new anchor.Wallet(keypair);
+  }
+
   const provider = new anchor.AnchorProvider(
-    new anchor.web3.Connection(url, { commitment: "confirmed" }),
+    connection,
     wallet,
     { commitment: "confirmed" }
   );
@@ -172,6 +240,47 @@ async function loadOutcomeClient(opts: {
   };
 }
 
+async function sendOperatorInstructions(
+  client: OutcomeClient,
+  instructions: TransactionInstruction[]
+): Promise<string> {
+  if (instructions.length === 0) {
+    throw new Error("No operator instructions to send");
+  }
+
+  const connection = client.provider.connection;
+  if (client.authority.kind === "keypair") {
+    const tx = new Transaction().add(...instructions);
+    return client.provider.sendAndConfirm(tx, []);
+  }
+
+  const { fetchSwig, getSignInstructions } = await loadSwigClassic();
+  const swig = await fetchSwig(connection, client.authority.swigAddress, {
+    commitment: "confirmed",
+  });
+  const role =
+    typeof client.authority.roleId === "number"
+      ? swig.findRoleById(client.authority.roleId)
+      : swig.findRolesByEd25519SignerPk(client.authority.delegate.publicKey)[0];
+  if (!role) {
+    throw new Error(
+      `Swig delegate role not found for ${client.authority.delegate.publicKey.toBase58()}`
+    );
+  }
+  const signedInstructions = await getSignInstructions(
+    swig,
+    role.id,
+    instructions,
+    false,
+    { payer: client.authority.delegate.publicKey }
+  );
+  const tx = new Transaction().add(...signedInstructions);
+  tx.feePayer = client.authority.delegate.publicKey;
+  return sendAndConfirmTransaction(connection, tx, [client.authority.delegate], {
+    commitment: "confirmed",
+  });
+}
+
 async function ensureWalletFunds(
   client: OutcomeClient,
   minimumLamports = 2_000_000_000
@@ -181,6 +290,11 @@ async function ensureWalletFunds(
     "confirmed"
   );
   if (balance >= minimumLamports) return;
+  if (client.authority.kind === "swig") {
+    throw new Error(
+      `Swig wallet ${client.authority.swigWalletAddress.toBase58()} has insufficient balance: ${balance} lamports`
+    );
+  }
   const endpoint = client.provider.connection.rpcEndpoint;
   if (!endpoint.includes("127.0.0.1") && !endpoint.includes("localhost")) {
     return;
@@ -203,7 +317,7 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
     "confirmed"
   );
   if (!info) {
-    await (client.program.methods as any)
+    const instruction = await (client.program.methods as any)
       .initializeProgramConfig({
         feeLamports: new BN(0),
         treasury: client.authority.publicKey,
@@ -216,7 +330,8 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
         programConfig: programConfigPda,
         systemProgram: SystemProgram.programId,
       })
-      .rpc();
+      .instruction();
+    await sendOperatorInstructions(client, [instruction]);
     return programConfigPda;
   }
 
@@ -232,7 +347,7 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
   }
 
   if (Boolean(programConfig.allowUnreviewedBinding)) {
-    await (client.program.methods as any)
+    const instruction = await (client.program.methods as any)
       .setProgramConfig({
         newAdmin: client.authority.publicKey,
         allowUnreviewedBinding: false,
@@ -243,7 +358,8 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
         programConfig: programConfigPda,
         admin: client.authority.publicKey,
       })
-      .rpc();
+      .instruction();
+    await sendOperatorInstructions(client, [instruction]);
   }
 
   return programConfigPda;
@@ -326,7 +442,7 @@ async function submitApprovedArtifact(
     );
 
     if (!artifactAccount.isFinalized) {
-      await (client.program.methods as any)
+      const instruction = await (client.program.methods as any)
         .finalizeCompiledArtifact()
         .accounts({
           publisher: client.authority.publicKey,
@@ -339,11 +455,12 @@ async function submitApprovedArtifact(
             isWritable: false,
           }))
         )
-        .rpc();
+        .instruction();
+      await sendOperatorInstructions(client, [instruction]);
     }
 
     if (artifactAccount.status !== STATUS_APPROVED) {
-      await (client.program.methods as any)
+      const instruction = await (client.program.methods as any)
         .reviewCompiledArtifact({
           status: STATUS_APPROVED,
           auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
@@ -357,7 +474,8 @@ async function submitApprovedArtifact(
           admin: client.authority.publicKey,
           approvedOutcomeArtifact: artifactPda,
         })
-        .rpc();
+        .instruction();
+      await sendOperatorInstructions(client, [instruction]);
     }
 
     return {
@@ -370,7 +488,7 @@ async function submitApprovedArtifact(
     };
   }
 
-  await (client.program.methods as any)
+  let instruction = await (client.program.methods as any)
     .submitCompiledArtifact({
       compiledArtifactHash: [...compiledArtifactHash],
       formatVersion: artifactFormatVersion(opts.blob),
@@ -381,7 +499,8 @@ async function submitApprovedArtifact(
       approvedOutcomeArtifact: artifactPda,
       systemProgram: SystemProgram.programId,
     })
-    .rpc();
+    .instruction();
+  await sendOperatorInstructions(client, [instruction]);
 
   const chunkCount = Math.ceil(opts.blob.length / CHUNK_SIZE);
   const chunkPdas: PublicKey[] = [];
@@ -393,7 +512,7 @@ async function submitApprovedArtifact(
     );
     chunkPdas.push(chunkPda);
 
-    await (client.program.methods as any)
+    instruction = await (client.program.methods as any)
       .initCompiledArtifactChunk({
         compiledArtifactHash: [...compiledArtifactHash],
         chunkIndex,
@@ -404,7 +523,8 @@ async function submitApprovedArtifact(
         approvedOutcomeArtifactChunk: chunkPda,
         systemProgram: SystemProgram.programId,
       })
-      .rpc();
+      .instruction();
+    await sendOperatorInstructions(client, [instruction]);
 
     const chunkStart = chunkIndex * CHUNK_SIZE;
     const chunkBytes = opts.blob.subarray(
@@ -420,7 +540,7 @@ async function submitApprovedArtifact(
         offset,
         Math.min(chunkBytes.length, offset + CHUNK_WRITE_BYTES)
       );
-      await (client.program.methods as any)
+      instruction = await (client.program.methods as any)
         .writeCompiledArtifactChunk({
           compiledArtifactHash: [...compiledArtifactHash],
           chunkIndex,
@@ -432,11 +552,12 @@ async function submitApprovedArtifact(
           approvedOutcomeArtifact: artifactPda,
           approvedOutcomeArtifactChunk: chunkPda,
         })
-        .rpc();
+        .instruction();
+      await sendOperatorInstructions(client, [instruction]);
     }
   }
 
-  await (client.program.methods as any)
+  instruction = await (client.program.methods as any)
     .finalizeCompiledArtifact()
     .accounts({
       publisher: client.authority.publicKey,
@@ -449,9 +570,10 @@ async function submitApprovedArtifact(
         isWritable: false,
       }))
     )
-    .rpc();
+    .instruction();
+  await sendOperatorInstructions(client, [instruction]);
 
-  await (client.program.methods as any)
+  instruction = await (client.program.methods as any)
     .reviewCompiledArtifact({
       status: STATUS_APPROVED,
       auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
@@ -465,7 +587,8 @@ async function submitApprovedArtifact(
       admin: client.authority.publicKey,
       approvedOutcomeArtifact: artifactPda,
     })
-    .rpc();
+    .instruction();
+  await sendOperatorInstructions(client, [instruction]);
 
   return {
     blob: opts.blob,
@@ -487,7 +610,6 @@ async function initializeOutcomeRuntime(
     maxInputLamports: bigint;
     masterSeed: Buffer;
     treasury?: PublicKey;
-    authority?: Keypair;
   }
 ): Promise<{
   outcomeConfigPda: PublicKey;
@@ -497,9 +619,8 @@ async function initializeOutcomeRuntime(
   const outcomeConfigPda = deriveOutcomeConfigPda(client.programId, opts.runtimeId);
   const outcomeVaultPda = deriveOutcomeVaultPda(client.programId, opts.runtimeId);
   const treasury = opts.treasury ?? client.authority.publicKey;
-  const authority = opts.authority ?? client.authority;
 
-  await (client.program.methods as any)
+  const instruction = await (client.program.methods as any)
     .initializeOutcomeConfig({
       runtimeId: [...opts.runtimeId],
       minInputLamports: new BN(opts.minInputLamports.toString()),
@@ -508,7 +629,7 @@ async function initializeOutcomeRuntime(
       masterSeed: [...opts.masterSeed],
     })
     .accounts({
-      authority: authority.publicKey,
+      authority: client.authority.publicKey,
       programConfig: deriveProgramConfigPda(client.programId),
       outcomeConfig: outcomeConfigPda,
       outcomeVault: outcomeVaultPda,
@@ -526,10 +647,8 @@ async function initializeOutcomeRuntime(
         isWritable: false,
       }))
     )
-    .signers(
-      authority.publicKey.equals(client.authority.publicKey) ? [] : [authority]
-    )
-    .rpc();
+    .instruction();
+  await sendOperatorInstructions(client, [instruction]);
 
   return { outcomeConfigPda, outcomeVaultPda, treasury };
 }
@@ -543,7 +662,6 @@ async function createApprovedRuntime(
     inputLamports: bigint;
     runtimeId?: Buffer;
     masterSeed?: Buffer;
-    authority?: Keypair;
   }
 ): Promise<ApprovedRuntimeResult> {
   const runtimeId = opts.runtimeId ?? (await findUnusedRuntimeId(client));
@@ -563,7 +681,6 @@ async function createApprovedRuntime(
     minInputLamports,
     maxInputLamports,
     masterSeed,
-    authority: opts.authority,
   });
 
   return {
@@ -583,24 +700,20 @@ async function refreshRuntimeMasterSeed(
   opts: {
     runtimeId: Buffer;
     newMasterSeed: Buffer;
-    authority?: Keypair;
   }
 ): Promise<string> {
-  const authority = opts.authority ?? client.authority;
-  return (client.program.methods as any)
+  const instruction = await (client.program.methods as any)
     .refreshMasterSeed({
       runtimeId: [...opts.runtimeId],
       newMasterSeed: [...opts.newMasterSeed],
     })
     .accounts({
-      authority: authority.publicKey,
+      authority: client.authority.publicKey,
       programConfig: deriveProgramConfigPda(client.programId),
       outcomeConfig: deriveOutcomeConfigPda(client.programId, opts.runtimeId),
     })
-    .signers(
-      authority.publicKey.equals(client.authority.publicKey) ? [] : [authority]
-    )
-    .rpc();
+    .instruction();
+  return sendOperatorInstructions(client, [instruction]);
 }
 
 async function fetchOutcomeConfigState(
@@ -636,12 +749,10 @@ async function resolveOutcomeAndConfirm(
     inputLamports: bigint;
     chunkPdas: PublicKey[];
     compiledArtifactHash: Buffer;
-    actor?: Keypair;
     treasury?: PublicKey;
     protocolTreasury?: PublicKey;
   }
 ): Promise<{ signature: string; resolveId: bigint }> {
-  const actor = opts.actor ?? client.authority;
   const resolveId = (await fetchOutcomeConfigState(client, opts.runtimeId))
     .nextResolveId;
   const outcomeResolutionPda = deriveOutcomeResolutionPda(
@@ -649,13 +760,13 @@ async function resolveOutcomeAndConfirm(
     opts.runtimeId,
     resolveId
   );
-  const signature = await (client.program.methods as any)
+  const instruction = await (client.program.methods as any)
     .resolveOutcome({
       runtimeId: [...opts.runtimeId],
       inputLamports: new BN(opts.inputLamports.toString()),
     })
     .accounts({
-      actor: actor.publicKey,
+      actor: client.authority.publicKey,
       programConfig: deriveProgramConfigPda(client.programId),
       outcomeConfig: deriveOutcomeConfigPda(client.programId, opts.runtimeId),
       outcomeVault: deriveOutcomeVaultPda(client.programId, opts.runtimeId),
@@ -675,9 +786,9 @@ async function resolveOutcomeAndConfirm(
         isWritable: false,
       }))
     )
-    .signers(actor.publicKey.equals(client.authority.publicKey) ? [] : [actor])
-    .rpc();
+    .instruction();
 
+  const signature = await sendOperatorInstructions(client, [instruction]);
   await client.provider.connection.confirmTransaction(signature, "confirmed");
   return { signature, resolveId };
 }
@@ -706,6 +817,7 @@ async function resolveConfig(
     programId?: string;
     outputDir?: string;
     label: string;
+    swigWallet?: ResolveInlineSwigWallet;
   }
 ): Promise<ResolveOperatorResult> {
   const inputLamports = asBigInt(config.input_lamports);
@@ -713,6 +825,7 @@ async function resolveConfig(
     rpcUrl: opts.rpcUrl,
     walletPath: opts.walletPath,
     programId: opts.programId,
+    swigWallet: opts.swigWallet,
   });
   await ensureWalletFunds(client);
   await ensureProgramConfig(client);
@@ -792,6 +905,7 @@ export async function resolveInline(
     programId: opts.programId,
     outputDir: opts.outputDir,
     label: opts.label ?? `live-raffle-${Date.now()}`,
+    swigWallet: opts.swigWallet,
   });
 
   const verified = await verifyOutcome({

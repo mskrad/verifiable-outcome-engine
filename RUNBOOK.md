@@ -91,7 +91,7 @@ Expected authority:
 Authority: 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ
 ```
 
-Future upgrades should be proposed and approved through Squads governance, then executed after the multisig threshold is met. ProgramConfig admin remains `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` and is intentionally separate from upgrade authority.
+Future upgrades should be proposed and approved through Squads governance, then executed after the multisig threshold is met. ProgramConfig admin is intentionally separate from upgrade authority and is controlled by the configured operator path.
 
 ### How to upgrade the program via Squads
 
@@ -170,5 +170,67 @@ Open https://squads.so/multisig and connect `esjx.json` wallet (devnet). The mul
 | Program | `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq` |
 | Squads multisig PDA | `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` |
 | Member / operator key | `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` |
-| ProgramConfig admin | `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` (separate from upgrade authority) |
+| ProgramConfig admin | `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf` (Swig actor wallet, separate from upgrade authority) |
 | Evidence | `artifacts/squads_multisig_evidence.json` |
+
+## 8) Swig operator setup
+
+Honest claim: VPS server key is Swig-delegated, scoped to VRE program with daily SOL spending limit. Admin keypair (esjx.json) kept offline.
+
+Create a delegate keypair for the VPS:
+
+```bash
+solana-keygen new \
+  --no-bip39-passphrase \
+  --outfile ~/.config/solana/vre-swig-delegate.json
+```
+
+Create the Swig wallet and delegate role on devnet:
+
+```bash
+cd verifiable-outcome-engine
+ROOT_KEYPAIR=~/.config/solana/esjx.json \
+SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
+VRE_PROGRAM_ID=3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+yarn -s swig:operator:create
+```
+
+For production cutover of the live raffle operator, also move ProgramConfig admin to the Swig wallet during setup:
+
+```bash
+cd verifiable-outcome-engine
+ROOT_KEYPAIR=~/.config/solana/esjx.json \
+SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
+VRE_PROGRAM_ID=3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+SWIG_TRANSFER_PROGRAM_CONFIG_ADMIN=1 \
+yarn -s swig:operator:create
+```
+
+If the Swig account already exists and you only need to add a corrected delegate policy, pass `EXISTING_SWIG_ADDRESS=<SWIG_ACCOUNT_ADDRESS>`.
+
+The script prints:
+
+```text
+SWIG_WALLET_ADDRESS=<SWIG_ACCOUNT_ADDRESS>
+SWIG_ROLE_ID=<DELEGATE_ROLE_ID>
+```
+
+Set these on the VPS:
+
+```bash
+SWIG_WALLET_ADDRESS=<SWIG_ACCOUNT_ADDRESS>
+SWIG_DELEGATE_KEYPAIR=/path/to/vre-swig-delegate.json
+SWIG_ROLE_ID=<DELEGATE_ROLE_ID>
+```
+
+Without `SWIG_WALLET_ADDRESS` and `SWIG_DELEGATE_KEYPAIR`, the server keeps the raw keypair fallback path:
+
+```bash
+LIVE_RAFFLE_WALLET=~/.config/solana/esjx.json
+```
+
+Evidence is written to `artifacts/swig_operator_evidence.json` after setup and updated after a successful live raffle replay.
+
+The active policy uses `programLimit` for the VRE program and `solRecurringLimit` for the daily SOL cap. Swig `programScopeRecurringLimit` is target-account scoped in SDK `1.9.1`, so it is not used for the live raffle flow that creates and writes multiple VRE accounts.

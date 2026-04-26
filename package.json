@@ -46,6 +46,7 @@
     "metaplex:agent:verify": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/metaplex_register_agent.ts verify",
     "replay": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/replay_verify.ts",
     "resolve:operator": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/resolve_operator.ts",
+    "swig:operator:create": "node scripts/create_swig_operator.mjs",
     "web": "node web/server.mjs"
   },
   "dependencies": {
@@ -62,5 +63,8 @@
     "bn.js": "^5.2.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
+  },
+  "optionalDependencies": {
+    "@swig-wallet/classic": "1.9.1"
   }
 }

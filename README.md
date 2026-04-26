@@ -62,6 +62,8 @@ This package demonstrates the verification path:
 Canonical devnet program id:
 
 - `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`
+- Upgrade authority: Squads multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` ([Squads](https://squads.xyz/multisig)).
+- Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
 
 ## First Proof Scenario
 

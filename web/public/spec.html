@@ -160,20 +160,20 @@
                 <tbody>
                   <tr><td class="text-teal">Program ID</td><td><code>3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq</code></td></tr>
                   <tr><td class="text-teal">Cluster</td><td>Solana devnet (mainnet pending)</td></tr>
-                  <tr><td class="text-teal">Upgrade authority</td><td><code>ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT</code></td></tr>
+                  <tr><td class="text-teal">Upgrade authority</td><td>Squads multisig <code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code> · <a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads</a></td></tr>
                 </tbody>
               </table>
             </div>
 
             <h3 style="margin-bottom: 12px;">ProgramConfig</h3>
-            <p class="mb-4">Global configuration stored in a PDA at seeds <code>["outcome_program_config"]</code>.</p>
+            <p class="mb-4">Global configuration stored in a PDA at seeds <code>["outcome_program_config"]</code>. ProgramConfig admin is separate from the program upgrade authority.</p>
             <div class="card mb-6" style="padding: 0;">
               <table class="rules-table">
                 <thead>
                   <tr><th>Field</th><th>Type</th><th>Description</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td class="text-teal">admin</td><td>Pubkey</td><td>Authority allowed to update config.</td></tr>
+                  <tr><td class="text-teal">admin</td><td>Pubkey</td><td>Authority allowed to update config. Current devnet value: Swig actor wallet <code>E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</code>.</td></tr>
                   <tr><td class="text-teal">allow_unreviewed_binding</td><td>bool</td><td>Whether unreviewed artifacts can be bound.</td></tr>
                   <tr><td class="text-teal">fee_lamports</td><td>u64</td><td>Protocol fee per <code>resolveOutcome</code> call. Current devnet value: <code>0</code>.</td></tr>
                   <tr><td class="text-teal">treasury</td><td>Pubkey</td><td>Recipient of protocol fees when <code>fee_lamports &gt; 0</code>. Current devnet value: <code>ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT</code>.</td></tr>
