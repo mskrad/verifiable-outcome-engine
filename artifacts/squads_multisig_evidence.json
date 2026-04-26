@@ -1,0 +1,17 @@
+{
+  "multisig_pda": "7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ",
+  "threshold": "1-of-1",
+  "members": [
+    "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT"
+  ],
+  "create_multisig_tx": "4FZ4TfvTa8FqntFHtmMd1ZfuGbVoCjU62K8BqhDoSwo94iu9QJtmHftd3FZ1fZ8PuEJm2k6vN5jh4dPbSW16e2cb",
+  "set_authority_tx": "2RWLPuehq4w8fZv2iWgyJvVNkcZv4Ebpu39KSYdR7NaXzSFxJPXRJrUmCMQmSPiJcA3223rJgRNxRqiTzBzHCKd5",
+  "verification": "Program Id: 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq\nOwner: BPFLoaderUpgradeab1e11111111111111111111111\nProgramData Address: AqZY6pmSFQasMgebvEHhsRWwShmiqX5AenEqdRPhFUpV\nAuthority: 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ\nLast Deployed In Slot: 457950579\nData Length: 547048 (0x858e8) bytes\nBalance: 3.80865816 SOL",
+  "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "programdata_address": "AqZY6pmSFQasMgebvEHhsRWwShmiqX5AenEqdRPhFUpV",
+  "previous_upgrade_authority": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
+  "program_config_admin": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
+  "network": "devnet",
+  "squads_program_id": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
+  "verified_at": "2026-04-26T14:52:01Z"
+}

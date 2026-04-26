@@ -13,6 +13,9 @@ agent-instructions/
 AGENTS.md
 OPEN_REPO_MIGRATION.md
 STATUS.md
+.agents/
+.claude/
+skills-lock.json
 # Rust / Anchor build output
 target/
 .anchor/
