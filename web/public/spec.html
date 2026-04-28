@@ -72,6 +72,7 @@
             <li><a href="#world-id" class="text-dim">9. Sybil-Proof Participants</a></li>
             <li><a href="#live-raffle" class="text-dim">10. Live Raffle API</a></li>
             <li><a href="#sdk" class="text-dim">11. SDK</a></li>
+            <li><a href="#partner-api" class="text-dim">12. Partner API</a></li>
           </ol>
         </aside>
 
@@ -507,6 +508,65 @@
 
             <div class="card" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
               <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Both functions are pure — no on-chain writes. <code>buildArtifact</code> runs the same deterministic kernel used by the Solana program. <code>verifyOutcome</code> fetches the transaction from any public RPC and replays it locally. See <a href="/build" class="text-teal">build.html</a> for the full operator integration guide.</p>
+            </div>
+          </article>
+
+          <article id="partner-api" class="mb-8">
+            <h2 style="margin-bottom: 16px;">12. Partner API</h2>
+            <p class="mb-4">
+              Two discovery endpoints are gated behind a partner-issued API key. They allow external platforms to query resolution history and check participant outcomes without running their own indexer.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="text-teal"><code>GET /api/resolutions</code></td>
+                    <td>GET</td>
+                    <td>Returns the N most recent resolved outcomes on the canonical program. Includes <code>signature</code>, <code>outcome_id</code>, <code>outcome_ids</code>, <code>participants_count</code>, <code>artifact_hash</code>, <code>commit_slot</code>, <code>resolve_slot</code>.</td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal"><code>GET /api/participant</code></td>
+                    <td>GET</td>
+                    <td>Returns all resolutions where <code>?address=&lt;wallet&gt;</code> appears in <code>outcome_ids</code>. Useful for wallet-level "did I ever win?" lookups.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>authentication</span>
+              </div>
+              <div class="terminal-body"><span class="comment"># All partner endpoints require x-api-key header</span>
+<span class="prompt">$</span> curl https://verifiableoutcome.online/api/resolutions \
+    -H <span class="ok">"x-api-key: vresk_&lt;32-hex-chars&gt;"</span>
+
+<span class="comment"># Without a key: 401 Unauthorized</span>
+<span class="comment"># Config absent on host: 503 Partner API not configured</span></div>
+            </div>
+
+            <div class="card mb-4" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Key format</th><th>Storage</th><th>Provisioning</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>vresk_</code> prefix + 32 hex chars</td>
+                    <td>Server-side <code>config/partners.json</code> (not committed). Never sent to the client.</td>
+                    <td>Issued during partner onboarding. <a href="mailto:hello@verifiableoutcome.online" class="text-teal">Contact us →</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Partner API endpoints are distinct from the public SDK surface (<code>/api/replay</code>, <code>/api/live-raffle</code>). The public endpoints are rate-limited but require no key. Partner endpoints carry higher rate limits and return richer indexer data suitable for dashboards and integrations.</p>
             </div>
           </article>
 
