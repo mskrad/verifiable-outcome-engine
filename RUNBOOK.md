@@ -288,3 +288,34 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 - `vanish_deposit_tx` — operator → Vanish pool transfer
 - `vanish_withdraw_tx` — Vanish → winner transfer
 - `mock: true` if run in mock mode
+
+## 10) Partner API keys for `/api/resolutions` and `/api/participant`
+
+These two endpoints are partner-only and require:
+
+- header: `x-api-key: vresk_...`
+- local file: `config/partners.json`
+
+Bootstrap the config:
+
+```bash
+cd /Users/timurkurmangaliev/verifiable-outcome-engine
+mkdir -p config
+cp config/partners.json.example config/partners.json
+```
+
+Then edit `config/partners.json` and restart the server.
+
+Example request:
+
+```bash
+curl -s http://127.0.0.1:8787/api/resolutions?limit=3 \
+  -H 'x-api-key: vresk_4a3304a5cb2804331078c6e09b687fdb'
+```
+
+Expected behavior:
+
+- missing key → HTTP `401`
+- unknown key → HTTP `401`
+- missing `config/partners.json` → HTTP `503`
+- valid key from `config/partners.json` → HTTP `200`
