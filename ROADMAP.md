@@ -53,6 +53,12 @@ Any developer building a Solana dApp that involves outcome selection — raffle,
 
 ---
 
+## Future Work (Post-Submission / Optional)
+
+- **Phantom Connect embedded wallet:** replace the current extension-only Phantom path with Phantom Connect so users can connect on `play` and `verify` without requiring the Phantom browser extension. Keep the current backend/operator raffle flow unchanged; the embedded wallet is mainly for user address/session UX, not for server-side resolve signing.
+
+---
+
 ## What VRE Guarantees
 
 VRE proves a specific, bounded property:
