@@ -21,6 +21,12 @@
 <meta property="og:url" content="https://verifiableoutcome.online/spec" />  <meta property="og:title" content="VRE Spec · Technical Reference" />  <meta property="og:description" content="Full technical specification for Verifiable Outcome Engine — invariants, error codes, canonical program, and protocol fee model." />  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />  <meta property="og:image:width" content="1200" />  <meta property="og:image:height" content="630" />  <meta name="twitter:card" content="summary_large_image" />  <meta name="twitter:site" content="@voutcomeengine" />  <meta name="twitter:title" content="VRE Spec · Technical Reference" />  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    @media (max-width: 768px) {
+      .spec-layout { grid-template-columns: 1fr !important; }
+      .spec-toc    { display: none !important; }
+    }
+  </style>
 </head>
 <body>
 
@@ -55,10 +61,10 @@
   <section style="padding-top: 24px;">
     <div class="container">
 
-      <div class="grid" style="grid-template-columns: 240px 1fr; gap: 32px; align-items: start;">
+      <div class="grid spec-layout" style="grid-template-columns: 240px 1fr; gap: 32px; align-items: start;">
 
         <!-- TOC -->
-        <aside style="position: sticky; top: 96px;">
+        <aside class="spec-toc" style="position: sticky; top: 96px;">
           <div class="result-section-title mb-4">Contents</div>
           <ol style="list-style: none; font-size: 13.5px; color: var(--text-dim); line-height: 2;">
             <li><a href="#rules" class="text-dim">1. Rules</a></li>
