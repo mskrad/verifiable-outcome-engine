@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo · VRE</title>
+  <meta name="description" content="Connect your Phantom wallet and run a real on-chain raffle. Verify the result independently from a transaction signature." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://verifiableoutcome.online/play" />
+  <meta property="og:title" content="VRE Demo · Live On-Chain Outcomes" />
+  <meta property="og:description" content="Connect your Phantom wallet and run a real on-chain raffle. Verify the result independently from a transaction signature." />
+  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="VRE — Verifiable On-Chain Outcomes for Solana" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@voutcomeengine" />
+  <meta name="twitter:title" content="VRE Demo · Live On-Chain Outcomes" />
+  <meta name="twitter:description" content="Connect your Phantom wallet and run a real on-chain raffle. Verify the result independently from a transaction signature." />
+  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+<meta property="og:url" content="https://verifiableoutcome.online/play" />  <meta property="og:title" content="VRE Demo · Live On-Chain Outcomes" />  <meta property="og:description" content="Connect your Phantom wallet and run a real on-chain raffle. Verify the result independently from a transaction signature." />  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />  <meta property="og:image:width" content="1200" />  <meta property="og:image:height" content="630" />  <meta name="twitter:card" content="summary_large_image" />  <meta name="twitter:site" content="@voutcomeengine" />  <meta name="twitter:title" content="VRE Demo · Live On-Chain Outcomes" />  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.webp" alt="" class="nav-brand-logo" />
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/play"   data-nav="play">Demo</a></li>
+        <li><a href="/build"  data-nav="build">Build</a></li>
+        <li><a href="/verify" data-nav="verify">Verify</a></li>
+        <li><a href="/widget" data-nav="widget">Widget</a></li>
+        <li><a href="/spec"   data-nav="spec">Spec</a></li>
+      </ul>
+      <a href="/build" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Live on devnet</span>
+      <h1 class="page-title">Active Devnet Signatures</h1>
+      <p>Every signature below invoked the VRE program on Solana devnet. Rules were committed on-chain before the draw; the outcome can be replayed from public RPC data. Click <span class="mono text-teal">Verify Now</span> to reproduce the result end-to-end.</p>
+    </div>
+  </header>
+
+  <section class="live-raffle-section">
+    <div class="container">
+      <div id="live-raffle" class="live-raffle-card" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section style="padding-top: 24px;">
+    <div class="container">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+        <div class="text-faint" style="font-size:13px;">
+          <span id="sig-status">Loading…</span>
+          <span style="margin: 0 8px;">·</span>
+          Program <span class="mono">3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq</span>
+        </div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" data-copy="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq">Copy program ID</button>
+          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/address/3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
+        </div>
+      </div>
+
+      <div id="sig-list" class="sig-grid">
+        <div class="loading-state">
+          <div class="spinner spinner-lg"></div>
+          <div>Fetching signatures…</div>
+        </div>
+      </div>
+
+      <div class="mt-8 text-faint center" style="font-size:13px;">
+        Signatures auto-refresh on page load. Need a specific one?
+        <a href="/verify" class="text-teal">Paste it on the verify page →</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Legend -->
+  <section>
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Use cases</span>
+        <h2>Same engine. Four surfaces.</h2>
+        <p>Every card above uses the same deterministic kernel. The use-case label is descriptive, not architectural — VRE doesn't care what your draw is for.</p>
+      </div>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(20,241,149,0.08); color: var(--teal); border-color: rgba(20,241,149,0.2);">🎟</div>
+          <h3>Rewards Selection</h3>
+          <p>Raffles, airdrops, multi-winner draws — pick one or N recipients from a committed weighted list. All winners committed on-chain before the draw.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(245,158,11,0.08); color: #fbbf24; border-color: rgba(245,158,11,0.2);">🗳️</div>
+          <h3>DAO Proposal</h3>
+          <p>Multiple approved proposals, weights set by vote count. VRE picks one — no one can influence the draw after weights are committed.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(168,85,247,0.08); color: #c084fc; border-color: rgba(168,85,247,0.2);">🎁</div>
+          <h3>Loot</h3>
+          <p>Weighted outcome table (legendary / rare / common). Identical kernel to raffle, different label.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(20,184,166,0.08); color: #2dd4bf; border-color: rgba(20,184,166,0.2);">🤖</div>
+          <h3>Agent Selection</h3>
+          <p>Agents earn reputation through completed work. Higher reputation = higher selection weight. The marketplace cannot secretly favor an agent — the weighted draw is committed on-chain before resolution.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.webp" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="/play">Demo</a></li>
+          <li><a href="/build">Build</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+          <li><a href="mailto:hello@verifiableoutcome.online">Email</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/play.js"></script>
+</body>
+</html>

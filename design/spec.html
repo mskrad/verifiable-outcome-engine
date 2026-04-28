@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en" style="scroll-behavior:smooth;">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spec · VRE</title>
+  <meta name="description" content="Full technical specification for Verifiable Outcome Engine — invariants, error codes, canonical program, and protocol fee model." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://verifiableoutcome.online/spec" />
+  <meta property="og:title" content="VRE Spec · Technical Reference" />
+  <meta property="og:description" content="Full technical specification for Verifiable Outcome Engine — invariants, error codes, canonical program, and protocol fee model." />
+  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="VRE — Verifiable On-Chain Outcomes for Solana" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@voutcomeengine" />
+  <meta name="twitter:title" content="VRE Spec · Technical Reference" />
+  <meta name="twitter:description" content="Full technical specification for Verifiable Outcome Engine — invariants, error codes, canonical program, and protocol fee model." />
+  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+<meta property="og:url" content="https://verifiableoutcome.online/spec" />  <meta property="og:title" content="VRE Spec · Technical Reference" />  <meta property="og:description" content="Full technical specification for Verifiable Outcome Engine — invariants, error codes, canonical program, and protocol fee model." />  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />  <meta property="og:image:width" content="1200" />  <meta property="og:image:height" content="630" />  <meta name="twitter:card" content="summary_large_image" />  <meta name="twitter:site" content="@voutcomeengine" />  <meta name="twitter:title" content="VRE Spec · Technical Reference" />  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    @media (max-width: 768px) {
+      .spec-layout { grid-template-columns: 1fr !important; }
+      .spec-toc    { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.webp" alt="" class="nav-brand-logo" />
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/play"   data-nav="play">Demo</a></li>
+        <li><a href="/build"  data-nav="build">Build</a></li>
+        <li><a href="/verify" data-nav="verify">Verify</a></li>
+        <li><a href="/widget" data-nav="widget">Widget</a></li>
+        <li><a href="/spec"   data-nav="spec">Spec</a></li>
+      </ul>
+      <a href="/build" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow"><span class="dot"></span> Outcome v1.0</span>
+      <h1 class="page-title">Spec: Outcome v1.0</h1>
+      <p>Canonical shapes for every on-chain artifact VRE produces. All numeric types are little-endian. All hashes are SHA-256 hex, lowercase, unprefixed.</p>
+    </div>
+  </header>
+
+  <section style="padding-top: 24px;">
+    <div class="container">
+
+      <div class="grid spec-layout" style="grid-template-columns: 240px 1fr; gap: 32px; align-items: start;">
+
+        <!-- TOC -->
+        <aside class="spec-toc" style="position: sticky; top: 96px;">
+          <div class="result-section-title mb-4">Contents</div>
+          <ol style="list-style: none; font-size: 13.5px; color: var(--text-dim); line-height: 2;">
+            <li><a href="#rules" class="text-dim">1. Rules</a></li>
+            <li><a href="#input" class="text-dim">2. Input Schema</a></li>
+            <li><a href="#determinism" class="text-dim">3. Determinism</a></li>
+            <li><a href="#replay" class="text-dim">4. Replay Process</a></li>
+            <li><a href="#canonical-program" class="text-dim">5. Canonical Program</a></li>
+            <li><a href="#output" class="text-dim">6. Output</a></li>
+            <li><a href="#error-codes" class="text-dim">7. Error Codes</a></li>
+            <li><a href="#metaplex-agent" class="text-dim">8. Metaplex Agent Registry</a></li>
+            <li><a href="#world-id" class="text-dim">9. Sybil-Proof Participants</a></li>
+            <li><a href="#live-raffle" class="text-dim">10. Live Raffle API</a></li>
+            <li><a href="#sdk" class="text-dim">11. SDK</a></li>
+            <li><a href="#partner-api" class="text-dim">12. Partner API</a></li>
+          </ol>
+        </aside>
+
+        <!-- Body -->
+        <div>
+
+          <article id="rules" class="mb-8">
+            <h2 style="margin-bottom: 16px;">1. Rules</h2>
+            <p class="mb-6">A ruleset is a JSON object hashed into a 32-byte artifact. The hash is committed on-chain; the full object lives anywhere public (IPFS, R2, GitHub). Fields:</p>
+            <div class="card" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Field</th><th>Type</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal">version</td><td>string</td><td>Semver. Currently <span class="mono">"1.0"</span>.</td></tr>
+                  <tr><td class="text-teal">runtime_id</td><td>string</td><td>Caller-chosen identifier. Must be unique per program.</td></tr>
+                  <tr><td class="text-teal">ruleset_id</td><td>string</td><td>Canonical hash-derived ID: <span class="mono">rs_&lt;first 8 of sha256&gt;…</span>.</td></tr>
+                  <tr><td class="text-teal">mode</td><td>enum</td><td><span class="mono">raffle | airdrop | prediction | loot</span></td></tr>
+                  <tr><td class="text-teal">participants</td><td>string[]</td><td>Ordered list of addresses or outcome IDs. Case-sensitive.</td></tr>
+                  <tr><td class="text-teal">weights</td><td>number[]</td><td>Same length as participants. Must be ≥ 0.</td></tr>
+                  <tr><td class="text-teal">seed_fn</td><td>enum</td><td><span class="mono">slot_nonce | block_hash | vrf</span></td></tr>
+                  <tr><td class="text-teal">outputs</td><td>number</td><td>Number of winners to select. Default 1.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article id="input" class="mb-8">
+            <h2 style="margin-bottom: 16px;">2. Input Schema</h2>
+            <p class="mb-4">JSON-schema validation applied at <span class="mono">vre commit</span>. Extra fields are preserved in the artifact but ignored by the kernel.</p>
+            <div class="terminal mb-6">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>schema.json</span>
+              </div>
+              <div class="terminal-body">{
+  <span style="color:#a384ff">"$schema"</span>: <span class="ok">"https://json-schema.org/draft/2020-12/schema"</span>,
+  <span style="color:#a384ff">"type"</span>: <span class="ok">"object"</span>,
+  <span style="color:#a384ff">"required"</span>: [<span class="ok">"version"</span>, <span class="ok">"mode"</span>, <span class="ok">"participants"</span>, <span class="ok">"weights"</span>],
+  <span style="color:#a384ff">"properties"</span>: {
+    <span style="color:#a384ff">"version"</span>:      { <span style="color:#a384ff">"const"</span>: <span class="ok">"1.0"</span> },
+    <span style="color:#a384ff">"mode"</span>:         { <span style="color:#a384ff">"enum"</span>: [<span class="ok">"raffle"</span>,<span class="ok">"airdrop"</span>,<span class="ok">"prediction"</span>,<span class="ok">"loot"</span>] },
+    <span style="color:#a384ff">"participants"</span>: { <span style="color:#a384ff">"type"</span>: <span class="ok">"array"</span>, <span style="color:#a384ff">"items"</span>: { <span style="color:#a384ff">"type"</span>: <span class="ok">"string"</span> } },
+    <span style="color:#a384ff">"weights"</span>:      { <span style="color:#a384ff">"type"</span>: <span class="ok">"array"</span>, <span style="color:#a384ff">"items"</span>: { <span style="color:#a384ff">"minimum"</span>: <span style="color:#fbbf24">0</span> } },
+    <span style="color:#a384ff">"seed_fn"</span>:      { <span style="color:#a384ff">"enum"</span>: [<span class="ok">"slot_nonce"</span>,<span class="ok">"block_hash"</span>,<span class="ok">"vrf"</span>] },
+    <span style="color:#a384ff">"outputs"</span>:      { <span style="color:#a384ff">"type"</span>: <span class="ok">"integer"</span>, <span style="color:#a384ff">"minimum"</span>: <span style="color:#fbbf24">1</span> }
+  }
+}</div>
+            </div>
+          </article>
+
+          <article id="determinism" class="mb-8">
+            <h2 style="margin-bottom: 16px;">3. Determinism</h2>
+            <p class="mb-4">The selection function is a pure mapping <span class="mono">f(seed, rules) → outcome</span>. Three guarantees:</p>
+            <ul style="color: var(--text-dim); padding-left: 24px; line-height: 1.8;">
+              <li><strong>Referential transparency:</strong> same inputs always yield the same output, forever.</li>
+              <li><strong>No hidden state:</strong> the kernel reads nothing except what's in the ruleset and the seed.</li>
+              <li><strong>Platform-neutral:</strong> Node, browser, Deno, Rust, Python all produce bit-identical results.</li>
+            </ul>
+            <div class="pre-proof-caption mt-4">
+              The kernel source is <span class="mono">vre-core</span>. Its sha256 is committed on-chain alongside every resolve. A kernel upgrade is a new hash — old outcomes never change.
+            </div>
+          </article>
+
+          <article id="replay" class="mb-8">
+            <h2 style="margin-bottom: 16px;">4. Replay Process</h2>
+            <p class="mb-4">Given a transaction signature, the verifier performs:</p>
+            <ol style="color: var(--text-dim); padding-left: 24px; line-height: 1.8;">
+              <li>Fetch the transaction from any Solana RPC endpoint.</li>
+              <li>Confirm it invokes the VRE program and is a <span class="mono">resolve</span> instruction.</li>
+              <li>Extract <span class="mono">runtime_id</span>, <span class="mono">artifact_hash</span>, <span class="mono">seed</span>, claimed <span class="mono">winner</span>.</li>
+              <li>Fetch the referenced commit transaction; confirm its slot &lt; resolve slot.</li>
+              <li>Re-hash the ruleset and confirm it matches the committed <span class="mono">artifact_hash</span>.</li>
+              <li>Run <span class="mono">f(seed, rules)</span> locally; compare to the claimed winner.</li>
+            </ol>
+            <p class="mt-4">If all six steps pass: <span class="mono text-teal">MATCH / OK</span>. Otherwise, a specific error code — never a silent pass.</p>
+          </article>
+
+          <article id="canonical-program" class="mb-8">
+            <h2 style="margin-bottom: 16px;">5. Canonical Program</h2>
+            <p class="mb-4">
+              VRE operates a canonical Solana program on devnet. Any developer can integrate
+              against this deployed program without deploying a separate instance.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <tbody>
+                  <tr><td class="text-teal">Program ID</td><td><code>3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq</code></td></tr>
+                  <tr><td class="text-teal">Cluster</td><td>Solana devnet (mainnet pending)</td></tr>
+                  <tr><td class="text-teal">Upgrade authority</td><td>Squads multisig <code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code> · <a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 style="margin-bottom: 12px;">ProgramConfig</h3>
+            <p class="mb-4">Global configuration stored in a PDA at seeds <code>["outcome_program_config"]</code>. ProgramConfig admin is separate from the program upgrade authority.</p>
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal">admin</td><td>Pubkey</td><td>Authority allowed to update config. Current devnet value: Swig actor wallet <code>E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</code>.</td></tr>
+                  <tr><td class="text-teal">allow_unreviewed_binding</td><td>bool</td><td>Whether unreviewed artifacts can be bound.</td></tr>
+                  <tr><td class="text-teal">fee_lamports</td><td>u64</td><td>Protocol fee per <code>resolveOutcome</code> call. Current devnet value: <code>0</code>.</td></tr>
+                  <tr><td class="text-teal">treasury</td><td>Pubkey</td><td>Recipient of protocol fees when <code>fee_lamports &gt; 0</code>. Current devnet value: <code>ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 style="margin-bottom: 12px;">Operator Security</h3>
+            <p class="mb-4">
+              VRE separates two security concerns: who can <strong>upgrade the program</strong> and who can <strong>operate it</strong>.
+            </p>
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Layer</th><th>Mechanism</th><th>Address</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="text-teal">Program upgrades</td>
+                    <td><a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads multisig</a> — governance-gated, no single key can push a new version</td>
+                    <td><code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code></td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal">Operator signing</td>
+                    <td><a href="https://build.onswig.com" target="_blank" rel="noopener">Swig smart wallet</a> — delegated key scoped to VRE program with daily SOL spending cap. Master keypair kept offline.</td>
+                    <td>Actor: <code>E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-6" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
+              <div class="result-section-title mb-2" style="color:#a384ff;">Swig — why it matters</div>
+              <p style="font-size:13.5px;color:var(--text-dim);margin:0;line-height:1.8;">
+                The canonical operator runs as a <a href="https://build.onswig.com" target="_blank" rel="noopener" class="text-teal">Swig</a> smart wallet actor. The hot delegate key is scoped to the VRE program only and carries a daily SOL spending cap — a compromised delegate cannot drain the treasury or invoke unrelated programs. The master keypair that controls the Swig wallet is kept offline. This means every live raffle on <a href="/play" class="text-teal">/play</a> is signed by a key that has no broader permissions than running VRE.
+              </p>
+            </div>
+
+            <h3 style="margin-bottom: 12px;">Protocol Fee</h3>
+            <p class="mb-4">
+              Each <code>resolveOutcome</code> call may collect a protocol fee from the calling operator.
+              The transfer happens before resolution; if the operator wallet cannot pay, the transaction fails and no outcome is recorded.
+            </p>
+            <p class="mb-4">
+              Current devnet fee: <strong>0 lamports</strong>. The value is configurable through
+              <code>ProgramConfig.fee_lamports</code> by the program admin without a program upgrade.
+            </p>
+            <p>
+              Verification is always free: <code>/api/replay</code>, SDK verify, and <code>verify.html</code>
+              do not require a wallet. Large platforms can deploy a dedicated instance under a partner agreement.
+              <a href="mailto:hello@verifiableoutcome.online">Contact us →</a>
+            </p>
+          </article>
+
+          <article id="output" class="mb-8">
+            <h2 style="margin-bottom: 16px;">6. Output</h2>
+            <p class="mb-4">Every <span class="mono">vre verify</span> call returns a stable JSON shape. <span class="mono">winner</span> / <span class="mono">replayed_winner</span> carry the single selected address; <span class="mono">outcome_ids</span> carries the ordered list when <span class="mono">outputs &gt; 1</span>.</p>
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>response.json — single winner</span>
+              </div>
+              <div class="terminal-body">{
+  <span style="color:#a384ff">"status"</span>:          <span class="ok">"MATCH"</span>,
+  <span style="color:#a384ff">"code"</span>:            <span class="ok">"OK"</span>,
+  <span style="color:#a384ff">"signature"</span>:       <span class="ok">"5KJp…9vW2"</span>,
+  <span style="color:#a384ff">"cluster"</span>:         <span class="ok">"devnet"</span>,
+  <span style="color:#a384ff">"commit_slot"</span>:     <span style="color:#fbbf24">455663125</span>,
+  <span style="color:#a384ff">"resolve_slot"</span>:    <span style="color:#fbbf24">455693113</span>,
+  <span style="color:#a384ff">"artifact_hash"</span>:   <span class="ok">"0x14f195…b4d8d"</span>,
+  <span style="color:#a384ff">"winner"</span>:          <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"elapsed_ms"</span>:      <span style="color:#fbbf24">248</span>
+}</div>
+            </div>
+            <div class="terminal">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>response.json — multi-winner (outputs: 3)</span>
+              </div>
+              <div class="terminal-body">{
+  <span style="color:#a384ff">"status"</span>:          <span class="ok">"MATCH"</span>,
+  <span style="color:#a384ff">"code"</span>:            <span class="ok">"OK"</span>,
+  <span style="color:#a384ff">"signature"</span>:       <span class="ok">"9XAr…mQ3k"</span>,
+  <span style="color:#a384ff">"winner"</span>:          <span class="ok">"7FHkp…3GnV"</span>,   <span class="comment">// first selected address</span>
+  <span style="color:#a384ff">"outcome_ids"</span>:     [<span class="ok">"7FHkp…3GnV"</span>, <span class="ok">"AkB2…vR9t"</span>, <span class="ok">"9PLm…jJ1w"</span>],
+  <span style="color:#a384ff">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"elapsed_ms"</span>:      <span style="color:#fbbf24">261</span>
+}</div>
+            </div>
+          </article>
+
+          <article id="error-codes" class="mb-8">
+            <h2 style="margin-bottom: 16px;">7. Verification Reason Codes</h2>
+            <p class="mb-4">Every verification returns a specific reason code. <span class="mono text-teal">MATCH</span> always carries <span class="mono text-teal">OK</span>. Any <span class="mono text-red">MISMATCH</span> carries one of the error codes below.</p>
+            <div class="card">
+              <table class="error-table">
+                <thead>
+                  <tr><th>Code</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>OK</code></td><td>All transaction, account, artifact, randomness, outcome, and effects checks passed.</td></tr>
+                  <tr><td><code>ERR_TX_NOT_FOUND_OR_NO_LOGS</code></td><td>Transaction not found on RPC or its logs are unavailable.</td></tr>
+                  <tr><td><code>ERR_PROGRAM_ID_MISMATCH</code></td><td>The expected program ID was not invoked, or the event came from a different program.</td></tr>
+                  <tr><td><code>ERR_EVENT_DISCRIMINATOR_MISMATCH</code></td><td>Program data was present, but it did not match the expected outcome event format.</td></tr>
+                  <tr><td><code>ERR_EVENT_NOT_FOUND_FOR_PROGRAM</code></td><td>No resolution event was found in logs for the requested program ID.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_CHUNK_MISSING</code></td><td>One or more committed artifact chunks are missing, unreadable, or inconsistent.</td></tr>
+                  <tr><td><code>ERR_OUTCOME_CONFIG_NOT_FOUND</code></td><td>The derived outcome config account is missing or cannot be decoded.</td></tr>
+                  <tr><td><code>ERR_RESOLUTION_ACCOUNT_NOT_FOUND</code></td><td>The derived outcome resolution account is missing or cannot be decoded.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_HEADER_NOT_FOUND</code></td><td>The approved artifact header account is missing or cannot be decoded.</td></tr>
+                  <tr><td><code>ERR_CONFIG_HASH_MISMATCH</code></td><td>Config hash does not match the on-chain outcome config account.</td></tr>
+                  <tr><td><code>ERR_RESOLUTION_HASH_MISMATCH</code></td><td>Resolution hash does not match the on-chain resolution account or event identity.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_HASH_MISMATCH</code></td><td>Compiled artifact hash does not match the committed on-chain artifact value.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_NOT_FINALIZED</code></td><td>The approved artifact account exists but was not finalized before verification.</td></tr>
+                  <tr><td><code>ERR_ARTIFACT_STATUS_INVALID</code></td><td>The artifact status does not allow binding under current program config.</td></tr>
+                  <tr><td><code>ERR_RANDOMNESS_MISMATCH</code></td><td>Input randomness does not match the recorded on-chain value.</td></tr>
+                  <tr><td><code>ERR_INPUT_MISMATCH</code></td><td>Input lamports differ between the event, account, and replay input.</td></tr>
+                  <tr><td><code>ERR_OUTPUT_MISMATCH</code></td><td>Replayed output does not match the recorded output value.</td></tr>
+                  <tr><td><code>ERR_OUTCOME_ID_MISMATCH</code></td><td>Replayed outcome id does not match the recorded outcome id.</td></tr>
+                  <tr><td><code>ERR_EFFECTS_DIGEST_MISMATCH</code></td><td>Effects count or effects digest does not match.</td></tr>
+                  <tr><td><code>ERR_REPLAY_UNHANDLED</code></td><td>Internal error or unsupported artifact shape during replay.</td></tr>
+                </tbody>
+              </table>
+              <a
+                class="btn btn-ghost btn-sm"
+                href="https://github.com/mskrad/verifiable-outcome-engine/blob/main/VERIFICATION_ERRORS.md"
+                target="_blank"
+                rel="noopener"
+              >Full reference on GitHub →</a>
+            </div>
+          </article>
+
+          <article id="metaplex-agent" class="mb-8">
+            <h2 style="margin-bottom: 16px;">8. Metaplex Agent Registry</h2>
+            <p class="mb-4">VRE is registered in the <a href="https://developers.metaplex.com/agent-registry" target="_blank" rel="noopener" class="text-teal">Metaplex Agent Registry</a> as a verification service. Other agents and dApps can discover VRE through the registry and call its endpoints to verify outcomes without trusting the operator.</p>
+
+            <div class="card mb-4">
+              <div class="result-section-title mb-3">Agent Identity</div>
+              <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim); width:180px;">Name</td>
+                    <td class="mono">VRE Outcome Verification Agent</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim);">Network</td>
+                    <td class="mono">solana-devnet</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim);">Asset address</td>
+                    <td class="mono" style="word-break:break-all;">C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0; color:var(--text-dim);">Mint tx</td>
+                    <td class="mono" style="word-break:break-all;"><a href="https://explorer.solana.com/tx/429YX7c7p7RhZM3vrypCDXXBvPBsoPfXHyiLDLmjNVWXKHX8VeboDiecmu48vRkX9cGSiVQZUnnV9Rjk1PxUowjj?cluster=devnet" target="_blank" rel="noopener" class="text-teal">429YX7c7…jj ↗</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 0; color:var(--text-dim);">Registration</td>
+                    <td class="mono" style="word-break:break-all;"><a href="https://api.metaplex.com/v1/agents/C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX?network=solana-devnet" target="_blank" rel="noopener" class="text-teal">api.metaplex.com ↗</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-4">
+              <div class="result-section-title mb-3">Exposed services</div>
+              <table style="width:100%; font-size:13px; border-collapse:collapse;">
+                <thead>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <th style="padding:6px 0; text-align:left; color:var(--text-dim); font-weight:500;">Type</th>
+                    <th style="padding:6px 0; text-align:left; color:var(--text-dim); font-weight:500;">Endpoint</th>
+                    <th style="padding:6px 0; text-align:left; color:var(--text-dim); font-weight:500;">Purpose</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;" class="mono">web</td>
+                    <td style="padding:8px 0;" class="mono">/verify</td>
+                    <td style="padding:8px 0; color:var(--text-dim);">Browser-based outcome verifier</td>
+                  </tr>
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 0;" class="mono">replay-api</td>
+                    <td style="padding:8px 0;" class="mono">/api/replay</td>
+                    <td style="padding:8px 0; color:var(--text-dim);">Programmatic verification — call from any agent</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 0;" class="mono">web</td>
+                    <td style="padding:8px 0;" class="mono">/play</td>
+                    <td style="padding:8px 0; color:var(--text-dim);">Live demo with active devnet signatures</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card" style="background: rgba(20,241,149,0.04); border-color: rgba(20,241,149,0.15);">
+              <div class="result-section-title mb-2" style="color:var(--teal);">Agent-to-agent use</div>
+              <p style="font-size:13px; margin-bottom:12px;">Any agent that selects a winner, assigns a task, or picks a DAO proposal can call <span class="mono text-teal">POST /api/replay</span> with the resolve transaction signature. VRE replays the outcome from public RPC and returns <span class="mono text-teal">MATCH / OK</span> — or an error code if the result was tampered with. No oracle, no operator trust required.</p>
+              <div class="terminal" style="font-size:12px;">
+                <div class="terminal-body"><span class="comment"># Any agent verifies a VRE outcome</span>
+<span class="prompt">$</span> curl -s https://verifiableoutcome.online/api/replay \
+    -H "content-type: application/json" \
+    -d '{"signature":"&lt;resolve_tx_sig&gt;","programId":"3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"}'
+<span class="out">→ { "ok": true, "replay": { "verification_result": "MATCH", "verification_reason": "OK", … } }</span></div>
+              </div>
+            </div>
+
+            <div class="card mt-4">
+              <div class="result-section-title mb-3">Partner API access</div>
+              <p class="mb-3">Partner discovery endpoints <span class="mono">GET /api/resolutions</span> and <span class="mono">GET /api/participant</span> are not part of the public SDK surface. They require a partner-issued API key in <span class="mono">x-api-key: vresk_...</span> and are provisioned during partner onboarding.</p>
+              <p style="margin:0;color:var(--text-dim);font-size:13px;">Missing or unknown keys return <span class="mono">401 Unauthorized</span>. If partner config is absent on the host, the endpoints fail closed with <span class="mono">503 Partner API not configured</span>.</p>
+            </div>
+          </article>
+
+          <article id="world-id" class="mb-8">
+            <h2 style="margin-bottom: 16px;">9. Sybil-Proof Participants</h2>
+            <p class="mb-4">
+              VRE can optionally require a World ID 4.0 proof before a live raffle is sent on-chain. This blocks one human from entering the same action repeatedly through many wallets, while keeping the core raffle, replay semantics, and blessed signatures unchanged.
+            </p>
+
+            <div class="card mb-6">
+              <div class="result-section-title mb-3">Flow</div>
+              <ol style="color:var(--text-dim); padding-left:24px; line-height:1.9; font-size:13.5px;">
+                <li>User connects Phantom on <code>/play.html</code> and optionally enables <code>Require World ID</code>.</li>
+                <li>Frontend fetches <code>POST /api/world-id/rp-context</code> and starts a World ID 4.0 request through IDKit with RP signatures.</li>
+                <li>Backend forwards the full IDKit result to <code>POST https://developer.world.org/api/v4/verify/{rp_id}</code>.</li>
+                <li>Verified nullifier is reserved in-memory before <code>/api/live-raffle</code> executes and is rolled back if the raffle fails before completion.</li>
+                <li>If World ID is not configured, the existing live raffle path still works without the optional toggle.</li>
+              </ol>
+            </div>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Env var</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal"><code>WORLD_APP_ID</code></td><td>World app identifier (<code>app_...</code>) returned by the Developer Portal.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_RP_ID</code></td><td>Relying-party identifier (<code>rp_...</code>) used by the v4 verify endpoint.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_RP_SIGNING_KEY</code></td><td>Server-only RP signing key used to mint short-lived RP signatures.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_ACTION_ID</code></td><td>Action scope for the one-human-per-entry flow. Default: <code>vre-raffle-entry</code>.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_ENVIRONMENT</code></td><td><code>staging</code> for simulator/testing or <code>production</code> for real World App traffic.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-4" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
+              <div class="result-section-title mb-2" style="color:var(--teal);">Evidence Artifact</div>
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;line-height:1.8;">
+                Public reviewer evidence for this optional integration lives in <code>artifacts/world_id_evidence.json</code> and records the configured app/RP IDs, action, environment, and a staging nullifier placeholder for the first simulator-backed proof.
+              </p>
+            </div>
+
+            <div class="card" style="background:rgba(171,136,255,0.04);border-color:rgba(171,136,255,0.18);">
+              <div class="result-section-title mb-2" style="color:#a384ff;">Phantom — "Did I Win?"</div>
+              <p style="font-size:13.5px;color:var(--text-dim);margin:0;line-height:1.8;">
+                <a href="https://phantom.app/" target="_blank" rel="noopener" class="text-teal">Phantom</a> is supported on the <a href="/verify" class="text-teal">/verify</a> page for a read-only wallet check. After connecting, the page compares the connected address against <code>outcome_ids</code> in the resolved artifact and shows one of three states: <strong>You won</strong>, <strong>In the draw — not selected</strong>, or <strong>Not in this draw</strong>. No transaction signing is required — Phantom is used for address read only.
+              </p>
+            </div>
+          </article>
+
+
+
+          <article id="live-raffle" class="mb-8">
+            <h2 style="margin-bottom: 16px;">10. Live Raffle API</h2>
+            <p class="mb-4">
+              <span class="mono">POST /api/live-raffle</span> is the single-call path for the play.html demo. The server commits, resolves, and returns a blessed transaction signature — no operator wallet required from the caller.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal">address</td><td>string</td><td>Caller's Solana address. Entered in the draw pool.</td></tr>
+                  <tr><td class="text-teal">requireWorldId</td><td>bool?</td><td>If <code>true</code>, a valid World ID v4 proof is required (see §9). Default: <code>false</code>.</td></tr>
+                  <tr><td class="text-teal">worldId</td><td>object?</td><td>Full IDKit proof payload. Required when <code>requireWorldId</code> is <code>true</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>request / response</span>
+              </div>
+              <div class="terminal-body"><span class="comment"># Enter the live draw pool</span>
+<span class="prompt">$</span> curl -s https://verifiableoutcome.online/api/live-raffle \
+    -H "content-type: application/json" \
+    -d '{"address":"&lt;your-wallet&gt;"}'
+<span class="out">→ {
+    "ok": true,
+    "sig": "5KJp…9vW2",
+    "outcome": "&lt;winner-address&gt;",
+    "outcome_id": "&lt;winner-address&gt;",
+    "outcome_ids": ["&lt;w1&gt;", "&lt;w2&gt;", …]
+  }</span></div>
+            </div>
+
+            <div class="card" style="background:rgba(251,191,36,0.04);border-color:rgba(251,191,36,0.18);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Rate limited: one call per IP per 60 seconds. The returned <code>sig</code> is immediately replayable on <a href="/verify" class="text-teal">/verify</a> or via <code>POST /api/replay</code>.</p>
+            </div>
+          </article>
+
+          <article id="sdk" class="mb-8">
+            <h2 style="margin-bottom: 16px;">11. SDK</h2>
+            <p class="mb-4">
+              <span class="mono">verifiable-outcome-sdk</span> is the canonical TypeScript library for building and verifying outcomes. It targets Node ≥ 18 and any modern bundler.
+            </p>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>install</span>
+              </div>
+              <div class="terminal-body"><span class="prompt">$</span> npm install verifiable-outcome-sdk   <span class="comment"># v0.3.0</span></div>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>build + verify</span>
+              </div>
+              <div class="terminal-body"><span style="color:#a384ff">import</span> { buildArtifact, verifyOutcome } <span style="color:#a384ff">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
+
+<span class="comment">// Compile a ruleset into an artifact hash</span>
+<span style="color:#a384ff">const</span> artifact = <span style="color:#a384ff">await</span> buildArtifact({
+  version: <span class="ok">"1.0"</span>,
+  mode:    <span class="ok">"raffle"</span>,
+  participants: [<span class="ok">"Alice"</span>, <span class="ok">"Bob"</span>, <span class="ok">"Carol"</span>],
+  weights:      [<span style="color:#fbbf24">1</span>, <span style="color:#fbbf24">1</span>, <span style="color:#fbbf24">1</span>],
+});
+<span class="comment">// → { artifact_hash: "0x…", … }</span>
+
+<span class="comment">// Verify a resolved transaction</span>
+<span style="color:#a384ff">const</span> result = <span style="color:#a384ff">await</span> verifyOutcome({
+  signature: <span class="ok">"5KJp…9vW2"</span>,
+  programId: <span class="ok">"3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"</span>,
+});
+<span class="comment">// → { status: "MATCH", code: "OK", winner: "…", … }</span></div>
+            </div>
+
+            <div class="card" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Both functions are pure — no on-chain writes. <code>buildArtifact</code> runs the same deterministic kernel used by the Solana program. <code>verifyOutcome</code> fetches the transaction from any public RPC and replays it locally. See <a href="/build" class="text-teal">build.html</a> for the full operator integration guide.</p>
+            </div>
+          </article>
+
+          <article id="partner-api" class="mb-8">
+            <h2 style="margin-bottom: 16px;">12. Partner API</h2>
+            <p class="mb-4">
+              Two discovery endpoints are gated behind a partner-issued API key. They allow external platforms to query resolution history and check participant outcomes without running their own indexer.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Endpoint</th><th>Method</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="text-teal"><code>GET /api/resolutions</code></td>
+                    <td>GET</td>
+                    <td>Returns the N most recent resolved outcomes on the canonical program. Includes <code>signature</code>, <code>outcome_id</code>, <code>outcome_ids</code>, <code>participants_count</code>, <code>artifact_hash</code>, <code>commit_slot</code>, <code>resolve_slot</code>.</td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal"><code>GET /api/participant</code></td>
+                    <td>GET</td>
+                    <td>Returns all resolutions where <code>?address=&lt;wallet&gt;</code> appears in <code>outcome_ids</code>. Useful for wallet-level "did I ever win?" lookups.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>authentication</span>
+              </div>
+              <div class="terminal-body"><span class="comment"># All partner endpoints require x-api-key header</span>
+<span class="prompt">$</span> curl https://verifiableoutcome.online/api/resolutions \
+    -H <span class="ok">"x-api-key: vresk_&lt;32-hex-chars&gt;"</span>
+
+<span class="comment"># Without a key: 401 Unauthorized</span>
+<span class="comment"># Config absent on host: 503 Partner API not configured</span></div>
+            </div>
+
+            <div class="card mb-4" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Key format</th><th>Storage</th><th>Provisioning</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>vresk_</code> prefix + 32 hex chars</td>
+                    <td>Server-side <code>config/partners.json</code> (not committed). Never sent to the client.</td>
+                    <td>Issued during partner onboarding. <a href="mailto:hello@verifiableoutcome.online" class="text-teal">Contact us →</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Partner API endpoints are distinct from the public SDK surface (<code>/api/replay</code>, <code>/api/live-raffle</code>). The public endpoints are rate-limited but require no key. Partner endpoints carry higher rate limits and return richer indexer data suitable for dashboards and integrations.</p>
+            </div>
+          </article>
+
+          <div class="mt-8 flex gap-3" style="flex-wrap: wrap;">
+            <a class="btn btn-primary" href="/verify">Try the verifier →</a>
+            <a class="btn btn-secondary" href="/build">Read the SDK docs →</a>
+            <a class="btn btn-ghost" href="https://github.com" target="_blank" rel="noopener">Spec on GitHub ↗</a>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.webp" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="/play">Demo</a></li>
+          <li><a href="/build">Build</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+          <li><a href="mailto:hello@verifiableoutcome.online">Email</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script>
+    // Scroll-spy: update URL hash as sections enter the viewport
+    (function () {
+      const sections = document.querySelectorAll('article[id]');
+      if (!sections.length || !window.IntersectionObserver) return;
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              history.replaceState(null, '', '#' + e.target.id);
+            }
+          });
+        },
+        { rootMargin: '0px 0px -70% 0px', threshold: 0 }
+      );
+      sections.forEach((s) => io.observe(s));
+    })();
+  </script>
+</body>
+</html>

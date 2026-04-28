@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VRE · Trustless Outcome Infrastructure for Solana</title>
+  <meta name="description" content="We help Solana apps replace backend-trust reward logic with replay-verifiable on-chain outcomes." />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://verifiableoutcome.online/" />
+  <meta property="og:title" content="VRE · Trustless Outcome Infrastructure for Solana" />
+  <meta property="og:description" content="Replace backend-trust reward logic with replay-verifiable on-chain outcomes. One npm package. Drop-in for any Solana dApp." />
+  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="VRE — Verifiable On-Chain Outcomes for Solana" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@voutcomeengine" />
+  <meta name="twitter:title" content="VRE · Trustless Outcome Infrastructure for Solana" />
+  <meta name="twitter:description" content="Replace backend-trust reward logic with replay-verifiable on-chain outcomes. One npm package. Drop-in for any Solana dApp." />
+  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
+</head>
+<body>
+
+  <!-- ============================================================
+       Nav
+       ============================================================ -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="VRE home">
+        <img src="/assets/logo.webp" alt="" class="nav-brand-logo" />
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/play"   data-nav="play">Demo</a></li>
+        <li><a href="/build"  data-nav="build">Build</a></li>
+        <li><a href="/verify" data-nav="verify">Verify</a></li>
+        <li><a href="/widget" data-nav="widget">Widget</a></li>
+        <li><a href="/spec"   data-nav="spec">Spec</a></li>
+      </ul>
+      <a href="/build" class="nav-cta">Launch App →</a>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       Hero
+       ============================================================ -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-inner">
+        <div>
+          <span class="eyebrow">
+            <span class="dot"></span>
+            Developer Infrastructure · Solana
+          </span>
+
+          <h1 class="hero-title">
+            Trustless outcome infrastructure for Solana apps.
+          </h1>
+
+          <p class="hero-lead">
+            Any reward, raffle, or loot result resolved on-chain — independently
+            verifiable from a transaction signature. No backend trust required.
+          </p>
+
+          <div class="hero-cta">
+            <a href="/play" class="btn btn-primary btn-lg">▶ Try Demo</a>
+            <a href="/verify" class="btn btn-secondary btn-lg">Verify a Signature</a>
+            <a href="/build" class="btn btn-ghost btn-lg">Build with VRE →</a>
+          </div>
+
+          <div class="hero-meta">
+            <div class="hero-meta-item">
+              <strong>≤ 300ms</strong>
+              typical replay
+            </div>
+            <div class="hero-meta-item">
+              <strong>0 oracles</strong>
+              public RPC is the source
+            </div>
+            <div class="hero-meta-item">
+              <strong>Open verification SDK</strong>
+              audit the engine yourself
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="mascot-wrap">
+            <div class="mascot-glow"></div>
+            <div class="mascot-orbit-ring"></div>
+            <img src="/assets/keeper.webp" alt="VRE Match Keeper — trustless outcome verification on Solana" class="keeper-img" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Integrations strip
+       ============================================================ -->
+  <section style="padding: 28px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-surface);">
+    <div class="container">
+      <div style="display:flex; align-items:center; gap:12px 32px; flex-wrap:wrap; justify-content:center;">
+        <span style="font-size:11px; letter-spacing:0.08em; color:var(--text-faint); text-transform:uppercase; white-space:nowrap; flex-shrink:0;">Integrates with</span>
+
+        <!-- Metaplex -->
+        <a href="https://developers.metaplex.com/agent-registry" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#ff6b35"/>
+            <path d="M7 24 L16 8 L25 24 M11 19 L21 19" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Metaplex</span>
+        </a>
+
+        <span style="color:var(--border);font-size:16px;">·</span>
+
+        <!-- Squads -->
+        <a href="https://squads.xyz/multisig" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#5b50e8"/>
+            <rect x="7" y="7" width="7" height="7" rx="1.5" fill="#fff"/>
+            <rect x="18" y="7" width="7" height="7" rx="1.5" fill="#fff"/>
+            <rect x="7" y="18" width="7" height="7" rx="1.5" fill="#fff"/>
+            <rect x="18" y="18" width="7" height="7" rx="1.5" fill="rgba(255,255,255,0.4)"/>
+          </svg>
+          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Squads</span>
+        </a>
+
+        <span style="color:var(--border);font-size:16px;">·</span>
+
+        <!-- Swig -->
+        <a href="https://build.onswig.com" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="6" fill="#14f195"/>
+            <path d="M9 20 C9 20 11 12 16 12 C21 12 23 20 23 20" stroke="#0a1a12" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <circle cx="16" cy="21" r="2" fill="#0a1a12"/>
+          </svg>
+          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Swig</span>
+        </a>
+
+        <span style="color:var(--border);font-size:16px;">·</span>
+
+        <!-- World ID -->
+        <a href="https://worldcoin.org/world-id" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="9" fill="#fff"/>
+            <circle cx="16" cy="16" r="7" stroke="#111" stroke-width="2"/>
+            <line x1="16" y1="9" x2="16" y2="23" stroke="#111" stroke-width="1.5"/>
+            <ellipse cx="16" cy="16" rx="3.5" ry="7" stroke="#111" stroke-width="1.5" fill="none"/>
+          </svg>
+          <span style="font-size:13.5px;font-weight:500;color:var(--text);">World ID</span>
+        </a>
+
+        <span style="color:var(--border);font-size:16px;">·</span>
+
+        <!-- Phantom -->
+        <a href="https://phantom.app" target="_blank" rel="noopener"
+           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
+          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="9" fill="#ab9ff2"/>
+            <path d="M8 18 C8 13 11 9 16 9 C21 9 25 12 25 16 C25 20 22 23 18 23 L15 23 C12 23 9 22 8 18Z" fill="#fff"/>
+            <circle cx="13" cy="16" r="1.5" fill="#ab9ff2"/>
+            <circle cx="19" cy="16" r="1.5" fill="#ab9ff2"/>
+          </svg>
+          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Phantom</span>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Features
+       ============================================================ -->
+  <section id="features">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Why VRE</span>
+        <h2>Four invariants. One npm package.</h2>
+        <p>VRE is infrastructure for outcomes that cannot be retroactively tampered with. Every guarantee holds without trust in the operator.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="16" height="10" rx="2"/>
+              <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+              <circle cx="12" cy="16" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <h3>Rules locked before the draw</h3>
+          <p>Participant list, weights, and selection function are committed on-chain <em>before</em> resolution. No retroactive edits.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+          </div>
+          <h3>Independently replayable</h3>
+          <p>Any observer replays the outcome from public RPC data. Deterministic. Reproducible. No privileged access.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <path d="M7 4.5 17 19.5"/>
+            </svg>
+          </div>
+          <h3>One npm package</h3>
+          <p>Install the SDK, define a config, run <span class="mono">vre resolve</span>. Node, browser, Deno — same deterministic kernel.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94L8.54 18.46a2.12 2.12 0 0 1-3-3l6.99-6.99a6 6 0 0 1 7.94-7.94L16.7 4.3a1 1 0 0 0-2 0z"/>
+            </svg>
+          </div>
+          <h3>Drop-in for any dApp</h3>
+          <p>Rewards selection, loot tables, DAO proposals, and agent routing. Use-case-neutral primitives, not a closed box.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Use cases
+       ============================================================ -->
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Use cases</span>
+        <h2>Same engine. Four surfaces.</h2>
+        <p>Every card uses the same deterministic kernel. The use-case label is descriptive, not architectural — VRE does not care what your draw is for.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🎟</div>
+          <h3>Rewards Selection</h3>
+          <p>Raffles and airdrops share one primitive: pick one or N recipients from a committed weighted address list.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎁</div>
+          <h3>Loot</h3>
+          <p>Roll a weighted outcome table — legendary, rare, common, or any custom result labels.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🗳️</div>
+          <h3>DAO Proposal</h3>
+          <p>Choose from approved proposals with weights set before resolution, so the draw cannot be adjusted afterwards.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🤖</div>
+          <h3>Agent Selection</h3>
+          <p>Route work by reputation-weighted selection, with the marketplace unable to secretly favor an agent after commit.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Flow — "how verification works" diagram band
+       ============================================================ -->
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Flow</span>
+        <h2>Commit, resolve, replay.</h2>
+        <p>Three on-chain events. Three slots. Zero trust in the operator.</p>
+      </div>
+
+      <div class="terminal">
+        <div class="terminal-head">
+          <div class="terminal-dots">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <span>vre --cluster devnet</span>
+        </div>
+        <div class="terminal-body"><span class="comment"># 1. Lock the ruleset on-chain — participants, weights, seed function</span>
+<span class="prompt">$</span> vre commit --config raffle.json
+  <span class="out">→ runtime_id: rt_8a1f…c4d2</span>
+  <span class="out">→ ruleset_id: rs_2e7b…9f01</span>
+  <span class="out">→ artifact_hash: 0x14f195…b4d8d</span>
+  <span class="out">→ committed at slot 455663125</span>
+
+<span class="comment"># 2. When it's time, resolve — the program picks deterministically</span>
+<span class="prompt">$</span> vre resolve --runtime-id rt_8a1f…c4d2
+  <span class="out">→ outcome_id: out_9c3d…a1e7</span>
+  <span class="out">→ winner: 7FHkp…3GnV</span>
+  <span class="out">→ drawn at slot 455693113 <span class="comment">(+29,988 slots after commit)</span></span>
+
+<span class="comment"># 3. Anyone — not you — verifies. Public RPC is the source of truth.</span>
+<span class="prompt">$</span> vre verify --sig 5KJp…9vW2
+  <span class="ok">✓ MATCH / OK</span>
+  <span class="out">  rules committed before draw</span>
+  <span class="out">  replay of public data reproduces the same winner</span></div>
+      </div>
+
+      <p class="text-faint mt-6" style="max-width:640px;font-size:13px;">
+        Every signature is reproducible from an RPC endpoint and the artifact hash.
+        No sealed oracles, no off-chain state, no trust assumptions about the operator.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CTA band
+       ============================================================ -->
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="card" style="padding: 48px; text-align: center; background: linear-gradient(180deg, var(--bg-surface), var(--bg-surface-2)); border: 1px solid var(--border-strong); border-radius: var(--radius-lg);">
+        <h2 style="margin-bottom: 12px;">Commit rules, then verify.</h2>
+        <p style="max-width: 560px; margin: 0 auto 28px; font-size: 15px;">
+          Any outcome. Independently verifiable. Start with a devnet signature, graduate to mainnet when you're ready.
+        </p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+          <a href="/play" class="btn btn-primary">▶ Try the demo</a>
+          <a href="/build" class="btn btn-secondary">Read the SDK docs →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Footer
+       ============================================================ -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <img src="/assets/logo.webp" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="/play">Demo</a></li>
+          <li><a href="/build">Build</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+          <li><a href="mailto:hello@verifiableoutcome.online">Email</a></li>
+          <li><a href="https://github.com" target="_blank" rel="noopener">GitHub ↗</a></li>
+        </ul>
+        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
