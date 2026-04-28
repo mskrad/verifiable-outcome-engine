@@ -70,6 +70,8 @@
             <li><a href="#error-codes" class="text-dim">7. Error Codes</a></li>
             <li><a href="#metaplex-agent" class="text-dim">8. Metaplex Agent Registry</a></li>
             <li><a href="#world-id" class="text-dim">9. Sybil-Proof Participants</a></li>
+            <li><a href="#live-raffle" class="text-dim">10. Live Raffle API</a></li>
+            <li><a href="#sdk" class="text-dim">11. SDK</a></li>
           </ol>
         </aside>
 
@@ -224,23 +226,38 @@
 
           <article id="output" class="mb-8">
             <h2 style="margin-bottom: 16px;">6. Output</h2>
-            <p class="mb-4">Every <span class="mono">vre verify</span> call returns a stable JSON shape:</p>
+            <p class="mb-4">Every <span class="mono">vre verify</span> call returns a stable JSON shape. <span class="mono">winner</span> / <span class="mono">replayed_winner</span> carry the single selected address; <span class="mono">outcome_ids</span> carries the ordered list when <span class="mono">outputs &gt; 1</span>.</p>
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>response.json — single winner</span>
+              </div>
+              <div class="terminal-body">{
+  <span style="color:#a384ff">"status"</span>:          <span class="ok">"MATCH"</span>,
+  <span style="color:#a384ff">"code"</span>:            <span class="ok">"OK"</span>,
+  <span style="color:#a384ff">"signature"</span>:       <span class="ok">"5KJp…9vW2"</span>,
+  <span style="color:#a384ff">"cluster"</span>:         <span class="ok">"devnet"</span>,
+  <span style="color:#a384ff">"commit_slot"</span>:     <span style="color:#fbbf24">455663125</span>,
+  <span style="color:#a384ff">"resolve_slot"</span>:    <span style="color:#fbbf24">455693113</span>,
+  <span style="color:#a384ff">"artifact_hash"</span>:   <span class="ok">"0x14f195…b4d8d"</span>,
+  <span style="color:#a384ff">"winner"</span>:          <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"elapsed_ms"</span>:      <span style="color:#fbbf24">248</span>
+}</div>
+            </div>
             <div class="terminal">
               <div class="terminal-head">
                 <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>response.json</span>
+                <span>response.json — multi-winner (outputs: 3)</span>
               </div>
               <div class="terminal-body">{
-  <span style="color:#a384ff">"status"</span>:         <span class="ok">"MATCH"</span>,
-  <span style="color:#a384ff">"code"</span>:           <span class="ok">"OK"</span>,
-  <span style="color:#a384ff">"signature"</span>:      <span class="ok">"5KJp…9vW2"</span>,
-  <span style="color:#a384ff">"cluster"</span>:        <span class="ok">"devnet"</span>,
-  <span style="color:#a384ff">"commit_slot"</span>:    <span style="color:#fbbf24">455663125</span>,
-  <span style="color:#a384ff">"resolve_slot"</span>:   <span style="color:#fbbf24">455693113</span>,
-  <span style="color:#a384ff">"artifact_hash"</span>:  <span class="ok">"0x14f195…b4d8d"</span>,
-  <span style="color:#a384ff">"winner"</span>:         <span class="ok">"7FHkp…3GnV"</span>,
+  <span style="color:#a384ff">"status"</span>:          <span class="ok">"MATCH"</span>,
+  <span style="color:#a384ff">"code"</span>:            <span class="ok">"OK"</span>,
+  <span style="color:#a384ff">"signature"</span>:       <span class="ok">"9XAr…mQ3k"</span>,
+  <span style="color:#a384ff">"winner"</span>:          <span class="ok">"7FHkp…3GnV"</span>,   <span class="comment">// first selected address</span>
+  <span style="color:#a384ff">"outcome_ids"</span>:     [<span class="ok">"7FHkp…3GnV"</span>, <span class="ok">"AkB2…vR9t"</span>, <span class="ok">"9PLm…jJ1w"</span>],
   <span style="color:#a384ff">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
-  <span style="color:#a384ff">"elapsed_ms"</span>:     <span style="color:#fbbf24">248</span>
+  <span style="color:#a384ff">"elapsed_ms"</span>:      <span style="color:#fbbf24">261</span>
 }</div>
             </div>
           </article>
@@ -407,6 +424,91 @@
           </article>
 
 
+
+          <article id="live-raffle" class="mb-8">
+            <h2 style="margin-bottom: 16px;">10. Live Raffle API</h2>
+            <p class="mb-4">
+              <span class="mono">POST /api/live-raffle</span> is the single-call path for the play.html demo. The server commits, resolves, and returns a blessed transaction signature — no operator wallet required from the caller.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal">address</td><td>string</td><td>Caller's Solana address. Entered in the draw pool.</td></tr>
+                  <tr><td class="text-teal">requireWorldId</td><td>bool?</td><td>If <code>true</code>, a valid World ID v4 proof is required (see §9). Default: <code>false</code>.</td></tr>
+                  <tr><td class="text-teal">worldId</td><td>object?</td><td>Full IDKit proof payload. Required when <code>requireWorldId</code> is <code>true</code>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>request / response</span>
+              </div>
+              <div class="terminal-body"><span class="comment"># Enter the live draw pool</span>
+<span class="prompt">$</span> curl -s https://verifiableoutcome.online/api/live-raffle \
+    -H "content-type: application/json" \
+    -d '{"address":"&lt;your-wallet&gt;"}'
+<span class="out">→ {
+    "ok": true,
+    "sig": "5KJp…9vW2",
+    "outcome": "&lt;winner-address&gt;",
+    "outcome_id": "&lt;winner-address&gt;",
+    "outcome_ids": ["&lt;w1&gt;", "&lt;w2&gt;", …]
+  }</span></div>
+            </div>
+
+            <div class="card" style="background:rgba(251,191,36,0.04);border-color:rgba(251,191,36,0.18);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Rate limited: one call per IP per 60 seconds. The returned <code>sig</code> is immediately replayable on <a href="/verify" class="text-teal">/verify</a> or via <code>POST /api/replay</code>.</p>
+            </div>
+          </article>
+
+          <article id="sdk" class="mb-8">
+            <h2 style="margin-bottom: 16px;">11. SDK</h2>
+            <p class="mb-4">
+              <span class="mono">verifiable-outcome-sdk</span> is the canonical TypeScript library for building and verifying outcomes. It targets Node ≥ 18 and any modern bundler.
+            </p>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>install</span>
+              </div>
+              <div class="terminal-body"><span class="prompt">$</span> npm install verifiable-outcome-sdk   <span class="comment"># v0.3.0</span></div>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>build + verify</span>
+              </div>
+              <div class="terminal-body"><span style="color:#a384ff">import</span> { buildArtifact, verifyOutcome } <span style="color:#a384ff">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
+
+<span class="comment">// Compile a ruleset into an artifact hash</span>
+<span style="color:#a384ff">const</span> artifact = <span style="color:#a384ff">await</span> buildArtifact({
+  version: <span class="ok">"1.0"</span>,
+  mode:    <span class="ok">"raffle"</span>,
+  participants: [<span class="ok">"Alice"</span>, <span class="ok">"Bob"</span>, <span class="ok">"Carol"</span>],
+  weights:      [<span style="color:#fbbf24">1</span>, <span style="color:#fbbf24">1</span>, <span style="color:#fbbf24">1</span>],
+});
+<span class="comment">// → { artifact_hash: "0x…", … }</span>
+
+<span class="comment">// Verify a resolved transaction</span>
+<span style="color:#a384ff">const</span> result = <span style="color:#a384ff">await</span> verifyOutcome({
+  signature: <span class="ok">"5KJp…9vW2"</span>,
+  programId: <span class="ok">"3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"</span>,
+});
+<span class="comment">// → { status: "MATCH", code: "OK", winner: "…", … }</span></div>
+            </div>
+
+            <div class="card" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Both functions are pure — no on-chain writes. <code>buildArtifact</code> runs the same deterministic kernel used by the Solana program. <code>verifyOutcome</code> fetches the transaction from any public RPC and replays it locally. See <a href="/build" class="text-teal">build.html</a> for the full operator integration guide.</p>
+            </div>
+          </article>
 
           <div class="mt-8 flex gap-3" style="flex-wrap: wrap;">
             <a class="btn btn-primary" href="/verify">Try the verifier →</a>
