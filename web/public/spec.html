@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" style="scroll-behavior:smooth;">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -209,6 +209,13 @@
               </table>
             </div>
 
+            <div class="card mb-6" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
+              <div class="result-section-title mb-2" style="color:#a384ff;">Swig — why it matters</div>
+              <p style="font-size:13.5px;color:var(--text-dim);margin:0;line-height:1.8;">
+                The canonical operator runs as a <a href="https://build.onswig.com" target="_blank" rel="noopener" class="text-teal">Swig</a> smart wallet actor. The hot delegate key is scoped to the VRE program only and carries a daily SOL spending cap — a compromised delegate cannot drain the treasury or invoke unrelated programs. The master keypair that controls the Swig wallet is kept offline. This means every live raffle on <a href="/play" class="text-teal">/play</a> is signed by a key that has no broader permissions than running VRE.
+              </p>
+            </div>
+
             <h3 style="margin-bottom: 12px;">Protocol Fee</h3>
             <p class="mb-4">
               Each <code>resolveOutcome</code> call may collect a protocol fee from the calling operator.
@@ -416,10 +423,17 @@
               </table>
             </div>
 
-            <div class="card" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
+            <div class="card mb-4" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
               <div class="result-section-title mb-2" style="color:var(--teal);">Evidence Artifact</div>
               <p style="margin:0;color:var(--text-dim);font-size:13.5px;line-height:1.8;">
                 Public reviewer evidence for this optional integration lives in <code>artifacts/world_id_evidence.json</code> and records the configured app/RP IDs, action, environment, and a staging nullifier placeholder for the first simulator-backed proof.
+              </p>
+            </div>
+
+            <div class="card" style="background:rgba(171,136,255,0.04);border-color:rgba(171,136,255,0.18);">
+              <div class="result-section-title mb-2" style="color:#a384ff;">Phantom — "Did I Win?"</div>
+              <p style="font-size:13.5px;color:var(--text-dim);margin:0;line-height:1.8;">
+                <a href="https://phantom.app/" target="_blank" rel="noopener" class="text-teal">Phantom</a> is supported on the <a href="/verify" class="text-teal">/verify</a> page for a read-only wallet check. After connecting, the page compares the connected address against <code>outcome_ids</code> in the resolved artifact and shows one of three states: <strong>You won</strong>, <strong>In the draw — not selected</strong>, or <strong>Not in this draw</strong>. No transaction signing is required — Phantom is used for address read only.
               </p>
             </div>
           </article>
@@ -603,5 +617,23 @@
   </footer>
 
   <script src="/js/main.js"></script>
+  <script>
+    // Scroll-spy: update URL hash as sections enter the viewport
+    (function () {
+      const sections = document.querySelectorAll('article[id]');
+      if (!sections.length || !window.IntersectionObserver) return;
+      const io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              history.replaceState(null, '', '#' + e.target.id);
+            }
+          });
+        },
+        { rootMargin: '0px 0px -70% 0px', threshold: 0 }
+      );
+      sections.forEach((s) => io.observe(s));
+    })();
+  </script>
 </body>
 </html>
