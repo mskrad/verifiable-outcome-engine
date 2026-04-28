@@ -234,3 +234,57 @@ LIVE_RAFFLE_WALLET=~/.config/solana/esjx.json
 Evidence is written to `artifacts/swig_operator_evidence.json` after setup and updated after a successful live raffle replay.
 
 The active policy uses `programLimit` for the VRE program and `solRecurringLimit` for the daily SOL cap. Swig `programScopeRecurringLimit` is target-account scoped in SDK `1.9.1`, so it is not used for the live raffle flow that creates and writes multiple VRE accounts.
+
+## 9) Vanish private payout (optional)
+
+After a VRE draw, the operator can route the winner payout through [Vanish](https://core.vanish.trade) to break the on-chain link between the operator treasury and the winner wallet. The VRE selection remains fully public and verifiable; only the payment path is private.
+
+**Required env var:**
+
+```bash
+VANISH_API_KEY=<your-vanish-api-key>
+```
+
+Obtain your API key from the [Vanish hackathon dashboard](https://core.vanish.trade) or by emailing Vanish.
+
+**Optional:**
+
+```bash
+VANISH_PAYOUT_LAMPORTS=100000   # lamports to route per payout; default 100000 (0.0001 SOL)
+```
+
+When `VANISH_API_KEY` is set, each successful `/api/live-raffle` response will include:
+
+```json
+{
+  "vanish_deposit_tx": "<operator→Vanish pool tx>",
+  "vanish_tx": "<Vanish→winner tx>"
+}
+```
+
+If Vanish is unavailable or the payout fails, the raffle result is still returned — Vanish is non-fatal.
+
+**Standalone payout script:**
+
+```bash
+# Real payout (requires VANISH_API_KEY or --api-key):
+VANISH_API_KEY=<key> \
+ANCHOR_WALLET=~/.config/solana/esjx.json \
+ts-node scripts/vanish_payout.ts \
+  --winner <winner_address> \
+  --amount 100000 \
+  --sig <vre_resolve_sig>
+
+# Mock mode (no API key, no funds moved — writes evidence with "mock": true):
+VANISH_MOCK=true \
+ts-node scripts/vanish_payout.ts \
+  --winner <winner_address> \
+  --amount 100000 \
+  --sig <vre_resolve_sig>
+```
+
+Evidence is written to `artifacts/vanish_integration_evidence.json` with:
+- `vre_resolve_sig` — VRE resolve transaction (public, verifiable)
+- `vanish_deposit_tx` — operator → Vanish pool transfer
+- `vanish_withdraw_tx` — Vanish → winner transfer
+- `mock: true` if run in mock mode

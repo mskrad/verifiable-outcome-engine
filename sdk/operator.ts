@@ -16,6 +16,7 @@ import {
 import { buildArtifact } from "./artifact.js";
 import { OUTCOME_IDL } from "./idl.js";
 import { verifyOutcome } from "./verify.js";
+import { vanishPayoutRoute } from "./vanish.js";
 import {
   CHUNK_SIZE,
   DEFAULT_PROGRAM_ID,
@@ -102,6 +103,12 @@ export type ResolveOperatorResult = {
   result_path: string;
 };
 
+export type VanishPayoutOptions = {
+  apiKey: string;
+  amountLamports: bigint;
+  winnerAddress?: string;
+};
+
 export type ResolveInlineOptions = {
   walletPath?: string;
   rpcUrl?: string;
@@ -109,6 +116,7 @@ export type ResolveInlineOptions = {
   outputDir?: string;
   label?: string;
   swigWallet?: ResolveInlineSwigWallet;
+  vanishPayout?: VanishPayoutOptions;
 };
 
 export type ResolveInlineSwigWallet = {
@@ -130,6 +138,8 @@ export type ResolveInlineResult = {
   programId: string;
   artifactPath: string;
   resultPath: string;
+  vanishDepositTx?: string;
+  vanishWithdrawTx?: string;
 };
 
 function expandHome(inputPath: string): string {
@@ -917,7 +927,7 @@ export async function resolveInline(
     throw new Error(`live raffle replay failed after resolve: ${verified.reason}`);
   }
 
-  return {
+  const result: ResolveInlineResult = {
     signature: base.signature,
     outcome: verified.outcome_id,
     outcomeIds: verified.outcome_ids,
@@ -930,4 +940,29 @@ export async function resolveInline(
     artifactPath: base.artifact_path,
     resultPath: base.result_path,
   };
+
+  if (opts.vanishPayout) {
+    const vp = opts.vanishPayout;
+    const winnerAddress = vp.winnerAddress ?? verified.outcome_id;
+    const client = await loadOutcomeClient({
+      rpcUrl,
+      walletPath: opts.walletPath,
+      programId: opts.programId,
+      swigWallet: opts.swigWallet,
+    });
+    if (client.authority.kind !== "keypair") {
+      throw new Error("Vanish payout requires a raw keypair operator (walletPath)");
+    }
+    const payout = await vanishPayoutRoute({
+      apiKey: vp.apiKey,
+      amountLamports: vp.amountLamports,
+      winnerAddress,
+      operatorKeypair: client.authority.keypair,
+      rpcUrl,
+    });
+    result.vanishDepositTx = payout.depositTx;
+    result.vanishWithdrawTx = payout.withdrawTx;
+  }
+
+  return result;
 }

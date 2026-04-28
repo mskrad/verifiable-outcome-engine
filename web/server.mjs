@@ -22,7 +22,13 @@ const DEFAULT_SUMMARY_PATH = path.join(
   "artifacts",
   "public_evidence_summary.json"
 );
-const CORS_API_PATHS = new Set(["/api/replay", "/api/health", "/api/live-raffle"]);
+const CORS_API_PATHS = new Set([
+  "/api/replay",
+  "/api/health",
+  "/api/live-raffle",
+  "/api/resolutions",
+  "/api/participant",
+]);
 const JSON_BODY_LIMIT_BYTES = Number(process.env.JSON_BODY_LIMIT_BYTES || 16_384);
 const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
 const API_RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000);
@@ -46,9 +52,14 @@ const LIVE_RAFFLE_PRESETS = [
 
 const liveRaffleRateLimit = new Map();
 const apiRateLimit = new Map();
+const resolutionsCache = new Map();
+const RESOLUTIONS_CACHE_TTL_MS = 60_000;
+const RESOLUTIONS_VERIFY_TIMEOUT_MS = 5_000;
 let tsSdkRegistered = false;
 let resolveInlinePromise;
+let verifyOutcomePromise;
 let swigOperatorConfig;
+let vanishConfig;
 
 function loadEnvFile() {
   const envPath = path.join(REF_ROOT, ".env");
@@ -345,6 +356,157 @@ async function loadResolveInline() {
   return resolveInlinePromise;
 }
 
+async function loadVerifyOutcome() {
+  ensureTsSdkRuntime();
+  if (!verifyOutcomePromise) {
+    verifyOutcomePromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "verify.ts")).href
+    ).then((module) => {
+      if (typeof module.verifyOutcome !== "function") {
+        throw new Error("verifyOutcome export not found");
+      }
+      return module.verifyOutcome;
+    });
+  }
+  return verifyOutcomePromise;
+}
+
+async function fetchResolutions(limit, opts = {}) {
+  const now = Date.now();
+  const cacheKey = `${opts.preferBlessed ? "blessed" : "latest"}:${limit}`;
+  const cached = resolutionsCache.get(cacheKey);
+  if (cached && cached.expireAt > now) return cached.data;
+
+  const rpcUrl = defaultRpc();
+  const programId = defaultProgramId();
+  const verifyOutcome = await loadVerifyOutcome();
+
+  // Fetch recent sigs from program
+  const fetchLimit = Math.min(limit * 4, 100);
+  const rawSigs = await rpcCall(rpcUrl, {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "getSignaturesForAddress",
+    params: [programId, { limit: fetchLimit }],
+  });
+  if (!Array.isArray(rawSigs)) throw new Error("Failed to fetch program signatures");
+
+  // Always include active blessed sigs so historical winners are discoverable.
+  const blessedEntries = (loadBlessedSignatures().entries ?? []).filter(
+    (entry) => entry.status === "active"
+  );
+  const sigMap = new Map();
+  for (const s of rawSigs) sigMap.set(s.signature, s);
+  for (const b of blessedEntries) {
+    if (!sigMap.has(b.signature)) {
+      sigMap.set(b.signature, { signature: b.signature, slot: null });
+    }
+  }
+  const blessedSignatures = new Set(blessedEntries.map((entry) => entry.signature));
+  const blessedSigs = blessedEntries.map((entry) => ({
+    signature: entry.signature,
+    slot: null,
+  }));
+  let recentSigs = [...sigMap.values()].filter(
+    (entry) => !blessedSignatures.has(entry.signature)
+  );
+  if (typeof opts.recentLimit === "number") {
+    recentSigs = recentSigs.slice(0, Math.max(0, opts.recentLimit));
+  }
+  const allSigs = opts.preferBlessed
+    ? [...blessedSigs, ...recentSigs]
+    : [...recentSigs, ...blessedSigs];
+
+  // Verify in batches to avoid hammering devnet with too many concurrent RPC calls
+  const VERIFY_BATCH_SIZE = 8;
+  const matches = [];
+  for (let i = 0; i < allSigs.length && matches.length < limit; i += VERIFY_BATCH_SIZE) {
+    const batch = allSigs.slice(i, i + VERIFY_BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (sigEntry) => {
+        try {
+          const verified = await withTimeout(
+            verifyOutcome({ signature: sigEntry.signature, rpcUrl, programId }),
+            RESOLUTIONS_VERIFY_TIMEOUT_MS,
+            "verify timeout"
+          );
+          if (verified.status !== "MATCH") return null;
+          return { sigEntry, verified };
+        } catch (_) {
+          return null;
+        }
+      })
+    );
+    for (const r of batchResults) {
+      if (r && matches.length < limit) matches.push(r);
+    }
+  }
+
+  // Deduplicate commit_slot lookups by artifact hash (many raffles share an artifact)
+  const uniqueHashes = [...new Set(matches.map((m) => m.verified.compiled_artifact_hash))];
+  const commitSlotByHash = new Map();
+  for (const hash of uniqueHashes) {
+    try {
+      const [artifactPda] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("approved_outcome_artifact"),
+          Buffer.from(hash, "hex"),
+        ],
+        new PublicKey(programId)
+      );
+      const artifactSigs = await rpcCall(rpcUrl, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "getSignaturesForAddress",
+        params: [artifactPda.toBase58(), { limit: 1000 }],
+      }, 15_000);
+      if (Array.isArray(artifactSigs) && artifactSigs.length > 0) {
+        commitSlotByHash.set(hash, artifactSigs[artifactSigs.length - 1].slot);
+      }
+    } catch (commitErr) {
+      console.error("[resolutions] commit_slot lookup failed for hash", hash.slice(0, 12), ":", commitErr?.message || commitErr);
+    }
+  }
+
+  const results = await Promise.all(
+    matches.map(async ({ sigEntry, verified }) => {
+      // resolve_slot: prefer from getSignaturesForAddress; fall back to getTransaction
+      let resolveSlot = sigEntry.slot ?? null;
+      if (resolveSlot === null) {
+        try {
+          const txInfo = await rpcCall(rpcUrl, {
+            jsonrpc: "2.0",
+            id: 3,
+            method: "getTransaction",
+            params: [
+              sigEntry.signature,
+              { encoding: "json", maxSupportedTransactionVersion: 0 },
+            ],
+          });
+          resolveSlot = txInfo?.slot ?? null;
+        } catch (_) {}
+      }
+
+      return {
+        signature: sigEntry.signature,
+        outcome_id: verified.outcome_id,
+        outcome_ids: verified.outcome_ids,
+        participants: verified.outcomes ?? [],
+        participants_count: (verified.outcomes ?? []).length,
+        commit_slot: commitSlotByHash.get(verified.compiled_artifact_hash) ?? null,
+        resolve_slot: resolveSlot,
+        artifact_hash: verified.compiled_artifact_hash,
+      };
+    })
+  );
+
+  resolutionsCache.set(cacheKey, {
+    data: results,
+    expireAt: Date.now() + RESOLUTIONS_CACHE_TTL_MS,
+  });
+  return results;
+}
+
 function validateSolanaAddress(value) {
   const address = String(value || "").trim();
   if (!SOLANA_ADDRESS_RE.test(address)) {
@@ -382,6 +544,15 @@ function parseSwigOperatorConfig() {
     delegateKeypairPath,
     roleId,
   };
+}
+
+function parseVanishConfig() {
+  const apiKey = String(process.env.VANISH_API_KEY || "").trim();
+  if (!apiKey) return undefined;
+  const amountRaw = String(process.env.VANISH_PAYOUT_LAMPORTS || "100000").trim();
+  const amountLamports = BigInt(amountRaw);
+  if (amountLamports <= 0n) throw new Error("VANISH_PAYOUT_LAMPORTS must be > 0");
+  return { apiKey, amountLamports };
 }
 
 function clientIp(req) {
@@ -576,7 +747,7 @@ async function handleLiveRaffle(req, res) {
       "Devnet is slow right now, try again"
     );
 
-    json(res, 200, {
+    const responseBody = {
       ok: true,
       signature: result.signature,
       outcome: result.outcome,
@@ -585,7 +756,36 @@ async function handleLiveRaffle(req, res) {
       artifactHash: result.artifactHash,
       programId: result.programId,
       participantCount: config.participants.length,
-    });
+    };
+
+    if (vanishConfig) {
+      try {
+        const { vanishPayoutRoute: routePayout } = await import(
+          pathToFileURL(path.join(REF_ROOT, "sdk", "vanish.ts")).href
+        );
+        const walletPath =
+          process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET;
+        if (walletPath) {
+          const { Keypair } = await import("@solana/web3.js");
+          const raw = JSON.parse(fs.readFileSync(walletPath, "utf8"));
+          const operatorKeypair = Keypair.fromSecretKey(Uint8Array.from(raw));
+          const payout = await routePayout({
+            apiKey: vanishConfig.apiKey,
+            amountLamports: vanishConfig.amountLamports,
+            winnerAddress: result.outcome,
+            operatorKeypair,
+            rpcUrl,
+          });
+          responseBody.vanish_deposit_tx = payout.depositTx;
+          responseBody.vanish_tx = payout.withdrawTx;
+        }
+      } catch (vanishErr) {
+        console.error("[vanish] payout failed (non-fatal):", vanishErr?.message || vanishErr);
+        responseBody.vanish_error = vanishErr?.message || String(vanishErr);
+      }
+    }
+
+    json(res, 200, responseBody);
   } catch (error) {
     const message = error?.message || String(error);
     const isTimeout = message.includes("Devnet is slow");
@@ -708,6 +908,71 @@ async function handleApi(req, res, pathname) {
       return;
     }
 
+    if (req.method === "GET" && pathname === "/api/resolutions") {
+      enforceApiRateLimit(req, pathname);
+      const reqUrl = new URL(req.url || "/", "http://localhost");
+      const rawLimit = reqUrl.searchParams.get("limit");
+      const limit = rawLimit
+        ? Math.min(Math.max(1, parseInt(rawLimit, 10) || 10), 50)
+        : 10;
+      const resolutions = await fetchResolutions(limit);
+      json(res, 200, {
+        ok: true,
+        resolutions: resolutions.map((r) => ({
+          signature: r.signature,
+          outcome_id: r.outcome_id,
+          participants_count: r.participants_count,
+          commit_slot: r.commit_slot,
+          resolve_slot: r.resolve_slot,
+          artifact_hash: r.artifact_hash,
+        })),
+      });
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/participant") {
+      enforceApiRateLimit(req, pathname);
+      const reqUrl = new URL(req.url || "/", "http://localhost");
+      const address = reqUrl.searchParams.get("address") || "";
+      if (!address) {
+        json(res, 400, { ok: false, error: "address is required" });
+        return;
+      }
+      try {
+        validateSolanaAddress(address);
+      } catch (_) {
+        json(res, 400, { ok: false, error: "Invalid Solana address" });
+        return;
+      }
+      const resolutions = await fetchResolutions(50, {
+        preferBlessed: true,
+        recentLimit: 0,
+      });
+      const raffles = [];
+      for (const r of resolutions) {
+        const isWinner =
+          r.outcome_id === address ||
+          (Array.isArray(r.outcome_ids) && r.outcome_ids.includes(address));
+        const isParticipant =
+          isWinner ||
+          (Array.isArray(r.participants) && r.participants.some((p) => p.id === address));
+        if (!isParticipant) continue;
+        raffles.push({
+          signature: r.signature,
+          resolve_slot: r.resolve_slot,
+          won: isWinner,
+          outcome_id: r.outcome_id,
+        });
+      }
+      json(res, 200, {
+        ok: true,
+        address,
+        participated: raffles.length > 0,
+        raffles,
+      });
+      return;
+    }
+
     if (req.method === "GET" && pathname === "/api/spec") {
       json(res, 200, {
         ok: true,
@@ -780,6 +1045,7 @@ async function handleApi(req, res, pathname) {
 
 loadEnvFile();
 swigOperatorConfig = parseSwigOperatorConfig();
+vanishConfig = parseVanishConfig();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
