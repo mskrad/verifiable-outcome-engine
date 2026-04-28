@@ -683,6 +683,43 @@ p {
   padding: 32px 16px;
 }
 
+.live-raffle-success {
+  color: var(--teal);
+  border-color: rgba(20, 241, 149, 0.35);
+  background: rgba(20, 241, 149, 0.07);
+}
+
+.world-id-panel {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.world-id-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.world-id-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal);
+}
+
+.world-id-toggle-disabled {
+  opacity: 0.6;
+}
+
+.world-id-hint {
+  color: var(--text-faint);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .sig-grid {
   display: grid;
   grid-template-columns: 1fr;

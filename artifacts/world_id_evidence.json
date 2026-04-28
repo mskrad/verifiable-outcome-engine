@@ -1,0 +1,12 @@
+{
+  "status": "template_pending_first_staging_proof",
+  "app_id": "app_staging_replace_me",
+  "rp_id": "rp_staging_replace_me",
+  "action": "vre-raffle-entry",
+  "environment": "staging",
+  "staging_test_nullifier": "0xreplace_after_first_successful_staging_world_id_proof",
+  "notes": [
+    "World ID is optional in the live raffle flow.",
+    "Update this artifact after the first simulator-backed staging verification."
+  ]
+}

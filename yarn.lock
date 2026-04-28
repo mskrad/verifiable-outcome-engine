@@ -225,10 +225,15 @@
   dependencies:
     "@noble/hashes" "1.8.0"
 
-"@noble/hashes@1.8.0", "@noble/hashes@^1.3.1", "@noble/hashes@^1.4.0", "@noble/hashes@^1.7.0":
+"@noble/hashes@1.8.0", "@noble/hashes@^1.3.1", "@noble/hashes@^1.4.0", "@noble/hashes@^1.7.0", "@noble/hashes@^1.7.2":
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.8.0.tgz#cee43d801fcef9644b11b8194857695acd5f815a"
   integrity sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==
+
+"@noble/secp256k1@^2.2.3":
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/@noble/secp256k1/-/secp256k1-2.3.0.tgz#ddfe6e853472fb88cba4d5e59b7067adc1e64adf"
+  integrity sha512-0TQed2gcBbIrh7Ccyw+y/uZQvbJwm7Ao4scBUxqpBCcsOlZG0O4KGfjtNAy/li4W8n1xt3dxrwJ0beZ2h2G6Kw==
 
 "@solana-program/token@^0.5.1":
   version "0.5.1"
@@ -742,6 +747,22 @@
   integrity sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==
   dependencies:
     "@types/node" "*"
+
+"@worldcoin/idkit-core@^4.1.3":
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/@worldcoin/idkit-core/-/idkit-core-4.1.3.tgz#f8b20c2b2ef8f0dc332dea0a49d6d1e5bfe039c8"
+  integrity sha512-ZYP08QF/gEyl9hFwUFYBnZ9Vd3JZq+47rl4aDa9ehAR+CJz7Fx4+PXeUp2GFVBxxsl7vzTOuxJiR5IE5V2rJJg==
+  dependencies:
+    "@noble/hashes" "^1.7.2"
+    "@worldcoin/idkit-server" "1.1.1"
+
+"@worldcoin/idkit-server@1.1.1":
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/@worldcoin/idkit-server/-/idkit-server-1.1.1.tgz#fe0a6e93379873aa88a76a8c6170d55492e06c34"
+  integrity sha512-iO4Kd3QBLzJak3BPz5eIzRjW0kT8Px5c3LbNzvCKMnczLvVSKoWqdvGiJlkK8Dp29KstNI62iv4ak0z8nzui/Q==
+  dependencies:
+    "@noble/hashes" "^1.7.2"
+    "@noble/secp256k1" "^2.2.3"
 
 acorn-walk@^8.1.1:
   version "8.3.5"

@@ -6,6 +6,8 @@ import net from "net";
 import { register } from "node:module";
 import { fileURLToPath, pathToFileURL } from "url";
 import { PublicKey } from "@solana/web3.js";
+import { signRequest } from "@worldcoin/idkit-core/signing";
+import { hashSignal } from "@worldcoin/idkit-core/hashing";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,10 +24,12 @@ const DEFAULT_SUMMARY_PATH = path.join(
   "artifacts",
   "public_evidence_summary.json"
 );
+const PARTNERS_CONFIG_PATH = path.join(REF_ROOT, "config", "partners.json");
 const CORS_API_PATHS = new Set([
   "/api/replay",
   "/api/health",
   "/api/live-raffle",
+  "/api/world-id/rp-context",
   "/api/resolutions",
   "/api/participant",
 ]);
@@ -37,6 +41,7 @@ const REPLAY_RATE_LIMIT_MAX = Number(process.env.REPLAY_RATE_LIMIT_MAX || 12);
 const LIVE_RAFFLE_TIMEOUT_MS = 45_000;
 const LIVE_RAFFLE_RATE_LIMIT_MS = 60_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
+const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
 const SAFE_ARTIFACT_ROOTS = [
@@ -53,6 +58,7 @@ const LIVE_RAFFLE_PRESETS = [
 const liveRaffleRateLimit = new Map();
 const apiRateLimit = new Map();
 const resolutionsCache = new Map();
+const worldIdNullifiers = new Set();
 const RESOLUTIONS_CACHE_TTL_MS = 60_000;
 const RESOLUTIONS_VERIFY_TIMEOUT_MS = 5_000;
 let tsSdkRegistered = false;
@@ -60,6 +66,7 @@ let resolveInlinePromise;
 let verifyOutcomePromise;
 let swigOperatorConfig;
 let vanishConfig;
+let partnerConfig;
 
 function loadEnvFile() {
   const envPath = path.join(REF_ROOT, ".env");
@@ -88,7 +95,7 @@ function json(res, status, payload) {
 function applyCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
 }
 
 function httpError(statusCode, message) {
@@ -555,6 +562,197 @@ function parseVanishConfig() {
   return { apiKey, amountLamports };
 }
 
+function loadPartnerConfig() {
+  if (!fs.existsSync(PARTNERS_CONFIG_PATH)) {
+    console.warn(`[partner] config missing at ${PARTNERS_CONFIG_PATH}`);
+    return {
+      configured: false,
+      partnersByKey: new Map(),
+    };
+  }
+  const raw = JSON.parse(fs.readFileSync(PARTNERS_CONFIG_PATH, "utf8"));
+  if (!Array.isArray(raw)) {
+    throw new Error("config/partners.json must contain an array");
+  }
+  const partnersByKey = new Map();
+  for (const item of raw) {
+    const key = String(item?.key || "").trim();
+    const name = String(item?.name || "").trim();
+    if (!key || !name) {
+      throw new Error("Each partner entry must include non-empty key and name");
+    }
+    partnersByKey.set(key, {
+      key,
+      name,
+      tier: item?.tier ?? null,
+      created: item?.created ?? null,
+    });
+  }
+  return {
+    configured: true,
+    partnersByKey,
+  };
+}
+
+function redactApiKeyPrefix(value) {
+  const key = String(value || "").trim();
+  if (!key) return "missing";
+  return `${key.slice(0, Math.min(8, key.length))}...`;
+}
+
+function requirePartnerApiKey(req, pathname) {
+  if (!partnerConfig?.configured) {
+    throw httpError(503, "Partner API not configured");
+  }
+  const key = String(req.headers["x-api-key"] || "").trim();
+  const partner = partnerConfig.partnersByKey.get(key);
+  if (!partner) {
+    console.warn(`[partner] rejected unknown key ${redactApiKeyPrefix(key)}`);
+    throw httpError(401, "Invalid or missing API key");
+  }
+  console.log(`[partner] ${partner.name} called ${pathname}`);
+  return partner;
+}
+
+function normalizeWorldEnvironment(value) {
+  const environment = String(value || "production").trim().toLowerCase();
+  return environment === "staging" ? "staging" : "production";
+}
+
+function normalizeWorldSigningKey(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw.startsWith("0x") ? raw : `0x${raw}`;
+}
+
+function worldIdConfig() {
+  const appId = String(process.env.WORLD_APP_ID || "").trim();
+  const rpId = String(process.env.WORLD_RP_ID || "").trim();
+  const signingKey = normalizeWorldSigningKey(process.env.WORLD_RP_SIGNING_KEY);
+  const action = String(process.env.WORLD_ACTION_ID || "vre-raffle-entry").trim();
+  const environment = normalizeWorldEnvironment(process.env.WORLD_ENVIRONMENT);
+  return {
+    enabled: Boolean(appId && rpId && signingKey),
+    appId,
+    rpId,
+    signingKey,
+    action,
+    environment,
+  };
+}
+
+function worldIdCapability() {
+  const config = worldIdConfig();
+  return {
+    enabled: config.enabled,
+    flow: "v4-first",
+    app_id: config.appId || null,
+    rp_id: config.rpId || null,
+    action: config.action,
+    environment: config.environment,
+  };
+}
+
+function buildWorldIdRpContext() {
+  const config = worldIdConfig();
+  if (!config.enabled) {
+    return {
+      ok: true,
+      ...worldIdCapability(),
+      rp_context: null,
+    };
+  }
+  const signature = signRequest({
+    action: config.action,
+    signingKeyHex: config.signingKey,
+  });
+  return {
+    ok: true,
+    ...worldIdCapability(),
+    rp_context: {
+      rp_id: config.rpId,
+      nonce: signature.nonce,
+      created_at: signature.createdAt,
+      expires_at: signature.expiresAt,
+      signature: signature.sig,
+    },
+  };
+}
+
+function normalizeWorldIdProof(worldId, address) {
+  const config = worldIdConfig();
+  if (!worldId || typeof worldId !== "object" || Array.isArray(worldId)) {
+    throw httpError(400, "World ID verification failed");
+  }
+  if (String(worldId.protocol_version || "").trim() !== "4.0") {
+    throw httpError(400, "World ID verification failed");
+  }
+  if (String(worldId.action || "").trim() !== config.action) {
+    throw httpError(400, "World ID verification failed");
+  }
+  const environment = String(worldId.environment || "").trim();
+  if (environment && environment !== config.environment) {
+    throw httpError(400, "World ID verification failed");
+  }
+  const responses = Array.isArray(worldId.responses) ? worldId.responses : [];
+  if (!responses.length) {
+    throw httpError(400, "World ID verification failed");
+  }
+  const expectedSignalHash = String(hashSignal(address)).toLowerCase();
+  const hasExpectedSignal = responses.some(
+    (responseItem) =>
+      String(responseItem?.signal_hash || "").trim().toLowerCase() === expectedSignalHash
+  );
+  if (!hasExpectedSignal) {
+    throw httpError(400, "World ID verification failed");
+  }
+  return {
+    proof: worldId,
+    expectedSignalHash,
+  };
+}
+
+async function verifyWorldIdOrThrow(worldId, address) {
+  const config = worldIdConfig();
+  if (!config.enabled) {
+    throw httpError(400, "World ID is not configured");
+  }
+  const normalized = normalizeWorldIdProof(worldId, address);
+
+  let response;
+  try {
+    response = await fetch(`${WORLD_VERIFY_URL}/${encodeURIComponent(config.rpId)}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": "verifiable-outcome-engine/0.3.0",
+      },
+      body: JSON.stringify(normalized.proof),
+    });
+  } catch (_) {
+    throw httpError(400, "World ID verification failed");
+  }
+
+  let payload;
+  try {
+    payload = await response.json();
+  } catch (_) {
+    throw httpError(400, "World ID verification failed");
+  }
+
+  const nullifier =
+    payload?.nullifier ||
+    payload?.results?.find((result) => result?.success === true && result?.nullifier)?.nullifier;
+  if (!response.ok || payload?.success !== true || !nullifier) {
+    throw httpError(400, "World ID verification failed");
+  }
+
+  return {
+    nullifier: String(nullifier),
+    verification: payload,
+  };
+}
+
 function clientIp(req) {
   if (process.env.TRUST_PROXY === "1") {
     const forwarded = String(req.headers["x-forwarded-for"] || "")
@@ -715,6 +913,16 @@ async function handleLiveRaffle(req, res) {
     return;
   }
 
+  const requireWorldId = body.requireWorldId === true;
+  let worldIdVerification;
+  if (requireWorldId) {
+    worldIdVerification = await verifyWorldIdOrThrow(body.worldId, address);
+    if (worldIdNullifiers.has(worldIdVerification.nullifier)) {
+      json(res, 400, { ok: false, error: "World ID nullifier already used" });
+      return;
+    }
+  }
+
   const limit = checkLiveRaffleRateLimit(req);
   if (!limit.ok) {
     json(res, 429, {
@@ -725,7 +933,12 @@ async function handleLiveRaffle(req, res) {
     return;
   }
 
+  let reservedWorldIdNullifier;
   try {
+    if (worldIdVerification?.nullifier) {
+      worldIdNullifiers.add(worldIdVerification.nullifier);
+      reservedWorldIdNullifier = worldIdVerification.nullifier;
+    }
     const config = buildLiveRaffleConfig(address);
     const resolveInline = await loadResolveInline();
     const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
@@ -757,6 +970,13 @@ async function handleLiveRaffle(req, res) {
       programId: result.programId,
       participantCount: config.participants.length,
     };
+    if (worldIdVerification) {
+      responseBody.world_id = {
+        verified: true,
+        environment:
+          worldIdVerification.verification?.environment || worldIdConfig().environment,
+      };
+    }
 
     if (vanishConfig) {
       try {
@@ -787,6 +1007,9 @@ async function handleLiveRaffle(req, res) {
 
     json(res, 200, responseBody);
   } catch (error) {
+    if (reservedWorldIdNullifier) {
+      worldIdNullifiers.delete(reservedWorldIdNullifier);
+    }
     const message = error?.message || String(error);
     const isTimeout = message.includes("Devnet is slow");
     json(res, isTimeout ? 504 : 500, {
@@ -896,6 +1119,7 @@ async function handleApi(req, res, pathname) {
         mode: "standalone_public_reference",
         program_id: defaultProgramId(),
         rpc: defaultRpc(),
+        world_id: worldIdCapability(),
         blessed_signatures_count: blessed.entries.filter(
           (entry) => entry.status === "active"
         ).length,
@@ -909,6 +1133,7 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "GET" && pathname === "/api/resolutions") {
+      requirePartnerApiKey(req, pathname);
       enforceApiRateLimit(req, pathname);
       const reqUrl = new URL(req.url || "/", "http://localhost");
       const rawLimit = reqUrl.searchParams.get("limit");
@@ -931,6 +1156,7 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "GET" && pathname === "/api/participant") {
+      requirePartnerApiKey(req, pathname);
       enforceApiRateLimit(req, pathname);
       const reqUrl = new URL(req.url || "/", "http://localhost");
       const address = reqUrl.searchParams.get("address") || "";
@@ -979,6 +1205,11 @@ async function handleApi(req, res, pathname) {
         summary: loadSummary(),
         blessed: loadBlessedSignatures(),
       });
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/world-id/rp-context") {
+      json(res, 200, buildWorldIdRpContext());
       return;
     }
 
@@ -1046,6 +1277,7 @@ async function handleApi(req, res, pathname) {
 loadEnvFile();
 swigOperatorConfig = parseSwigOperatorConfig();
 vanishConfig = parseVanishConfig();
+partnerConfig = loadPartnerConfig();
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);

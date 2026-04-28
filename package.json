@@ -51,7 +51,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
-    "@solana/web3.js": "^1.98.4"
+    "@solana/web3.js": "^1.98.4",
+    "@worldcoin/idkit-core": "^4.1.3"
   },
   "devDependencies": {
     "@metaplex-foundation/mpl-agent-registry": "^0.2.5",

@@ -69,7 +69,8 @@
             <li><a href="#output" class="text-dim">6. Output</a></li>
             <li><a href="#error-codes" class="text-dim">7. Error Codes</a></li>
             <li><a href="#metaplex-agent" class="text-dim">8. Metaplex Agent Registry</a></li>
-            <li><a href="#vanish-settlement" class="text-dim">9. Private Settlement via Vanish</a></li>
+            <li><a href="#world-id" class="text-dim">9. Sybil-Proof Participants</a></li>
+            <li><a href="#vanish-settlement" class="text-dim">10. Private Settlement via Vanish</a></li>
           </ol>
         </aside>
 
@@ -358,10 +359,56 @@
 <span class="out">→ { "ok": true, "replay": { "verification_result": "MATCH", "verification_reason": "OK", … } }</span></div>
               </div>
             </div>
+
+            <div class="card mt-4">
+              <div class="result-section-title mb-3">Partner API access</div>
+              <p class="mb-3">Partner discovery endpoints <span class="mono">GET /api/resolutions</span> and <span class="mono">GET /api/participant</span> are not part of the public SDK surface. They require a partner-issued API key in <span class="mono">x-api-key: vresk_...</span> and are provisioned during partner onboarding.</p>
+              <p style="margin:0;color:var(--text-dim);font-size:13px;">Missing or unknown keys return <span class="mono">401 Unauthorized</span>. If partner config is absent on the host, the endpoints fail closed with <span class="mono">503 Partner API not configured</span>.</p>
+            </div>
+          </article>
+
+          <article id="world-id" class="mb-8">
+            <h2 style="margin-bottom: 16px;">9. Sybil-Proof Participants</h2>
+            <p class="mb-4">
+              VRE can optionally require a World ID 4.0 proof before a live raffle is sent on-chain. This blocks one human from entering the same action repeatedly through many wallets, while keeping the core raffle, replay semantics, and blessed signatures unchanged.
+            </p>
+
+            <div class="card mb-6">
+              <div class="result-section-title mb-3">Flow</div>
+              <ol style="color:var(--text-dim); padding-left:24px; line-height:1.9; font-size:13.5px;">
+                <li>User connects Phantom on <code>/play.html</code> and optionally enables <code>Require World ID</code>.</li>
+                <li>Frontend fetches <code>POST /api/world-id/rp-context</code> and starts a World ID 4.0 request through IDKit with RP signatures.</li>
+                <li>Backend forwards the full IDKit result to <code>POST https://developer.world.org/api/v4/verify/{rp_id}</code>.</li>
+                <li>Verified nullifier is reserved in-memory before <code>/api/live-raffle</code> executes and is rolled back if the raffle fails before completion.</li>
+                <li>If World ID is not configured, the existing live raffle path still works without the optional toggle.</li>
+              </ol>
+            </div>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Env var</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="text-teal"><code>WORLD_APP_ID</code></td><td>World app identifier (<code>app_...</code>) returned by the Developer Portal.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_RP_ID</code></td><td>Relying-party identifier (<code>rp_...</code>) used by the v4 verify endpoint.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_RP_SIGNING_KEY</code></td><td>Server-only RP signing key used to mint short-lived RP signatures.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_ACTION_ID</code></td><td>Action scope for the one-human-per-entry flow. Default: <code>vre-raffle-entry</code>.</td></tr>
+                  <tr><td class="text-teal"><code>WORLD_ENVIRONMENT</code></td><td><code>staging</code> for simulator/testing or <code>production</code> for real World App traffic.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
+              <div class="result-section-title mb-2" style="color:var(--teal);">Evidence Artifact</div>
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;line-height:1.8;">
+                Public reviewer evidence for this optional integration lives in <code>artifacts/world_id_evidence.json</code> and records the configured app/RP IDs, action, environment, and a staging nullifier placeholder for the first simulator-backed proof.
+              </p>
+            </div>
           </article>
 
           <article id="vanish-settlement" class="mb-8">
-            <h2 style="margin-bottom: 16px;">9. Private Settlement via Vanish</h2>
+            <h2 style="margin-bottom: 16px;">10. Private Settlement via Vanish</h2>
             <p class="mb-4">
               VRE proves the winner was selected without manipulation — on-chain and replayable.
               <a href="https://core.vanish.trade" target="_blank" rel="noopener" class="text-teal">Vanish</a>
@@ -452,6 +499,8 @@
           <li><a href="/build">Build</a></li>
           <li><a href="/verify">Verify</a></li>
           <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+          <li><a href="mailto:hello@verifiableoutcome.online">Email</a></li>
         </ul>
         <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
       </div>
