@@ -101,79 +101,106 @@
   </header>
 
   <!-- ============================================================
-       Integrations strip
+       Integrations marquee
        ============================================================ -->
-  <section style="padding: 28px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-surface);">
-    <div class="container">
-      <div style="display:flex; align-items:center; gap:12px 32px; flex-wrap:wrap; justify-content:center;">
-        <span style="font-size:11px; letter-spacing:0.08em; color:var(--text-faint); text-transform:uppercase; white-space:nowrap; flex-shrink:0;">Integrates with</span>
+  <section style="padding: 20px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-surface); overflow: hidden;">
+    <style>
+      .marquee-label {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        white-space: nowrap;
+        flex-shrink: 0;
+        padding: 0 32px;
+      }
+      .marquee-track {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        width: max-content;
+        animation: marquee-scroll 18s linear infinite;
+      }
+      .marquee-track:hover { animation-play-state: paused; }
+      @keyframes marquee-scroll {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .marquee-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 36px;
+        text-decoration: none;
+        opacity: 0.65;
+        transition: opacity 0.15s;
+        white-space: nowrap;
+      }
+      .marquee-item:hover { opacity: 1; }
+      .marquee-item span { font-size: 13.5px; font-weight: 500; color: var(--text); }
+      .marquee-sep { color: var(--border); font-size: 18px; flex-shrink: 0; }
+    </style>
 
-        <!-- Metaplex -->
-        <a href="https://developers.metaplex.com/agent-registry" target="_blank" rel="noopener"
-           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#ff6b35"/>
-            <path d="M7 24 L16 8 L25 24 M11 19 L21 19" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Metaplex</span>
-        </a>
+    <div style="display:flex; align-items:center;">
+      <div class="marquee-label">Integrates with</div>
+      <div style="flex:1; overflow:hidden;">
+        <div class="marquee-track">
 
-        <span style="color:var(--border);font-size:16px;">·</span>
+          <!-- === set 1 === -->
+          <a class="marquee-item" href="https://developers.metaplex.com/agent-registry" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#ff6b35"/><path d="M7 24 L16 8 L25 24 M11 19 L21 19" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Metaplex</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://squads.xyz/multisig" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#5b50e8"/><rect x="7" y="7" width="7" height="7" rx="1.5" fill="#fff"/><rect x="18" y="7" width="7" height="7" rx="1.5" fill="#fff"/><rect x="7" y="18" width="7" height="7" rx="1.5" fill="#fff"/><rect x="18" y="18" width="7" height="7" rx="1.5" fill="rgba(255,255,255,0.4)"/></svg>
+            <span>Squads</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://build.onswig.com" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#14f195"/><path d="M9 20 C9 20 11 12 16 12 C21 12 23 20 23 20" stroke="#0a1a12" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="16" cy="21" r="2" fill="#0a1a12"/></svg>
+            <span>Swig</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://worldcoin.org/world-id" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="#fff"/><circle cx="16" cy="16" r="7" stroke="#111" stroke-width="2"/><line x1="16" y1="9" x2="16" y2="23" stroke="#111" stroke-width="1.5"/><ellipse cx="16" cy="16" rx="3.5" ry="7" stroke="#111" stroke-width="1.5" fill="none"/></svg>
+            <span>World ID</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://phantom.app" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="#ab9ff2"/><path d="M8 18 C8 13 11 9 16 9 C21 9 25 12 25 16 C25 20 22 23 18 23 L15 23 C12 23 9 22 8 18Z" fill="#fff"/><circle cx="13" cy="16" r="1.5" fill="#ab9ff2"/><circle cx="19" cy="16" r="1.5" fill="#ab9ff2"/></svg>
+            <span>Phantom</span>
+          </a>
+          <span class="marquee-sep">·</span>
 
-        <!-- Squads -->
-        <a href="https://squads.xyz/multisig" target="_blank" rel="noopener"
-           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#5b50e8"/>
-            <rect x="7" y="7" width="7" height="7" rx="1.5" fill="#fff"/>
-            <rect x="18" y="7" width="7" height="7" rx="1.5" fill="#fff"/>
-            <rect x="7" y="18" width="7" height="7" rx="1.5" fill="#fff"/>
-            <rect x="18" y="18" width="7" height="7" rx="1.5" fill="rgba(255,255,255,0.4)"/>
-          </svg>
-          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Squads</span>
-        </a>
+          <!-- === set 2 (duplicate for seamless loop) === -->
+          <a class="marquee-item" href="https://developers.metaplex.com/agent-registry" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#ff6b35"/><path d="M7 24 L16 8 L25 24 M11 19 L21 19" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Metaplex</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://squads.xyz/multisig" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#5b50e8"/><rect x="7" y="7" width="7" height="7" rx="1.5" fill="#fff"/><rect x="18" y="7" width="7" height="7" rx="1.5" fill="#fff"/><rect x="7" y="18" width="7" height="7" rx="1.5" fill="#fff"/><rect x="18" y="18" width="7" height="7" rx="1.5" fill="rgba(255,255,255,0.4)"/></svg>
+            <span>Squads</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://build.onswig.com" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="#14f195"/><path d="M9 20 C9 20 11 12 16 12 C21 12 23 20 23 20" stroke="#0a1a12" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="16" cy="21" r="2" fill="#0a1a12"/></svg>
+            <span>Swig</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://worldcoin.org/world-id" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="#fff"/><circle cx="16" cy="16" r="7" stroke="#111" stroke-width="2"/><line x1="16" y1="9" x2="16" y2="23" stroke="#111" stroke-width="1.5"/><ellipse cx="16" cy="16" rx="3.5" ry="7" stroke="#111" stroke-width="1.5" fill="none"/></svg>
+            <span>World ID</span>
+          </a>
+          <span class="marquee-sep">·</span>
+          <a class="marquee-item" href="https://phantom.app" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="9" fill="#ab9ff2"/><path d="M8 18 C8 13 11 9 16 9 C21 9 25 12 25 16 C25 20 22 23 18 23 L15 23 C12 23 9 22 8 18Z" fill="#fff"/><circle cx="13" cy="16" r="1.5" fill="#ab9ff2"/><circle cx="19" cy="16" r="1.5" fill="#ab9ff2"/></svg>
+            <span>Phantom</span>
+          </a>
+          <span class="marquee-sep">·</span>
 
-        <span style="color:var(--border);font-size:16px;">·</span>
-
-        <!-- Swig -->
-        <a href="https://build.onswig.com" target="_blank" rel="noopener"
-           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="6" fill="#14f195"/>
-            <path d="M9 20 C9 20 11 12 16 12 C21 12 23 20 23 20" stroke="#0a1a12" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-            <circle cx="16" cy="21" r="2" fill="#0a1a12"/>
-          </svg>
-          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Swig</span>
-        </a>
-
-        <span style="color:var(--border);font-size:16px;">·</span>
-
-        <!-- World ID -->
-        <a href="https://worldcoin.org/world-id" target="_blank" rel="noopener"
-           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="9" fill="#fff"/>
-            <circle cx="16" cy="16" r="7" stroke="#111" stroke-width="2"/>
-            <line x1="16" y1="9" x2="16" y2="23" stroke="#111" stroke-width="1.5"/>
-            <ellipse cx="16" cy="16" rx="3.5" ry="7" stroke="#111" stroke-width="1.5" fill="none"/>
-          </svg>
-          <span style="font-size:13.5px;font-weight:500;color:var(--text);">World ID</span>
-        </a>
-
-        <span style="color:var(--border);font-size:16px;">·</span>
-
-        <!-- Phantom -->
-        <a href="https://phantom.app" target="_blank" rel="noopener"
-           style="display:flex;align-items:center;gap:7px;text-decoration:none;opacity:0.7;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
-          <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
-            <rect width="32" height="32" rx="9" fill="#ab9ff2"/>
-            <path d="M8 18 C8 13 11 9 16 9 C21 9 25 12 25 16 C25 20 22 23 18 23 L15 23 C12 23 9 22 8 18Z" fill="#fff"/>
-            <circle cx="13" cy="16" r="1.5" fill="#ab9ff2"/>
-            <circle cx="19" cy="16" r="1.5" fill="#ab9ff2"/>
-          </svg>
-          <span style="font-size:13.5px;font-weight:500;color:var(--text);">Phantom</span>
-        </a>
-
+        </div>
       </div>
     </div>
   </section>
