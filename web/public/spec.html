@@ -70,7 +70,6 @@
             <li><a href="#error-codes" class="text-dim">7. Error Codes</a></li>
             <li><a href="#metaplex-agent" class="text-dim">8. Metaplex Agent Registry</a></li>
             <li><a href="#world-id" class="text-dim">9. Sybil-Proof Participants</a></li>
-            <li><a href="#vanish-settlement" class="text-dim">10. Private Settlement via Vanish</a></li>
           </ol>
         </aside>
 
@@ -407,73 +406,7 @@
             </div>
           </article>
 
-          <article id="vanish-settlement" class="mb-8">
-            <h2 style="margin-bottom: 16px;">10. Private Settlement via Vanish</h2>
-            <p class="mb-4">
-              VRE proves the winner was selected without manipulation — on-chain and replayable.
-              <a href="https://core.vanish.trade" target="_blank" rel="noopener" class="text-teal">Vanish</a>
-              routes the payout so the operator's treasury strategy stays private.
-              Verifiable selection and private settlement — neither is possible alone.
-            </p>
 
-            <div class="card mb-6">
-              <div class="result-section-title mb-3">How it works</div>
-              <ol style="color:var(--text-dim); padding-left:24px; line-height:1.9; font-size:13.5px;">
-                <li>VRE selects the winner publicly — outcome committed on-chain, replayable by anyone.</li>
-                <li>Operator calls Vanish <code>/deposit_address</code> and transfers SOL to the Vanish pool.</li>
-                <li>Vanish routes funds to winner from an anonymous one-time address — on-chain link between operator treasury and winner wallet is broken.</li>
-                <li>Both the VRE resolve sig (public) and Vanish withdraw tx (private routing) are written to <code>artifacts/vanish_integration_evidence.json</code>.</li>
-              </ol>
-            </div>
-
-            <div class="card mb-6" style="padding: 0;">
-              <table class="rules-table">
-                <thead>
-                  <tr><th>Layer</th><th>What it proves</th><th>Public?</th></tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="text-teal">VRE resolve tx</td>
-                    <td>Winner was selected by a deterministic, tamper-evident algorithm</td>
-                    <td>Yes — verifiable by anyone</td>
-                  </tr>
-                  <tr>
-                    <td class="text-teal">Vanish payout tx</td>
-                    <td>Winner received SOL from a Vanish one-time address — no direct link to operator treasury</td>
-                    <td>On-chain but unlinked</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="card mb-4">
-              <div class="result-section-title mb-3">Optional env vars</div>
-              <table style="width:100%;font-size:13px;border-collapse:collapse;">
-                <tbody>
-                  <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:8px 0;color:var(--text-dim);width:220px;"><code>VANISH_API_KEY</code></td>
-                    <td>Vanish Core API key. When set, live-raffle automatically routes payout via Vanish.</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:8px 0;color:var(--text-dim);"><code>VANISH_PAYOUT_LAMPORTS</code></td>
-                    <td>Amount to route per payout. Default: <code>100000</code> (0.0001 SOL).</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="card" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.15);">
-              <div class="result-section-title mb-2" style="color:var(--teal);">Standalone CLI</div>
-              <div class="terminal" style="font-size:12px; margin-top:8px;">
-                <div class="terminal-body"><span class="comment"># Route a payout after a known VRE resolve tx</span>
-<span class="prompt">$</span> VANISH_MOCK=true ts-node scripts/vanish_payout.ts \
-    --winner &lt;winner_address&gt; \
-    --amount 100000 \
-    --sig &lt;vre_resolve_sig&gt;
-<span class="out">→ artifacts/vanish_integration_evidence.json</span></div>
-              </div>
-            </div>
-          </article>
 
           <div class="mt-8 flex gap-3" style="flex-wrap: wrap;">
             <a class="btn btn-primary" href="/verify">Try the verifier →</a>
