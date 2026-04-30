@@ -1,0 +1,13 @@
+{
+  "type": "formula_draw",
+  "formula": "closest_to",
+  "input_lamports": 10,
+  "payout_lamports": 3,
+  "winners_count": 2,
+  "target": 22450,
+  "participants": [
+    { "id": "alice", "score": 22449 },
+    { "id": "bob", "score": 22460 },
+    { "id": "carol", "score": 22451 }
+  ]
+}

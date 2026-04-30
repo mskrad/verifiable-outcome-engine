@@ -1,4 +1,12 @@
 export type LamportsValue = bigint | number;
+export type SignedIntegerValue = bigint | number;
+
+export type ResolutionFormula =
+  | "weighted_random"
+  | "rank_desc"
+  | "rank_asc"
+  | "first_n"
+  | "closest_to";
 
 export type RaffleConfig = {
   type: "raffle";
@@ -27,7 +35,27 @@ export type AirdropConfig = {
   winners_count?: number;
 };
 
-export type ArtifactConfig = RaffleConfig | LootConfig | AirdropConfig;
+export type FormulaParticipant = {
+  id: string;
+  weight?: number;
+  score?: SignedIntegerValue;
+};
+
+export type FormulaDrawConfig = {
+  type: "formula_draw";
+  formula: ResolutionFormula;
+  input_lamports: LamportsValue;
+  participants: FormulaParticipant[];
+  payout_lamports?: LamportsValue;
+  winners_count?: number;
+  target?: SignedIntegerValue;
+};
+
+export type ArtifactConfig =
+  | RaffleConfig
+  | LootConfig
+  | AirdropConfig
+  | FormulaDrawConfig;
 
 export type VerifyOutcomeOptions = {
   signature: string;
@@ -43,7 +71,9 @@ export type VerifyResult = {
   outcome_ids?: string[];
   winners_count?: number;
   artifact_format_version?: number;
-  outcomes?: Array<{ id: string; weight: number }>;
+  resolution_formula?: ResolutionFormula;
+  target?: number;
+  outcomes?: Array<{ id: string; weight: number; score?: number; order?: number }>;
   resolve_id: string;
   compiled_artifact_hash: string;
   runtime_id: string;
@@ -58,15 +88,19 @@ export type W3O1Effect = {
 export type W3O1Outcome = {
   id: string;
   weight: number;
+  score?: bigint;
+  order?: number;
   first_effect_index: number;
   effect_count: number;
 };
 
 export type W3O1Config = {
-  format_version: 1 | 2;
+  format_version: 1 | 2 | 3;
   winners_count: number;
   min_input_lamports: bigint;
   max_input_lamports: bigint;
+  resolution_formula?: ResolutionFormula;
+  target_score?: bigint;
   outcomes: W3O1Outcome[];
   effects: W3O1Effect[];
 };

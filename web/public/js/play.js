@@ -7,9 +7,8 @@
 (function () {
   'use strict';
 
-  const DEFAULT_PROGRAM_ID = '3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq';
+  const DEFAULT_PROGRAM_ID = '9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
-  const RAFFLE_SIG = 'mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh';
   const WORLD_IDKIT_CORE_URL = 'https://esm.sh/@worldcoin/idkit-core@4.1.3?bundle';
 
   let liveRaffleWallet = { status: 'not-connected' };
@@ -18,14 +17,6 @@
   let worldIdRequired = false;
   let worldIdSdkPromise = null;
   let worldIdStatus = { phase: 'idle', message: '' };
-
-  const USE_CASE_BADGES = {
-    rewards:    { label: 'Rewards Selection', cls: 'badge-use-rewards' },
-    'multi-winner': { label: 'Multi-Winner', cls: 'badge-use-multi-winner' },
-    dao:        { label: 'DAO Proposal', cls: 'badge-use-dao' },
-    loot:       { label: 'Loot',         cls: 'badge-use-loot' },
-    agent:      { label: 'Agent',        cls: 'badge-use-agent' },
-  };
 
   function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, (c) => ({
@@ -416,36 +407,33 @@
     });
   }
 
-  function inferUseCase(entry) {
-    const winnersCount = Number(entry.winners_count || 0);
-    const labelText = String(entry.label || '').toLowerCase();
-    const text = [
-      entry.label,
-      entry.description,
-      entry.source,
-      entry.notes,
-      entry.id,
-    ].filter(Boolean).join(' ').toLowerCase();
-
-    if (winnersCount > 1 || labelText === 'multi-winner' || text.includes('multi-winner')) return 'multi-winner';
-    if (text.includes('airdrop')) return 'rewards';
-    if (text.includes('dao') || text.includes('proposal')) return 'dao';
-    if (text.includes('prediction')) return 'dao';
-    if (text.includes('raffle') || entry.signature === RAFFLE_SIG) return 'rewards';
-    if (text.includes('agent')) return 'agent';
-    if (text.includes('loot')) return 'loot';
-    return 'loot';
-  }
-
-  function describe(entry, useCase) {
+  function describe(entry) {
     if (entry.description) return entry.description;
     if (entry.notes) return entry.notes;
-    return {
-      rewards: 'Weighted recipient selection resolved',
-      'multi-winner': 'Multiple winners selected from one committed weighted list',
-      dao: 'DAO proposal selection resolved',
-      loot: 'Weighted loot outcome resolved',
-    }[useCase] || 'Verifiable outcome resolved';
+    return 'Verifiable outcome resolved';
+  }
+
+  function primaryLabel(entry) {
+    return String(entry.label || '').trim() || 'Blessed Signature';
+  }
+
+  function renderEvidenceBadges(entry) {
+    const badges = [];
+    const formatVersion = Number(entry.artifact_format_version || 0);
+    const winnersCount = Number(entry.winners_count || 0);
+    const formula = String(entry.resolution_formula || '').trim();
+
+    if (formatVersion > 0) {
+      badges.push(`<span class="badge badge-neutral">W3O1 v${formatVersion}</span>`);
+    }
+    if (formula) {
+      badges.push(`<span class="badge badge-neutral">${escapeHtml(formula)}</span>`);
+    }
+    if (winnersCount > 1) {
+      badges.push(`<span class="badge badge-neutral">${winnersCount} winners</span>`);
+    }
+
+    return badges.join('');
   }
 
   function outcomeIds(entry) {
@@ -485,8 +473,6 @@
   }
 
   function renderCard(entry, idx, health) {
-    const useCase = inferUseCase(entry);
-    const badge = USE_CASE_BADGES[useCase] || USE_CASE_BADGES.loot;
     const short = window.vreShort(entry.signature);
     const timeline = entry.timeline;
     const artifactSlot = timeline?.artifact_slot;
@@ -502,13 +488,18 @@
     return `
       <article class="sig-card" data-idx="${idx}">
         <div class="sig-card-head">
-          <div class="sig-card-badges">
-            <span class="badge ${badge.cls}">${badge.label}</span>
-            <span class="badge badge-match">${escapeHtml(entry.verification_result || 'MATCH')} / ${escapeHtml(entry.verification_reason || 'OK')}</span>
+          <div class="sig-card-heading">
+            <h3 class="sig-card-title">${escapeHtml(primaryLabel(entry))}</h3>
+            <div class="sig-card-badges">
+              ${renderEvidenceBadges(entry)}
+            </div>
           </div>
-          <span class="text-faint mono" style="font-size:11px;">${escapeHtml(updated)} UTC</span>
+          <div class="sig-card-status">
+            <span class="badge badge-match">${escapeHtml(entry.verification_result || 'MATCH')} / ${escapeHtml(entry.verification_reason || 'OK')}</span>
+            <span class="text-faint mono" style="font-size:11px;">${escapeHtml(updated)} UTC</span>
+          </div>
         </div>
-        <div class="sig-card-desc">${escapeHtml(describe(entry, useCase))}</div>
+        <div class="sig-card-desc">${escapeHtml(describe(entry))}</div>
         ${renderWinnerList(entry)}
         <div class="sig-hash" data-copy-target="${escapeHtml(entry.signature)}">${escapeHtml(short)}</div>
         <div class="sig-meta">

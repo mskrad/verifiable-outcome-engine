@@ -52,9 +52,9 @@
 
   <header class="page-head">
     <div class="container">
-      <span class="eyebrow"><span class="dot"></span> Outcome v1.0</span>
-      <h1 class="page-title">Spec: Outcome v1.0</h1>
-      <p>Canonical shapes for every on-chain artifact VRE produces. All numeric types are little-endian. All hashes are SHA-256 hex, lowercase, unprefixed.</p>
+      <span class="eyebrow"><span class="dot"></span> W3O1 v1-v3</span>
+      <h1 class="page-title">Spec: W3O1 Artifact Surface</h1>
+      <p>Canonical shapes for every on-chain artifact VRE produces on the current devnet program. All numeric types are little-endian. All hashes are SHA-256 hex, lowercase, unprefixed.</p>
     </div>
   </header>
 
@@ -87,21 +87,19 @@
 
           <article id="rules" class="mb-8">
             <h2 style="margin-bottom: 16px;">1. Rules</h2>
-            <p class="mb-6">A ruleset is a JSON object hashed into a 32-byte artifact. The hash is committed on-chain; the full object lives anywhere public (IPFS, R2, GitHub). Fields:</p>
+            <p class="mb-6">VRE commits binary W3O1 artifacts on-chain. The public input object is compiled into one of three currently active artifact families:</p>
             <div class="card" style="padding: 0;">
               <table class="rules-table">
                 <thead>
                   <tr><th>Field</th><th>Type</th><th>Meaning</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td class="text-teal">version</td><td>string</td><td>Semver. Currently <span class="mono">"1.0"</span>.</td></tr>
-                  <tr><td class="text-teal">runtime_id</td><td>string</td><td>Caller-chosen identifier. Must be unique per program.</td></tr>
-                  <tr><td class="text-teal">ruleset_id</td><td>string</td><td>Canonical hash-derived ID: <span class="mono">rs_&lt;first 8 of sha256&gt;…</span>.</td></tr>
-                  <tr><td class="text-teal">mode</td><td>enum</td><td><span class="mono">raffle | airdrop | prediction | loot</span></td></tr>
-                  <tr><td class="text-teal">participants</td><td>string[]</td><td>Ordered list of addresses or outcome IDs. Case-sensitive.</td></tr>
-                  <tr><td class="text-teal">weights</td><td>number[]</td><td>Same length as participants. Must be ≥ 0.</td></tr>
-                  <tr><td class="text-teal">seed_fn</td><td>enum</td><td><span class="mono">slot_nonce | block_hash | vrf</span></td></tr>
-                  <tr><td class="text-teal">outputs</td><td>number</td><td>Number of winners to select. Default 1.</td></tr>
+                  <tr><td class="text-teal">W3O1 v1</td><td>binary</td><td>Weighted-random single-winner artifacts.</td></tr>
+                  <tr><td class="text-teal">W3O1 v2</td><td>binary</td><td>Weighted-random multi-winner artifacts with ordered <span class="mono">outcome_ids</span>.</td></tr>
+                  <tr><td class="text-teal">W3O1 v3</td><td>binary</td><td>Native formula artifacts: <span class="mono">weighted_random</span>, <span class="mono">rank_desc</span>, <span class="mono">rank_asc</span>, <span class="mono">first_n</span>, <span class="mono">closest_to</span>.</td></tr>
+                  <tr><td class="text-teal">runtime_id</td><td>bytes16 / hex</td><td>Committed runtime identifier emitted in replay output.</td></tr>
+                  <tr><td class="text-teal">compiled_artifact_hash</td><td>sha256 hex</td><td>Canonical hash of the compiled bytes bound before resolution.</td></tr>
+                  <tr><td class="text-teal">outcome_ids</td><td>string[]</td><td>Selected outputs in deterministic order. Single-winner flows also expose <span class="mono">outcome_id</span>.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -109,38 +107,35 @@
 
           <article id="input" class="mb-8">
             <h2 style="margin-bottom: 16px;">2. Input Schema</h2>
-            <p class="mb-4">JSON-schema validation applied at <span class="mono">vre commit</span>. Extra fields are preserved in the artifact but ignored by the kernel.</p>
+            <p class="mb-4">The human-facing config stays JSON, but the serialized on-chain contract is W3O1. Public API inputs differ by formula and artifact version.</p>
             <div class="terminal mb-6">
               <div class="terminal-head">
                 <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>schema.json</span>
+                <span>formula-config.json</span>
               </div>
               <div class="terminal-body">{
-  <span style="color:#a384ff">"$schema"</span>: <span class="ok">"https://json-schema.org/draft/2020-12/schema"</span>,
-  <span style="color:#a384ff">"type"</span>: <span class="ok">"object"</span>,
-  <span style="color:#a384ff">"required"</span>: [<span class="ok">"version"</span>, <span class="ok">"mode"</span>, <span class="ok">"participants"</span>, <span class="ok">"weights"</span>],
-  <span style="color:#a384ff">"properties"</span>: {
-    <span style="color:#a384ff">"version"</span>:      { <span style="color:#a384ff">"const"</span>: <span class="ok">"1.0"</span> },
-    <span style="color:#a384ff">"mode"</span>:         { <span style="color:#a384ff">"enum"</span>: [<span class="ok">"raffle"</span>,<span class="ok">"airdrop"</span>,<span class="ok">"prediction"</span>,<span class="ok">"loot"</span>] },
-    <span style="color:#a384ff">"participants"</span>: { <span style="color:#a384ff">"type"</span>: <span class="ok">"array"</span>, <span style="color:#a384ff">"items"</span>: { <span style="color:#a384ff">"type"</span>: <span class="ok">"string"</span> } },
-    <span style="color:#a384ff">"weights"</span>:      { <span style="color:#a384ff">"type"</span>: <span class="ok">"array"</span>, <span style="color:#a384ff">"items"</span>: { <span style="color:#a384ff">"minimum"</span>: <span style="color:#fbbf24">0</span> } },
-    <span style="color:#a384ff">"seed_fn"</span>:      { <span style="color:#a384ff">"enum"</span>: [<span class="ok">"slot_nonce"</span>,<span class="ok">"block_hash"</span>,<span class="ok">"vrf"</span>] },
-    <span style="color:#a384ff">"outputs"</span>:      { <span style="color:#a384ff">"type"</span>: <span class="ok">"integer"</span>, <span style="color:#a384ff">"minimum"</span>: <span style="color:#fbbf24">1</span> }
-  }
+  <span style="color:#a384ff">"formula"</span>: <span class="ok">"closest_to"</span>,
+  <span style="color:#a384ff">"target"</span>: <span style="color:#fbbf24">22450</span>,
+  <span style="color:#a384ff">"winners_count"</span>: <span style="color:#fbbf24">2</span>,
+  <span style="color:#a384ff">"participants"</span>: [
+    { <span style="color:#a384ff">"id"</span>: <span class="ok">"alice"</span>, <span style="color:#a384ff">"score"</span>: <span style="color:#fbbf24">22300</span> },
+    { <span style="color:#a384ff">"id"</span>: <span class="ok">"bob"</span>, <span style="color:#a384ff">"score"</span>: <span style="color:#fbbf24">22610</span> },
+    { <span style="color:#a384ff">"id"</span>: <span class="ok">"carol"</span>, <span style="color:#a384ff">"score"</span>: <span style="color:#fbbf24">22480</span> }
+  ]
 }</div>
             </div>
           </article>
 
           <article id="determinism" class="mb-8">
             <h2 style="margin-bottom: 16px;">3. Determinism</h2>
-            <p class="mb-4">The selection function is a pure mapping <span class="mono">f(seed, rules) → outcome</span>. Three guarantees:</p>
+            <p class="mb-4">The kernel is a pure mapping <span class="mono">f(seed, artifact) → outcome_ids</span>. Three guarantees:</p>
             <ul style="color: var(--text-dim); padding-left: 24px; line-height: 1.8;">
               <li><strong>Referential transparency:</strong> same inputs always yield the same output, forever.</li>
-              <li><strong>No hidden state:</strong> the kernel reads nothing except what's in the ruleset and the seed.</li>
-              <li><strong>Platform-neutral:</strong> Node, browser, Deno, Rust, Python all produce bit-identical results.</li>
+              <li><strong>No hidden state:</strong> replay reads only public RPC data plus the committed W3O1 bytes.</li>
+              <li><strong>Platform-neutral:</strong> browser, Node, and on-chain logic agree on weights, scores, stable order, and targets.</li>
             </ul>
             <div class="pre-proof-caption mt-4">
-              The kernel source is <span class="mono">vre-core</span>. Its sha256 is committed on-chain alongside every resolve. A kernel upgrade is a new hash — old outcomes never change.
+              W3O1 v3 adds deterministic formulas without changing replay semantics: the verifier still reconstructs the exact committed bytes and compares replay output with the resolved transaction.
             </div>
           </article>
 
@@ -150,12 +145,12 @@
             <ol style="color: var(--text-dim); padding-left: 24px; line-height: 1.8;">
               <li>Fetch the transaction from any Solana RPC endpoint.</li>
               <li>Confirm it invokes the VRE program and is a <span class="mono">resolve</span> instruction.</li>
-              <li>Extract <span class="mono">runtime_id</span>, <span class="mono">artifact_hash</span>, <span class="mono">seed</span>, claimed <span class="mono">winner</span>.</li>
-              <li>Fetch the referenced commit transaction; confirm its slot &lt; resolve slot.</li>
-              <li>Re-hash the ruleset and confirm it matches the committed <span class="mono">artifact_hash</span>.</li>
-              <li>Run <span class="mono">f(seed, rules)</span> locally; compare to the claimed winner.</li>
+              <li>Extract <span class="mono">runtime_id</span>, <span class="mono">compiled_artifact_hash</span>, resolution seed, and claimed outputs.</li>
+              <li>Fetch the referenced artifact-binding history; confirm the artifact was committed before resolution.</li>
+              <li>Re-hash the compiled W3O1 bytes and confirm they match the committed artifact hash.</li>
+              <li>Run <span class="mono">f(seed, artifact)</span> locally; compare the replayed outputs with the on-chain record.</li>
             </ol>
-            <p class="mt-4">If all six steps pass: <span class="mono text-teal">MATCH / OK</span>. Otherwise, a specific error code — never a silent pass.</p>
+            <p class="mt-4">For W3O1 v3 responses, replay additionally exposes <span class="mono">resolution_formula</span>, <span class="mono">target</span>, per-outcome <span class="mono">score</span>, and stable <span class="mono">order</span>. If all checks pass: <span class="mono text-teal">MATCH / OK</span>.</p>
           </article>
 
           <article id="canonical-program" class="mb-8">
@@ -168,9 +163,9 @@
             <div class="card mb-6" style="padding: 0;">
               <table class="rules-table">
                 <tbody>
-                  <tr><td class="text-teal">Program ID</td><td><code>3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq</code></td></tr>
+                  <tr><td class="text-teal">Program ID</td><td><code>9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F</code></td></tr>
                   <tr><td class="text-teal">Cluster</td><td>Solana devnet (mainnet pending)</td></tr>
-                  <tr><td class="text-teal">Upgrade authority</td><td>Squads multisig <code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code> · <a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads</a></td></tr>
+                  <tr><td class="text-teal">Upgrade authority</td><td>Squads vault PDA <code>8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA</code> under multisig <code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code> · <a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads</a></td></tr>
                 </tbody>
               </table>
             </div>
@@ -203,8 +198,8 @@
                 <tbody>
                   <tr>
                     <td class="text-teal">Program upgrades</td>
-                    <td><a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads multisig</a> — governance-gated, no single key can push a new version</td>
-                    <td><code>7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ</code></td>
+                    <td><a href="https://squads.xyz/multisig" target="_blank" rel="noopener">Squads</a> governance plus vault PDA execution — proposals are approved via multisig, but the live program authority is the vault address.</td>
+                    <td><code>8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA</code></td>
                   </tr>
                   <tr>
                     <td class="text-teal">Operator signing</td>
@@ -385,7 +380,7 @@
                 <div class="terminal-body"><span class="comment"># Any agent verifies a VRE outcome</span>
 <span class="prompt">$</span> curl -s https://verifiableoutcome.online/api/replay \
     -H "content-type: application/json" \
-    -d '{"signature":"&lt;resolve_tx_sig&gt;","programId":"3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"}'
+    -d '{"signature":"&lt;resolve_tx_sig&gt;","programId":"9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"}'
 <span class="out">→ { "ok": true, "replay": { "verification_result": "MATCH", "verification_reason": "OK", … } }</span></div>
               </div>
             </div>
@@ -521,7 +516,7 @@
 <span class="comment">// Verify a resolved transaction</span>
 <span style="color:#a384ff">const</span> result = <span style="color:#a384ff">await</span> verifyOutcome({
   signature: <span class="ok">"5KJp…9vW2"</span>,
-  programId: <span class="ok">"3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"</span>,
+  programId: <span class="ok">"9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"</span>,
 });
 <span class="comment">// → { status: "MATCH", code: "OK", winner: "…", … }</span></div>
             </div>
@@ -589,9 +584,52 @@
               <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Partner API endpoints are distinct from the public SDK surface (<code>/api/replay</code>, <code>/api/live-raffle</code>). The public endpoints are rate-limited but require no key. Partner endpoints carry higher rate limits and return richer indexer data suitable for dashboards and integrations.</p>
             </div>
 
+            <h3 style="margin-top:32px;margin-bottom:12px;">W3O1 v3 Native Formula Layout</h3>
+            <p class="mb-4">
+              Formula draws are committed natively inside the artifact bytes. Old v1/v2 artifacts stay valid; v3 adds explicit formula metadata, signed scores, stable input order, and optional target support for <code>closest_to</code>.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Header field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>magic</code></td><td>bytes[4]</td><td>Always <code>"W3O1"</code>.</td></tr>
+                  <tr><td><code>format_version</code></td><td>u16</td><td><code>3</code> for formula-native artifacts.</td></tr>
+                  <tr><td><code>min_input_lamports</code> / <code>max_input_lamports</code></td><td>u64 / u64</td><td>Replay and on-chain input bounds, unchanged from v1/v2.</td></tr>
+                  <tr><td><code>outcome_count</code> / <code>effect_count</code></td><td>u16 / u16</td><td>Outcome directory and effect directory lengths.</td></tr>
+                  <tr><td><code>winners_count</code></td><td>u16</td><td>Number of winners to select.</td></tr>
+                  <tr><td><code>formula_code</code></td><td>u8</td><td><code>1=weighted_random</code>, <code>2=rank_desc</code>, <code>3=rank_asc</code>, <code>4=first_n</code>, <code>5=closest_to</code>.</td></tr>
+                  <tr><td><code>reserved</code></td><td>bytes[5]</td><td>Must be zero.</td></tr>
+                  <tr><td><code>target_score</code></td><td>i64</td><td>Used by <code>closest_to</code>; <code>0</code> otherwise.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Outcome field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>outcome_id_len</code></td><td>u8</td><td>Length of the canonical printable-ASCII id.</td></tr>
+                  <tr><td><code>outcome_id</code></td><td>bytes[64]</td><td>Participant id padded with zeroes.</td></tr>
+                  <tr><td><code>weight</code></td><td>u32</td><td>Weighted-random weight. For deterministic formulas current API writes <code>1</code>.</td></tr>
+                  <tr><td><code>score</code></td><td>i64</td><td>Signed score for ranking / closest formulas; <code>0</code> when unused.</td></tr>
+                  <tr><td><code>order</code></td><td>u16</td><td>Stable input order for <code>first_n</code> and all deterministic tie-breaks.</td></tr>
+                  <tr><td><code>first_effect_index</code> / <code>effect_count</code></td><td>u16 / u16</td><td>Effect slice for this outcome.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-4" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;"><strong>Formula rules:</strong> <code>rank_desc</code> sorts by score desc, <code>rank_asc</code> by score asc, <code>first_n</code> by order asc, and <code>closest_to</code> by <code>abs(score-target)</code> asc. All deterministic ties break by <code>order</code> asc.</p>
+            </div>
+
             <h3 style="margin-top:32px;margin-bottom:12px;">POST /api/partner/draw</h3>
             <p class="mb-4">
-              Submit a participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet. Requires <code>"draw_enabled": true</code> in the partner config entry.
+              Submit a formula-driven participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet. Requires <code>"draw_enabled": true</code> in the partner config entry.
             </p>
 
             <div class="card mb-6" style="padding: 0;">
@@ -601,16 +639,28 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td><code>participants</code></td>
-                    <td>string[]</td>
+                    <td><code>formula</code></td>
+                    <td>string</td>
                     <td>Yes</td>
-                    <td>2–100 unique participant ids. Current protocol limit: printable ASCII, max 64 bytes.</td>
+                    <td>One of <code>weighted_random</code>, <code>rank_desc</code>, <code>rank_asc</code>, <code>first_n</code>, <code>closest_to</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>participants</code></td>
+                    <td>object[]</td>
+                    <td>Yes</td>
+                    <td>2–100 unique participant objects. Each item must contain <code>id</code>; <code>score</code> and <code>weight</code> depend on the selected formula.</td>
                   </tr>
                   <tr>
                     <td><code>winners_count</code></td>
                     <td>integer</td>
                     <td>No</td>
                     <td>Number of winners to select (1–10). Defaults to <code>1</code>. Must be ≤ <code>participants.length</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>target</code></td>
+                    <td>integer</td>
+                    <td>No*</td>
+                    <td>Required only for <code>closest_to</code>. Signed safe integer, usually a pre-scaled score target.</td>
                   </tr>
                   <tr>
                     <td><code>label</code></td>
@@ -684,7 +734,7 @@
                 </thead>
                 <tbody>
                   <tr><td><code>200</code></td><td>Draw completed successfully.</td></tr>
-                  <tr><td><code>400</code></td><td>Validation error (bad participant ids, duplicates, invalid <code>winners_count</code> or <code>use_case</code>).</td></tr>
+                  <tr><td><code>400</code></td><td>Validation error (bad formula, bad participant ids, duplicates, invalid <code>score</code> / <code>weight</code> / <code>target</code>, invalid <code>winners_count</code> or <code>use_case</code>).</td></tr>
                   <tr><td><code>401</code></td><td>Missing or unknown API key.</td></tr>
                   <tr><td><code>403</code></td><td>Valid key but <code>draw_enabled</code> is not <code>true</code> for this partner.</td></tr>
                   <tr><td><code>429</code></td><td>Rate limit exceeded; retry after 60 s.</td></tr>
@@ -701,14 +751,14 @@
               <div class="terminal-body"><span class="prompt">$</span> curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
     -H <span class="ok">"Content-Type: application/json"</span> \
     -H <span class="ok">"x-api-key: vresk_YOUR_KEY"</span> \
-    -d <span class="ok">'{"participants":["user-001","user-002","user-003"],"winners_count":1,"label":"Campaign #1"}'</span>
+    -d <span class="ok">'{"formula":"closest_to","target":22450,"participants":[{"id":"alice","score":22449},{"id":"bob","score":22460},{"id":"carol","score":22451}],"winners_count":1,"label":"Price Prediction"}'</span>
 
 <span class="comment"># 200 response:</span>
 {
   <span class="ok">"ok"</span>: true,
   <span class="ok">"signature"</span>: "5xYz...",
-  <span class="ok">"outcome_id"</span>: "user-001",
-  <span class="ok">"outcome_ids"</span>: ["user-001"],
+  <span class="ok">"outcome_id"</span>: "carol",
+  <span class="ok">"outcome_ids"</span>: ["carol"],
   <span class="ok">"replay_url"</span>: "https://verifiableoutcome.online/verify?sig=5xYz...",
   <span class="ok">"artifact_slot"</span>: 340123456,
   <span class="ok">"resolution_slot"</span>: 340123512

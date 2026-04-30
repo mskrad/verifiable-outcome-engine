@@ -33,9 +33,9 @@ Optional: copy `.env.example` to `.env` to override defaults. Not required — s
 cd verifiable-outcome-engine
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
-  --sig 3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1 \
+  --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
 ```
 
 ## 5) Embedded widget equivalent
@@ -71,24 +71,25 @@ It does not require:
 
 ## 7) Program upgrade authority
 
-The canonical devnet program upgrade authority is held by a Squads multisig:
+The canonical devnet program upgrade authority is the Squads vault PDA controlled by the hackathon multisig:
 
-- Program: `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`
+- Program: `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`
 - Squads multisig: `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ`
+- Squads vault PDA / current upgrade authority: `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA`
 - Threshold: `1-of-1` for the hackathon devnet demo
 - Member: `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
 
 Verify the current authority:
 
 ```bash
-solana program show 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --url https://api.devnet.solana.com
 ```
 
 Expected authority:
 
 ```text
-Authority: 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ
+Authority: 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA
 ```
 
 Future upgrades should be proposed and approved through Squads governance, then executed after the multisig threshold is met. ProgramConfig admin is intentionally separate from upgrade authority and is controlled by the configured operator path.
@@ -111,12 +112,12 @@ solana program write-buffer target/deploy/outcome.so \
 # outputs: Buffer: <BUFFER_ADDRESS>
 ```
 
-**Step 3 — Set buffer authority to the Squads multisig**
+**Step 3 — Set buffer authority to the Squads vault PDA**
 
 The buffer must be owned by the Squads PDA before it can be used in a proposal:
 ```bash
 solana program set-buffer-authority <BUFFER_ADDRESS> \
-  --new-buffer-authority 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
+  --new-buffer-authority 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA \
   --keypair ~/.config/solana/esjx.json \
   --url https://api.devnet.solana.com
 ```
@@ -125,7 +126,7 @@ solana program set-buffer-authority <BUFFER_ADDRESS> \
 ```bash
 squads-multisig-cli program-upgrade \
   --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --buffer <BUFFER_ADDRESS> \
   --spill-address ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT \
   --keypair ~/.config/solana/esjx.json \
@@ -153,9 +154,9 @@ squads-multisig-cli transaction execute \
 
 **Step 7 — Verify**
 ```bash
-solana program show 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --url https://api.devnet.solana.com
-# Authority should still be 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ
+# Authority should still be 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA
 # Last Deployed In Slot should be updated
 ```
 
@@ -167,8 +168,9 @@ Open https://squads.so/multisig and connect `esjx.json` wallet (devnet). The mul
 
 | Name | Address |
 |---|---|
-| Program | `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq` |
+| Program | `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F` |
 | Squads multisig PDA | `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` |
+| Squads vault PDA / upgrade authority | `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA` |
 | Member / operator key | `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` |
 | ProgramConfig admin | `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf` (Swig actor wallet, separate from upgrade authority) |
 | Evidence | `artifacts/squads_multisig_evidence.json` |
@@ -192,7 +194,7 @@ cd verifiable-outcome-engine
 ROOT_KEYPAIR=~/.config/solana/esjx.json \
 SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-VRE_PROGRAM_ID=3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+VRE_PROGRAM_ID=9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
 yarn -s swig:operator:create
 ```
 
@@ -203,7 +205,7 @@ cd verifiable-outcome-engine
 ROOT_KEYPAIR=~/.config/solana/esjx.json \
 SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-VRE_PROGRAM_ID=3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+VRE_PROGRAM_ID=9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
 SWIG_TRANSFER_PROGRAM_CONFIG_ADMIN=1 \
 yarn -s swig:operator:create
 ```
@@ -291,7 +293,7 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 
 ## 11) Partner Draw API
 
-`POST /api/partner/draw` lets B2B partners submit a participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet (same as `/api/live-raffle`).
+`POST /api/partner/draw` lets B2B partners submit a formula-driven participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet (same as `/api/live-raffle`).
 
 **Requirements:**
 
@@ -316,7 +318,40 @@ To enable draws for a partner, edit `config/partners.json`:
 curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
   -H "Content-Type: application/json" \
   -H "x-api-key: vresk_YOUR_KEY" \
-  -d '{"participants":["user-001","user-002","user-003"],"winners_count":1,"label":"Campaign #1"}'
+  -d '{
+    "formula":"rank_desc",
+    "participants":[
+      {"id":"trader-alice","score":1200},
+      {"id":"trader-bob","score":900},
+      {"id":"trader-carol","score":1500}
+    ],
+    "winners_count":2,
+    "label":"AlphaDex Top 2"
+  }'
+```
+
+**Formula examples:**
+
+```json
+{
+  "formula": "weighted_random",
+  "participants": [
+    { "id": "user-001", "weight": 5 },
+    { "id": "user-002", "weight": 1 }
+  ]
+}
+```
+
+```json
+{
+  "formula": "closest_to",
+  "target": 22450,
+  "participants": [
+    { "id": "alice", "score": 22449 },
+    { "id": "bob", "score": 22460 },
+    { "id": "carol", "score": 22451 }
+  ]
+}
 ```
 
 **Response codes:**
@@ -324,13 +359,24 @@ curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
 | Code | Meaning |
 |------|---------|
 | `200` | Draw completed; `signature`, `outcome_id`, `outcome_ids`, `replay_url`, `artifact_slot`, `resolution_slot` returned |
-| `400` | Validation error (bad participant ids, duplicates, invalid `winners_count`, bad `use_case`) |
+| `400` | Validation error (bad formula, bad participant ids, duplicates, invalid `score` / `weight` / `target`, bad `winners_count`, bad `use_case`) |
 | `401` | Missing or unknown API key |
 | `403` | Partner key valid but `draw_enabled` is not `true` |
 | `429` | Rate limit exceeded; one draw per partner key per 60 s |
 | `504` | Devnet timeout; retry |
 
 `participants` are generic participant ids, not necessarily Solana addresses. Current artifact format still requires printable ASCII ids up to 64 bytes.
+
+Formula contract:
+- `weighted_random`: `participants[].id`, optional `participants[].weight` (default `1`)
+- `rank_desc`: `participants[].id`, required `participants[].score`
+- `rank_asc`: `participants[].id`, required `participants[].score`
+- `first_n`: `participants[].id`
+- `closest_to`: `participants[].id`, required `participants[].score`, required top-level `target`
+
+Native W3O1 v3 layout:
+- header: `magic`, `format_version=3`, `min_input_lamports`, `max_input_lamports`, `outcome_count`, `effect_count`, `winners_count`, `formula_code`, `reserved[5]`, `target_score`
+- outcome: `outcome_id_len`, `outcome_id[64]`, `weight`, `score`, `order`, `first_effect_index`, `effect_count`
 
 ## 10) Partner API keys for `/api/resolutions` and `/api/participant`
 

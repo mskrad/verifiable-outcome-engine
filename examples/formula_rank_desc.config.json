@@ -1,0 +1,12 @@
+{
+  "type": "formula_draw",
+  "formula": "rank_desc",
+  "input_lamports": 10,
+  "payout_lamports": 3,
+  "winners_count": 2,
+  "participants": [
+    { "id": "trader-alice", "score": 1200 },
+    { "id": "trader-bob", "score": 900 },
+    { "id": "trader-carol", "score": 1500 }
+  ]
+}

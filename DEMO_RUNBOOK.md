@@ -1,6 +1,6 @@
 # Demo Runbook
 
-Purpose: show Verifiable Outcome Engine as a raffle / winner-selection proof scenario using included devnet evidence.
+Purpose: show Verifiable Outcome Engine against the current canonical devnet program, active blessed signatures, and native W3O1 v3 formulas.
 
 ## 1) Install
 
@@ -16,20 +16,26 @@ Use one active signature from:
 - `artifacts/outcome_devnet_blessed_signatures.json`
 - `artifacts/EXPECTED_TX_EXAMPLES.md`
 
-Fallback signature if live resolve is unavailable:
+Default demo signature:
 
 ```text
-3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1
+5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2
 ```
+
+Other active examples:
+
+- `3F5UeDYgfsg4NhsucruqUbCTSd8YJjDjnGZuDMVunbVL9yAVDmf39Ace8gUMmoginoJ6fFiczNhDUZnYvQDhBFnN` — `Rewards Selection`
+- `4Ge4ggoRaT5nCQbdZXr51AU3sPPfuPeJgExLziy2HNtQ85AEhMMxDaazUs4ZCnPEckcHP8UuJ8vnTaBCaqJizT8o` — `Trading Competition` (`rank_desc`)
+- `3XxRQhYvzakKdX7uwi4wN5YKGu5Mdm8oGwSoLr8GiAFDWYcEEyxPAVkTNJZe1AV9gbsFpbWFauHWQakYR2SFEw8G` — `Prediction Market` (`closest_to`, target `22450`)
 
 ## 3) Replay from public RPC data
 
 ```bash
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
-  --sig 3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1 \
+  --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
 ```
 
 ## 4) Expected result
@@ -53,14 +59,14 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 ANCHOR_WALLET=~/.config/solana/id.json \
 yarn -s resolve:operator \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --json
 
 # Step 2 — replay the returned signature
 yarn -s replay \
   --sig <signature> \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
 ```
 
 Expected: `verification_result : MATCH` / `verification_reason : OK`

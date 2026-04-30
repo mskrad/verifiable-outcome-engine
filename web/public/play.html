@@ -65,11 +65,11 @@
         <div class="text-faint" style="font-size:13px;">
           <span id="sig-status">Loading…</span>
           <span style="margin: 0 8px;">·</span>
-          Program <span class="mono">3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq</span>
+          Program <span class="mono">9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F</span>
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-ghost btn-sm" data-copy="3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq">Copy program ID</button>
-          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/address/3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
+          <button class="btn btn-ghost btn-sm" data-copy="9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F">Copy program ID</button>
+          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/address/9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
         </div>
       </div>
 
@@ -94,28 +94,28 @@
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> Use cases</span>
         <h2>Same engine. Four surfaces.</h2>
-        <p>Every card above uses the same deterministic kernel. The use-case label is descriptive, not architectural — VRE doesn't care what your draw is for.</p>
+        <p>The active blessed set currently covers four reviewer-facing surfaces. The label on each card comes directly from the blessed evidence bundle.</p>
       </div>
       <div class="feature-grid">
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(20,241,149,0.08); color: var(--teal); border-color: rgba(20,241,149,0.2);">🎟</div>
+          <h3>Raffle</h3>
+          <p>Single-winner draw from a committed participant list. The winner address is fixed only after on-chain resolution and can be replayed from the signature.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background: rgba(20,241,149,0.08); color: var(--teal); border-color: rgba(20,241,149,0.2);">🏆</div>
           <h3>Rewards Selection</h3>
-          <p>Raffles, airdrops, multi-winner draws — pick one or N recipients from a committed weighted list. All winners committed on-chain before the draw.</p>
+          <p>Multi-winner selection from one committed weighted list. All selected winners are stored in the resolution and replayed from public RPC data.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(245,158,11,0.08); color: #fbbf24; border-color: rgba(245,158,11,0.2);">🗳️</div>
-          <h3>DAO Proposal</h3>
-          <p>Multiple approved proposals, weights set by vote count. VRE picks one — no one can influence the draw after weights are committed.</p>
+          <div class="feature-icon" style="background: rgba(20,184,166,0.08); color: #2dd4bf; border-color: rgba(20,184,166,0.2);">📈</div>
+          <h3>Trading Competition</h3>
+          <p>Native <span class="mono">rank_desc</span> formula. Top traders by descending score are selected deterministically and replay shows the committed scores.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(168,85,247,0.08); color: #c084fc; border-color: rgba(168,85,247,0.2);">🎁</div>
-          <h3>Loot</h3>
-          <p>Weighted outcome table (legendary / rare / common). Identical kernel to raffle, different label.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(20,184,166,0.08); color: #2dd4bf; border-color: rgba(20,184,166,0.2);">🤖</div>
-          <h3>Agent Selection</h3>
-          <p>Agents earn reputation through completed work. Higher reputation = higher selection weight. The marketplace cannot secretly favor an agent — the weighted draw is committed on-chain before resolution.</p>
+          <div class="feature-icon" style="background: rgba(245,158,11,0.08); color: #fbbf24; border-color: rgba(245,158,11,0.2);">🎯</div>
+          <h3>Prediction Market</h3>
+          <p>Native <span class="mono">closest_to</span> formula. Predictions closest to the committed target win, with deterministic tie-break by input order.</p>
         </div>
       </div>
     </div>

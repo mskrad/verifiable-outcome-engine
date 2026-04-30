@@ -19,7 +19,9 @@ type ReplayOutput = {
   outcome_ids?: string[];
   winners_count?: number;
   artifact_format_version?: number;
-  outcomes: Array<{ id: string; weight: number }>;
+  resolution_formula?: VerifyResult["resolution_formula"];
+  target?: VerifyResult["target"];
+  outcomes: Array<{ id: string; weight: number; score?: number; order?: number }>;
 };
 
 function parseArgs(argv: string[]): CliArgs {
@@ -63,6 +65,12 @@ function buildReplayOutput(
           artifact_format_version: result.artifact_format_version,
         }
       : {}),
+    ...(result.resolution_formula
+      ? {
+          resolution_formula: result.resolution_formula,
+          target: result.target,
+        }
+      : {}),
     outcomes: result.outcomes ?? [],
   };
 }
@@ -79,6 +87,10 @@ function printOutput(output: ReplayOutput, asJson: boolean): void {
     console.log("outcome_ids         :", output.outcome_ids.join(","));
     console.log("winners_count       :", output.winners_count);
     console.log("artifact_format_version :", output.artifact_format_version);
+  }
+  if (output.resolution_formula) {
+    console.log("resolution_formula  :", output.resolution_formula);
+    console.log("target              :", output.target);
   }
   console.log("signature           :", output.signature);
   console.log("program_id          :", output.program_id);

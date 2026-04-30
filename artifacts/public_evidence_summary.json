@@ -1,6 +1,6 @@
 {
   "schema_version": "outcome_public_reference_summary_v1",
-  "canonical_program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
   "default_rpc_url": "https://api.devnet.solana.com",
   "reference_scope": [
     "standalone replay verification by signature",
@@ -26,7 +26,7 @@
     {
       "id": "devnet_gate",
       "status": "accepted",
-      "summary": "Two active blessed outcome-core devnet signatures replay to MATCH / OK."
+      "summary": "Four active blessed canonical devnet signatures replay to MATCH / OK, including W3O1 v3 rank_desc and closest_to."
     },
     {
       "id": "operator_packaging",
@@ -70,6 +70,7 @@
     "This repository is the standalone hackathon repo and the reviewer/runtime flow runs from repo root.",
     "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
     "Legacy compiled spec and metrics appendix files are not part of the active standalone runtime surface.",
-    "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows."
+    "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows.",
+    "The current canonical evidence set is program 9tEram... with Raffle, Rewards Selection, Trading Competition, and Prediction Market active signatures."
   ]
 }

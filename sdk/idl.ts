@@ -1,5 +1,5 @@
 export const OUTCOME_IDL = {
-  "address": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
   "metadata": {
     "name": "outcome",
     "version": "0.1.0",
@@ -580,7 +580,7 @@ export const OUTCOME_IDL = {
         },
         {
           "name": "program",
-          "address": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
+          "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
         },
         {
           "name": "program_data"

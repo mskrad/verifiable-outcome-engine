@@ -24,3 +24,17 @@ test-ledger/
 programs/
 programs/
 design/
+!programs/
+programs/*
+!programs/outcome/
+programs/outcome/*
+!programs/outcome/build.rs
+!programs/outcome/src/
+programs/outcome/src/*
+!programs/outcome/src/lib.rs
+!programs/outcome/src/instructions/
+programs/outcome/src/instructions/*
+!programs/outcome/src/instructions/submit_compiled_artifact.rs
+!programs/outcome/src/math/
+programs/outcome/src/math/*
+!programs/outcome/src/math/compiled_outcome_v1.rs

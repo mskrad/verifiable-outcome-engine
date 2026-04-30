@@ -173,30 +173,30 @@
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> Use cases</span>
-        <h2>Committed rules, single or multi-winner outcomes.</h2>
-        <p>The SDK shape stays the same: build the artifact, resolve on-chain, then replay the transaction signature.</p>
+        <h2>Committed W3O1 rules across v1, v2, and v3.</h2>
+        <p>The flow stays the same: build the artifact, resolve on-chain, then replay the transaction signature. What changes is the committed formula surface.</p>
       </div>
 
       <div class="usecase-grid feature-grid">
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(20,241,149,0.08); color: var(--teal); border-color: rgba(20,241,149,0.2);">🎟</div>
-          <h3>Raffle / Airdrop</h3>
-          <p>Pick one recipient from a committed weighted address list.</p>
+          <h3>Raffle</h3>
+          <p>W3O1 v1 weighted random. One winner from a committed weighted participant list.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon" style="background: linear-gradient(135deg, rgba(20,241,149,0.1), rgba(245,158,11,0.12)); color: #fcd34d; border-color: rgba(20,241,149,0.24);">🏆</div>
-          <h3>Multi-Winner</h3>
-          <p>Select N distinct winners in one resolve. Replay returns the primary <span class="mono">outcome_id</span> plus the full <span class="mono">outcome_ids</span> list.</p>
+          <h3>Rewards Selection</h3>
+          <p>W3O1 v2 multi-winner weighted random. Replay returns the primary <span class="mono">outcome_id</span> plus the full <span class="mono">outcome_ids</span> list.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(245,158,11,0.08); color: #fbbf24; border-color: rgba(245,158,11,0.2);">🗳️</div>
-          <h3>DAO Proposal</h3>
-          <p>Choose from approved proposals after weights are committed.</p>
+          <div class="feature-icon" style="background: rgba(245,158,11,0.08); color: #fbbf24; border-color: rgba(245,158,11,0.2);">📈</div>
+          <h3>Trading Competition</h3>
+          <p>W3O1 v3 <span class="mono">rank_desc</span>. Signed scores, stable input order, deterministic tie-breaks.</p>
         </div>
         <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(168,85,247,0.08); color: #c084fc; border-color: rgba(168,85,247,0.2);">🎁</div>
-          <h3>Loot</h3>
-          <p>Resolve weighted outcome tables with the same deterministic replay path.</p>
+          <div class="feature-icon" style="background: rgba(168,85,247,0.08); color: #c084fc; border-color: rgba(168,85,247,0.2);">🎯</div>
+          <h3>Prediction Market</h3>
+          <p>W3O1 v3 <span class="mono">closest_to</span>. Replay includes <span class="mono">target</span>, signed scores, and stable order.</p>
         </div>
       </div>
     </div>

@@ -740,11 +740,23 @@ p {
 
 .sig-card-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+.sig-card-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.sig-card-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--text);
 }
 
 .sig-card-badges {
@@ -754,11 +766,23 @@ p {
   flex-wrap: wrap;
 }
 
+.sig-card-status {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
 .sig-card-desc {
   color: var(--text);
   font-size: 15px;
   margin-bottom: 12px;
   font-weight: 500;
+}
+
+.badge-neutral {
+  background: rgba(139, 145, 168, 0.08);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
 }
 
 .sig-hash {
@@ -868,6 +892,12 @@ p {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .sig-card-status {
+    justify-items: start;
+  }
 }
 
 /* ================================================================
@@ -1111,6 +1141,18 @@ p {
   color: var(--text);
 }
 
+.artifact-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.artifact-summary-inline {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
 .rules-table {
   width: 100%;
   table-layout: fixed;
@@ -1141,17 +1183,17 @@ p {
 
 .rules-table th:first-child,
 .rules-table td:first-child {
-  width: 58%;
+  width: 40%;
 }
 
 .rules-table th:nth-child(2),
 .rules-table td:nth-child(2) {
-  width: 18%;
+  width: 14%;
 }
 
 .rules-table th:last-child,
 .rules-table td:last-child {
-  width: 24%;
+  width: 18%;
 }
 
 .rules-table tr:last-child td {
@@ -1402,6 +1444,10 @@ p {
   .rules-table th,
   .rules-table td {
     padding: 8px 6px;
+  }
+
+  .artifact-summary-inline {
+    justify-content: flex-start;
   }
 
   .terminal-body {

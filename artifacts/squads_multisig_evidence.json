@@ -6,12 +6,13 @@
   ],
   "create_multisig_tx": "4FZ4TfvTa8FqntFHtmMd1ZfuGbVoCjU62K8BqhDoSwo94iu9QJtmHftd3FZ1fZ8PuEJm2k6vN5jh4dPbSW16e2cb",
   "set_authority_tx": "2RWLPuehq4w8fZv2iWgyJvVNkcZv4Ebpu39KSYdR7NaXzSFxJPXRJrUmCMQmSPiJcA3223rJgRNxRqiTzBzHCKd5",
-  "verification": "Program Id: 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq\nOwner: BPFLoaderUpgradeab1e11111111111111111111111\nProgramData Address: AqZY6pmSFQasMgebvEHhsRWwShmiqX5AenEqdRPhFUpV\nAuthority: 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ\nLast Deployed In Slot: 457950579\nData Length: 547048 (0x858e8) bytes\nBalance: 3.80865816 SOL",
-  "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
-  "programdata_address": "AqZY6pmSFQasMgebvEHhsRWwShmiqX5AenEqdRPhFUpV",
+  "verification": "Program Id: 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F\nOwner: BPFLoaderUpgradeab1e11111111111111111111111\nProgramData Address: 7T2q65rD59nZK1TDvea21n92kUhR1hzwjQmZychyXYUc\nAuthority: 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA\nLast Deployed In Slot: 459104890\nData Length: 601832 (0x92ee8) bytes\nBalance: 4.1899548 SOL",
+  "program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+  "programdata_address": "7T2q65rD59nZK1TDvea21n92kUhR1hzwjQmZychyXYUc",
   "previous_upgrade_authority": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
-  "program_config_admin": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
+  "program_config_admin": "E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf",
   "network": "devnet",
   "squads_program_id": "SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf",
-  "verified_at": "2026-04-26T14:52:01Z"
+  "note": "Program verification snapshot refreshed for canonical 9tEram... on 2026-04-30. create_multisig_tx and set_authority_tx remain the original governance setup transactions.",
+  "verified_at": "2026-04-30T15:20:00Z"
 }

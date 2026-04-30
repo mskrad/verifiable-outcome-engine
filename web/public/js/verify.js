@@ -8,8 +8,9 @@
   'use strict';
 
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
-  const DEFAULT_PROGRAM_ID = '3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq';
+  const DEFAULT_PROGRAM_ID = '9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
   const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+  const LAST_MATCH_STORAGE_KEY = 'vre:last-match-verify';
 
   let lastVerifyResult = null;
   let phantomState = { status: 'not-connected' };
@@ -141,8 +142,22 @@
     return 'not-in-draw';
   }
 
+  function persistLastMatch(r) {
+    if (r.status !== 'MATCH') return;
+    try {
+      localStorage.setItem(LAST_MATCH_STORAGE_KEY, JSON.stringify({
+        signature: r.signature,
+        rpcUrl: r.rpcUrl,
+        programId: r.programId,
+        cluster: r.cluster,
+        verifiedAt: new Date().toISOString(),
+      }));
+    } catch (_) {}
+  }
+
   function renderResult(r) {
     lastVerifyResult = r;
+    persistLastMatch(r);
     const banner = el('result-banner');
     const details = el('result-details');
     const raw = el('result-raw');
@@ -197,6 +212,33 @@
     };
   }
 
+  function artifactFormatVersion(r) {
+    return Number(r?.replay?.artifact_format_version || r?.replay?.artifactFormatVersion || 0);
+  }
+
+  function resolutionFormula(r) {
+    return String(r?.replay?.resolution_formula || '').trim();
+  }
+
+  function resolutionTarget(r) {
+    return r?.replay?.target;
+  }
+
+  function showResolutionTarget(r) {
+    return resolutionFormula(r) === 'closest_to' && resolutionTarget(r) !== undefined;
+  }
+
+  function committedWinnerCount(r) {
+    const explicit = Number(r?.replay?.winners_count || r?.replay?.winnerCount || 0);
+    if (explicit > 0) return explicit;
+    const selected = selectedOutcomeIds(r).length;
+    return selected > 0 ? selected : 1;
+  }
+
+  function hasFormulaScores(r) {
+    return (r.outcomes || []).some((outcome) => outcome?.score !== undefined || outcome?.order !== undefined);
+  }
+
   function renderDetails(r) {
     const details = el('result-details');
     details.innerHTML = renderOutcome(r) + renderDidIWin(r) + renderRules(r) + renderTimeline(r) + renderLinks(r);
@@ -207,6 +249,10 @@
     const winners = selectedOutcomeIds(r);
     if (!winners.length) return '';
     const isMulti = winners.length > 1;
+    const formatVersion = artifactFormatVersion(r);
+    const formula = resolutionFormula(r);
+    const target = resolutionTarget(r);
+    const winnersCount = committedWinnerCount(r);
     return `
       <div class="result-section">
         <div class="result-section-title">${isMulti ? 'Selected Winners' : 'Selected Outcome'}</div>
@@ -227,6 +273,12 @@
           <div class="badge ${r.status === 'MATCH' ? 'badge-match' : 'badge-mismatch'}">
             ${r.status === 'MATCH' ? '✓ replay matches' : '✕ replay diverges'}
           </div>
+        </div>
+        <div class="artifact-summary">
+          ${formatVersion > 0 ? `<span class="badge badge-neutral">W3O1 v${formatVersion}</span>` : ''}
+          ${formula ? `<span class="badge badge-neutral">${escapeHtml(formula)}</span>` : ''}
+          ${winnersCount > 1 ? `<span class="badge badge-neutral">${winnersCount} winners</span>` : ''}
+          ${showResolutionTarget(r) ? `<span class="badge badge-neutral">target ${escapeHtml(String(target))}</span>` : ''}
         </div>
       </div>
     `;
@@ -295,22 +347,41 @@
   function renderRules(r) {
     if (!r.outcomes.length) return '';
     const winners = new Set(selectedOutcomeIds(r));
+    const showFormulaColumns = hasFormulaScores(r);
+    const formatVersion = artifactFormatVersion(r);
+    const formula = resolutionFormula(r);
+    const target = resolutionTarget(r);
     const rows = r.outcomes.map((outcome) => {
       const id = String(outcome.id ?? '');
       const isWinner = winners.has(id);
       return `<tr class="${isWinner ? 'winner' : ''}">
         <td>${escapeHtml(id)}</td>
         <td>${escapeHtml(String(outcome.weight ?? '—'))}</td>
+        ${showFormulaColumns ? `<td>${escapeHtml(String(outcome.score ?? '—'))}</td>` : ''}
+        ${showFormulaColumns ? `<td>${escapeHtml(String(outcome.order ?? '—'))}</td>` : ''}
         <td>${isWinner ? '← selected' : ''}</td>
       </tr>`;
     }).join('');
 
     return `
       <div class="result-section">
-        <div class="result-section-title">Committed Rules</div>
+        <div class="section-head-with-action">
+          <div class="result-section-title">Committed W3O1 Rules</div>
+          <div class="artifact-summary artifact-summary-inline">
+            ${formatVersion > 0 ? `<span class="badge badge-neutral">W3O1 v${formatVersion}</span>` : ''}
+            ${formula ? `<span class="badge badge-neutral">${escapeHtml(formula)}</span>` : ''}
+            ${showResolutionTarget(r) ? `<span class="badge badge-neutral">target ${escapeHtml(String(target))}</span>` : ''}
+          </div>
+        </div>
         <table class="rules-table">
           <thead>
-            <tr><th>Outcome</th><th>Weight</th><th></th></tr>
+            <tr>
+              <th>Outcome</th>
+              <th>Weight</th>
+              ${showFormulaColumns ? '<th>Score</th>' : ''}
+              ${showFormulaColumns ? '<th>Order</th>' : ''}
+              <th></th>
+            </tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>

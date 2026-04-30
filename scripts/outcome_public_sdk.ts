@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export const REFERENCE_ROOT = path.resolve(__dirname, "..");
 export const DEFAULT_PROGRAM_ID =
-  "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq";
+  "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
 export const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 export const CHUNK_SIZE = 1024;
 

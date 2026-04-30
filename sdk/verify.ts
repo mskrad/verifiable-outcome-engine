@@ -4,15 +4,20 @@ import fs from "fs";
 import path from "path";
 import { PublicKey } from "@solana/web3.js";
 
-import type { VerifyOutcomeOptions, VerifyResult } from "./types.js";
+import type {
+  ResolutionFormula,
+  VerifyOutcomeOptions,
+  VerifyResult,
+} from "./types.js";
 
-const DEFAULT_PROGRAM_ID = "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq";
+const DEFAULT_PROGRAM_ID = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
 const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 const CHUNK_SIZE = 1024;
 const MAX_OUTCOME_ID_BYTES = 64;
 const EFFECT_ENTRY_BYTES = 16;
 const FORMAT_VERSION_V1 = 1;
 const FORMAT_VERSION_V2 = 2;
+const FORMAT_VERSION_V3 = 3;
 const MAX_WINNERS = 32;
 const MULTI_WINNER_DOMAIN = "VRE_MULTI_WINNER_V1";
 const MAGIC = "W3O1";
@@ -20,6 +25,11 @@ const STATUS_PENDING = 0;
 const STATUS_APPROVED = 1;
 const STATUS_DEPRECATED = 3;
 const EFFECT_TYPE_TRANSFER_SOL = 1;
+const FORMULA_WEIGHTED_RANDOM = 1;
+const FORMULA_RANK_DESC = 2;
+const FORMULA_RANK_ASC = 3;
+const FORMULA_FIRST_N = 4;
+const FORMULA_CLOSEST_TO = 5;
 
 const OUTCOME_ACCOUNT_IDL = {
   address: DEFAULT_PROGRAM_ID,
@@ -254,6 +264,8 @@ type ParsedOutcome = {
   outcomeIdLen: number;
   outcomeId: Buffer;
   weight: number;
+  score: bigint;
+  order: number;
   firstEffectIndex: number;
   effectCount: number;
 };
@@ -267,6 +279,8 @@ type ParsedArtifact = {
   winnersCount: number;
   minInputLamports: bigint;
   maxInputLamports: bigint;
+  formulaCode: number;
+  targetScore: bigint;
   totalEffectCount: number;
   outcomes: ParsedOutcome[];
   effects: ParsedEffect[];
@@ -338,6 +352,12 @@ function readU64LE(buf: Buffer, offset: { value: number }): bigint {
   return value;
 }
 
+function readI64LE(buf: Buffer, offset: { value: number }): bigint {
+  const value = buf.readBigInt64LE(offset.value);
+  offset.value += 8;
+  return value;
+}
+
 function readBytes(buf: Buffer, offset: { value: number }, len: number): Buffer {
   const out = buf.subarray(offset.value, offset.value + len);
   offset.value += len;
@@ -370,6 +390,31 @@ function asBigInt(value: any): bigint {
   if (typeof value === "string") return BigInt(value);
   if (value && typeof value.toString === "function") return BigInt(value.toString());
   throw new Error(`Cannot coerce to bigint: ${String(value)}`);
+}
+
+function formulaCodeToName(code: number): ResolutionFormula {
+  switch (code) {
+    case FORMULA_WEIGHTED_RANDOM:
+      return "weighted_random";
+    case FORMULA_RANK_DESC:
+      return "rank_desc";
+    case FORMULA_RANK_ASC:
+      return "rank_asc";
+    case FORMULA_FIRST_N:
+      return "first_n";
+    case FORMULA_CLOSEST_TO:
+      return "closest_to";
+    default:
+      throw new Error(`Unsupported formula code: ${code}`);
+  }
+}
+
+function signedBigIntToSafeNumber(value: bigint, label: string): number {
+  const asNumber = Number(value);
+  if (!Number.isSafeInteger(asNumber)) {
+    throw new Error(`${label} exceeds JavaScript safe integer range`);
+  }
+  return asNumber;
 }
 
 function expectZeroPadding(bytes: Buffer, from: number, code: string): void {
@@ -615,7 +660,7 @@ function expectedChunkLen(blobLen: number, chunkIndex: number): number {
 }
 
 function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
-  if (blob.length === 0 || blob.length > 8192 || blob.length < 26) {
+  if (blob.length === 0 || blob.length > 8192 || blob.length < 34) {
     throw new Error("Invalid artifact length");
   }
   if (blob.subarray(0, 4).toString("ascii") !== MAGIC) {
@@ -624,7 +669,11 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
 
   const offset = { value: 4 };
   const formatVersion = readU16LE(blob, offset);
-  if (formatVersion !== FORMAT_VERSION_V1 && formatVersion !== FORMAT_VERSION_V2) {
+  if (
+    formatVersion !== FORMAT_VERSION_V1 &&
+    formatVersion !== FORMAT_VERSION_V2 &&
+    formatVersion !== FORMAT_VERSION_V3
+  ) {
     throw new Error("Unsupported format version");
   }
   const minInputLamports = readU64LE(blob, offset);
@@ -638,11 +687,29 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
     throw new Error("Outcome directory is empty");
   }
   let winnersCount = 1;
+  let formulaCode = FORMULA_WEIGHTED_RANDOM;
+  let targetScore = 0n;
   if (formatVersion === FORMAT_VERSION_V2) {
     winnersCount = readU16LE(blob, offset);
     if (!readBytes(blob, offset, 6).equals(Buffer.alloc(6, 0))) {
       throw new Error("Reserved header bytes must be zero");
     }
+  } else if (formatVersion === FORMAT_VERSION_V3) {
+    winnersCount = readU16LE(blob, offset);
+    formulaCode = readU8(blob, offset);
+    if (
+      formulaCode !== FORMULA_WEIGHTED_RANDOM &&
+      formulaCode !== FORMULA_RANK_DESC &&
+      formulaCode !== FORMULA_RANK_ASC &&
+      formulaCode !== FORMULA_FIRST_N &&
+      formulaCode !== FORMULA_CLOSEST_TO
+    ) {
+      throw new Error("Invalid formula code");
+    }
+    if (!readBytes(blob, offset, 5).equals(Buffer.alloc(5, 0))) {
+      throw new Error("Reserved header bytes must be zero");
+    }
+    targetScore = readI64LE(blob, offset);
   } else if (!readBytes(blob, offset, 8).equals(Buffer.alloc(8, 0))) {
     throw new Error("Reserved header bytes must be zero");
   }
@@ -652,6 +719,7 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
 
   const outcomes: ParsedOutcome[] = [];
   const referencedEffects = new Array<boolean>(totalEffectCount).fill(false);
+  const seenOrders = new Array<boolean>(outcomeCount).fill(false);
   let previousOutcomeId: Buffer | null = null;
   let weightSum = 0n;
 
@@ -680,6 +748,20 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
     }
     weightSum += BigInt(weight);
 
+    let score = 0n;
+    let order = index;
+    if (formatVersion === FORMAT_VERSION_V3) {
+      score = readI64LE(blob, offset);
+      order = readU16LE(blob, offset);
+      if (order < 0 || order >= outcomeCount) {
+        throw new Error("Outcome order is out of bounds");
+      }
+      if (seenOrders[order]) {
+        throw new Error("Outcome order must be unique");
+      }
+      seenOrders[order] = true;
+    }
+
     const firstEffectIndex = readU16LE(blob, offset);
     const effectCount = readU16LE(blob, offset);
     const endEffectIndex = firstEffectIndex + effectCount;
@@ -687,7 +769,7 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
       throw new Error("Outcome effect slice is out of bounds");
     }
     for (let effectIndex = firstEffectIndex; effectIndex < endEffectIndex; effectIndex += 1) {
-      if (formatVersion === FORMAT_VERSION_V2 && referencedEffects[effectIndex]) {
+      if (formatVersion !== FORMAT_VERSION_V1 && referencedEffects[effectIndex]) {
         throw new Error("V2 outcome effect ranges must not overlap");
       }
       referencedEffects[effectIndex] = true;
@@ -697,6 +779,8 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
       outcomeIdLen,
       outcomeId,
       weight,
+      score,
+      order,
       firstEffectIndex,
       effectCount,
     });
@@ -704,6 +788,9 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
 
   if (weightSum <= 0n) {
     throw new Error("Weight sum must be positive");
+  }
+  if (formatVersion === FORMAT_VERSION_V3 && !seenOrders.every(Boolean)) {
+    throw new Error("Outcome order must be contiguous and unique");
   }
 
   const effectsOffset = offset.value;
@@ -732,6 +819,8 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
     winnersCount,
     minInputLamports,
     maxInputLamports,
+    formulaCode,
+    targetScore,
     totalEffectCount,
     outcomes,
     effects,
@@ -770,6 +859,33 @@ function rollForRound(randomness: Buffer, round: number): bigint {
   ).readBigUInt64LE(0);
 }
 
+function compareFormulaOutcomes(
+  left: ParsedOutcome,
+  right: ParsedOutcome,
+  parsed: ParsedArtifact
+): number {
+  switch (parsed.formulaCode) {
+    case FORMULA_RANK_DESC:
+      if (left.score !== right.score) return left.score > right.score ? -1 : 1;
+      return left.order - right.order;
+    case FORMULA_RANK_ASC:
+      if (left.score !== right.score) return left.score < right.score ? -1 : 1;
+      return left.order - right.order;
+    case FORMULA_FIRST_N:
+      return left.order - right.order;
+    case FORMULA_CLOSEST_TO: {
+      const leftDistance = left.score - parsed.targetScore;
+      const rightDistance = right.score - parsed.targetScore;
+      const absLeft = leftDistance < 0n ? -leftDistance : leftDistance;
+      const absRight = rightDistance < 0n ? -rightDistance : rightDistance;
+      if (absLeft !== absRight) return absLeft < absRight ? -1 : 1;
+      return left.order - right.order;
+    }
+    default:
+      return 0;
+  }
+}
+
 function selectOutcomes(
   blob: Buffer,
   parsed: ParsedArtifact,
@@ -783,19 +899,34 @@ function selectOutcomes(
     throw new Error("Replay input is outside artifact bounds");
   }
 
-  const remaining = parsed.outcomes.map((_, index) => index);
+  const selectedIndices =
+    parsed.formulaCode === FORMULA_WEIGHTED_RANDOM
+      ? (() => {
+          const remaining = parsed.outcomes.map((_, index) => index);
+          const selected: number[] = [];
+          for (let round = 0; round < parsed.winnersCount; round += 1) {
+            const selectedRemainingIndex = chooseWeightedIndex(
+              remaining.map((index) => parsed.outcomes[index].weight),
+              rollForRound(randomness, round)
+            );
+            selected.push(remaining.splice(selectedRemainingIndex, 1)[0]);
+          }
+          return selected;
+        })()
+      : parsed.outcomes
+          .map((_, index) => index)
+          .sort((left, right) =>
+            compareFormulaOutcomes(parsed.outcomes[left], parsed.outcomes[right], parsed)
+          )
+          .slice(0, parsed.winnersCount);
+
   const outcomeIdLens: number[] = [];
   const outcomeIds: Buffer[] = [];
   const effectChunks: Buffer[] = [];
   let totalOutputLamports = 0n;
   let effectCount = 0;
 
-  for (let round = 0; round < parsed.winnersCount; round += 1) {
-    const selectedRemainingIndex = chooseWeightedIndex(
-      remaining.map((index) => parsed.outcomes[index].weight),
-      rollForRound(randomness, round)
-    );
-    const selectedIndex = remaining.splice(selectedRemainingIndex, 1)[0];
+  for (const selectedIndex of selectedIndices) {
     const selected = parsed.outcomes[selectedIndex];
     const effectStart =
       parsed.effectsOffset + selected.firstEffectIndex * EFFECT_ENTRY_BYTES;
@@ -1272,18 +1403,34 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     status: "MATCH",
     reason: "OK",
     outcome_id: outcomeIdString(event.outcomeId, event.outcomeIdLen),
+    ...((event.winnerCount > 1 || parsed.formatVersion === FORMAT_VERSION_V3)
+      ? {
+          artifact_format_version: event.artifactFormatVersion,
+        }
+      : {}),
     ...(event.winnerCount > 1
       ? {
           outcome_ids: event.outcomeIds.map((id, index) =>
             outcomeIdString(id, event.outcomeIdLens[index])
           ),
           winners_count: event.winnerCount,
-          artifact_format_version: event.artifactFormatVersion,
+        }
+      : {}),
+    ...(parsed.formatVersion === FORMAT_VERSION_V3
+      ? {
+          resolution_formula: formulaCodeToName(parsed.formulaCode),
+          target: signedBigIntToSafeNumber(parsed.targetScore, "target"),
         }
       : {}),
     outcomes: parsed.outcomes.map((outcome) => ({
       id: outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen),
       weight: outcome.weight,
+      ...(parsed.formatVersion === FORMAT_VERSION_V3
+        ? {
+            score: signedBigIntToSafeNumber(outcome.score, `score:${outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen)}`),
+            order: outcome.order,
+          }
+        : {}),
     })),
     resolve_id: resolveId,
     compiled_artifact_hash: compiledArtifactHashHex,

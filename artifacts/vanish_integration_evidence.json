@@ -4,9 +4,10 @@
   "amount_lamports": "100000",
   "vanish_deposit_tx": "ndsMbxvi3vSA4f5JEJR9ztiQJ8BN5i8YnT8z5URkWtPAoRope21CCm4CQNwNy6AFXUkWuLthsZ22BEMM9SV47u5B",
   "vanish_withdraw_tx": "EscWMiMNvTb54F4NGzW6SnaEY2rrkXKWrup279R1nymo43U4F37tktc88zrYGhNHNeBx8YzvAmbKdkyzWczjM94o",
-  "program_id": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq",
+  "program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
   "rpc_url": "https://api.devnet.solana.com",
   "network": "devnet",
+  "note": "Historical mock payout evidence. Canonical program reference updated to 9tEram..., but the payout transactions were not regenerated in this cleanup pass.",
   "mock": true,
   "timestamp": "2026-04-26T20:44:44.319Z"
 }

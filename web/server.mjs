@@ -853,13 +853,23 @@ function buildLiveRaffleConfig(judgeAddress) {
   };
 }
 
-function buildPartnerDrawConfig(participants, winnersCount) {
+const PARTNER_DRAW_FORMULAS = new Set([
+  "weighted_random",
+  "rank_desc",
+  "rank_asc",
+  "first_n",
+  "closest_to",
+]);
+
+function buildPartnerDrawConfig(participants, winnersCount, formula, target) {
   return {
-    type: "loot",
+    type: "formula_draw",
+    formula,
     input_lamports: 10,
     payout_lamports: 3,
     winners_count: winnersCount,
-    outcomes: participants.map((id) => ({ id, weight: 1, payout_lamports: 3 })),
+    ...(target === undefined ? {} : { target }),
+    participants,
   };
 }
 
@@ -880,6 +890,31 @@ function validatePartnerParticipantId(value, index) {
     );
   }
   return participantId;
+}
+
+function validatePartnerFormula(value) {
+  const formula = String(value || "").trim();
+  if (!PARTNER_DRAW_FORMULAS.has(formula)) {
+    throw httpError(
+      400,
+      "formula must be weighted_random, rank_desc, rank_asc, first_n, or closest_to"
+    );
+  }
+  return formula;
+}
+
+function parsePartnerSignedSafeInteger(value, label) {
+  if (!Number.isSafeInteger(value)) {
+    throw httpError(400, `${label} must be a signed safe integer`);
+  }
+  return value;
+}
+
+function validatePartnerWeight(value, label) {
+  if (!Number.isInteger(value) || value <= 0 || value > 0xffffffff) {
+    throw httpError(400, `${label} must be an integer 1–4294967295`);
+  }
+  return value;
 }
 
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
@@ -1074,16 +1109,54 @@ async function handlePartnerDraw(req, res) {
   if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
 
   const body = await readJsonBody(req);
+  const formula = validatePartnerFormula(body.formula);
 
   if (!Array.isArray(body.participants))
     throw httpError(400, "participants must be an array");
   if (body.participants.length < 2 || body.participants.length > 100)
     throw httpError(400, "participants must contain 2–100 entries");
 
-  const participants = body.participants.map((value, index) =>
-    validatePartnerParticipantId(value, index)
-  );
-  if (new Set(participants).size !== participants.length)
+  const participants = body.participants.map((value, index) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw httpError(400, `participants[${index}] must be an object`);
+    }
+    const id = validatePartnerParticipantId(value.id, index);
+    const participant = { id };
+
+    if (formula === "weighted_random") {
+      if (value.score !== undefined) {
+        throw httpError(400, `participants[${index}].score is not supported for weighted_random`);
+      }
+      if (value.weight !== undefined) {
+        participant.weight = validatePartnerWeight(
+          value.weight,
+          `participants[${index}].weight`
+        );
+      }
+      return participant;
+    }
+
+    if (value.weight !== undefined) {
+      throw httpError(400, `participants[${index}].weight is only supported for weighted_random`);
+    }
+
+    if (formula === "first_n") {
+      if (value.score !== undefined) {
+        throw httpError(400, `participants[${index}].score is not supported for first_n`);
+      }
+      return participant;
+    }
+
+    if (value.score === undefined) {
+      throw httpError(400, `participants[${index}].score is required for ${formula}`);
+    }
+    participant.score = parsePartnerSignedSafeInteger(
+      value.score,
+      `participants[${index}].score`
+    );
+    return participant;
+  });
+  if (new Set(participants.map((participant) => participant.id)).size !== participants.length)
     throw httpError(400, "duplicate participants not allowed");
 
   const winnersCount = body.winners_count === undefined ? 1 : body.winners_count;
@@ -1091,6 +1164,16 @@ async function handlePartnerDraw(req, res) {
     throw httpError(400, "winners_count must be an integer 1–10");
   if (winnersCount > participants.length)
     throw httpError(400, "winners_count must be <= participants length");
+
+  let target;
+  if (formula === "closest_to") {
+    if (body.target === undefined) {
+      throw httpError(400, "target is required for closest_to");
+    }
+    target = parsePartnerSignedSafeInteger(body.target, "target");
+  } else if (body.target !== undefined) {
+    throw httpError(400, "target is only supported for closest_to");
+  }
 
   const rawLabel = body.label !== undefined ? String(body.label).trim().slice(0, 80) : "";
   const label = rawLabel || `partner-draw-${Date.now()}`;
@@ -1105,7 +1188,7 @@ async function handlePartnerDraw(req, res) {
     return;
   }
 
-  const config = buildPartnerDrawConfig(participants, winnersCount);
+  const config = buildPartnerDrawConfig(participants, winnersCount, formula, target);
   const resolveInline = await loadResolveInline();
   const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
   const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());

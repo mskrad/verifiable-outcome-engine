@@ -21,7 +21,7 @@
   },
   "policy": {
     "programLimit": {
-      "programId": "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq"
+      "programId": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
     },
     "solRecurringLimit": {
       "recurring_amount_lamports": "2000000000",
@@ -34,6 +34,7 @@
   },
   "network": "devnet",
   "rpc_url": "https://api.devnet.solana.com",
+  "note": "Policy scope now points at canonical 9tEram.... The recorded live_raffle transaction remains a historical operator evidence sample and was not re-run in this cleanup pass.",
   "live_raffle": {
     "signature": "2wz4CBB2yTu9nFKo9hkqYUbVABa9AYu3xgfweJTfPECAGJR3p7pJ1qf6eZWmaVhvGQqZukVAoS3a25mGuoJAKrjZ",
     "verification_result": "MATCH",

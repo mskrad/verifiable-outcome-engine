@@ -26,9 +26,9 @@ const DEFAULT_METADATA_URI =
   "https://verifiableoutcome.online/agents/vre-outcome-verification-agent.json";
 const AGENT_NAME = "VRE Outcome Verification Agent";
 const AGENT_IDENTITY_PROGRAM_ID = "1DREGFgysWYxLnRnKQnwrxnJQeSMk2HmGaC6whw2B2p";
-const VRE_PROGRAM_ID = "3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq";
+const VRE_PROGRAM_ID = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
 const BLESSED_SIGNATURE =
-  "mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh";
+  "5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2";
 const VRE_REPLAY_ENDPOINT = "https://verifiableoutcome.online/api/replay";
 
 type Args = {

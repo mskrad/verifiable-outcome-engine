@@ -6,7 +6,7 @@ We help Solana apps replace backend-trust reward logic with replay-verifiable on
 
 ```bash
 npm install -g verifiable-outcome-sdk
-vre verify --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
+vre verify --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2
 
 # -> MATCH / OK
 ```
@@ -14,7 +14,7 @@ vre verify --sig mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv5
 Live verifier:
 
 ```text
-https://verifiableoutcome.online/verify?sig=mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh
+https://verifiableoutcome.online/verify?sig=5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2
 ```
 
 Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
@@ -24,7 +24,7 @@ Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
 The **verification SDK** is open for integration — use it to build artifacts,
 verify outcomes, and replay results from chain data.
 
-The **Solana program** (`3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`) runs
+The **Solana program** (`9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`) runs
 on a protocol fee model: each `resolveOutcome` call pays a small fee to the
 VRE treasury.
 
@@ -51,25 +51,31 @@ The usual review path is weak: users see a transaction or UI result, but not an 
 
 Verifiable Outcome Engine replays a Solana outcome from a transaction signature plus public RPC data.
 
-This package demonstrates the verification path:
+This package demonstrates the verification path and the current W3O1 surface:
 
 - use a transaction signature,
 - fetch public on-chain logs/accounts through RPC,
 - recompute the outcome locally,
 - compare the replayed result with the recorded outcome,
-- expect `MATCH / OK` for the included devnet examples.
+- expect `MATCH / OK` for the included devnet examples,
+- inspect `artifact_format_version`, `resolution_formula`, `winners_count`, and `target` for W3O1 v3 artifacts.
 
 Canonical devnet program id:
 
-- `3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq`
-- Upgrade authority: Squads multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` ([Squads](https://squads.xyz/multisig)).
+- `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`
+- Upgrade authority: Squads vault PDA `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA` under multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` ([Squads](https://squads.xyz/multisig)).
 - Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
 
-## First Proof Scenario
+## Evidence Set
 
-The first proof scenario is raffle / winner selection.
+The public devnet bundle currently exposes four active blessed signatures on the canonical program:
 
-That scenario is a concrete demo target. The verifier is the reusable part: resolve on-chain, replay independently, compare the result.
+- `Raffle` — W3O1 v1 weighted random
+- `Rewards Selection` — W3O1 v2 multi-winner weighted random
+- `Trading Competition` — W3O1 v3 `rank_desc`
+- `Prediction Market` — W3O1 v3 `closest_to`
+
+The verifier is the reusable part: resolve on-chain, replay independently, compare the result, and expose the same evidence set in CLI, web, and widget surfaces.
 
 ## Verify Flow
 
@@ -88,9 +94,9 @@ yarn install
 
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
-  --sig 3iC7i15CakPWD47DZ72WgYYuKQdPW8qwu2Usy77rm8RjKkvocvELHqN1yMqM4MiXLcpiAb52u6z2btMKCAZsmDW1 \
+  --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
 ```
 
 More included signatures:
@@ -210,7 +216,7 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 ANCHOR_WALLET=~/.config/solana/id.json \
 yarn -s resolve:operator \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq \
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --json
 ```
 
@@ -220,7 +226,7 @@ Output includes `signature`. Pass it to the verifier:
 yarn -s replay \
   --sig <signature from above> \
   --url https://api.devnet.solana.com \
-  --program-id 3b7TFKQWUhPqWBieLHop4Mj2e41vwvnvjEosbsdmXkBq
+  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
 ```
 
 Expected: `verification_result : MATCH` / `verification_reason : OK`

@@ -49,7 +49,7 @@
     <div class="container">
       <span class="eyebrow"><span class="dot"></span> Embed</span>
       <h1 class="page-title">Drop-in Verifier Widget</h1>
-      <p>One <span class="mono">&lt;script&gt;</span> tag embeds the verifier on any page. Your users verify the outcome themselves — no backend, no trust in you.</p>
+      <p>One <span class="mono">&lt;script&gt;</span> tag embeds the verifier on any page. Your users verify the outcome themselves from public RPC data — including W3O1 v3 formula outputs.</p>
     </div>
   </header>
 
@@ -89,9 +89,10 @@
 
         <div>
           <div class="result-section-title mb-4">Live Demo</div>
-          <div class="card widget-live-card">
-            <vre-verify sig="mUXwaeNZoDuyjPxiPo1hFtCDMEAHKcKfjaQX694khNTxFxG8bMMwLhumPusVDv53r9QwC5uPvxPYErmrx1Lg9Qh"></vre-verify>
+          <div class="card widget-live-card" id="widget-live-demo">
+            <vre-verify sig="5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2"></vre-verify>
           </div>
+          <p id="widget-live-demo-status" class="text-faint mt-3" style="font-size:12.5px;">Showing the default blessed Raffle signature on the canonical devnet program.</p>
         </div>
 
       </div>
@@ -99,7 +100,7 @@
       <div class="mt-8">
         <div class="result-section-title mb-4">Interactive Form</div>
         <div class="grid widget-demo-grid">
-          <div class="card widget-live-card">
+          <div class="card widget-live-card" id="widget-form-demo">
             <vre-verify-form></vre-verify-form>
           </div>
           <div class="terminal">
@@ -183,5 +184,56 @@
   </footer>
 
   <script src="/js/main.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const LAST_MATCH_STORAGE_KEY = 'vre:last-match-verify';
+      const DEFAULT_SIGNATURE = '5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2';
+      const DEFAULT_RPC = 'https://api.devnet.solana.com';
+      const DEFAULT_PROGRAM_ID = '9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
+
+      function readLastMatch() {
+        try {
+          const raw = localStorage.getItem(LAST_MATCH_STORAGE_KEY);
+          if (!raw) return null;
+          const parsed = JSON.parse(raw);
+          if (!parsed || typeof parsed !== 'object') return null;
+          if (!String(parsed.signature || '').trim()) return null;
+          return parsed;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function renderLiveDemo(entry) {
+        const root = document.getElementById('widget-live-demo');
+        const status = document.getElementById('widget-live-demo-status');
+        if (!root || !status) return;
+
+        const signature = String(entry?.signature || DEFAULT_SIGNATURE).trim();
+        const rpcUrl = String(entry?.rpcUrl || DEFAULT_RPC).trim();
+        const programId = String(entry?.programId || DEFAULT_PROGRAM_ID).trim();
+        const usingLastMatch = Boolean(entry?.signature);
+
+        root.innerHTML = '';
+        const widget = document.createElement('vre-verify');
+        widget.setAttribute('sig', signature);
+        widget.setAttribute('rpc', rpcUrl);
+        widget.setAttribute('program-id', programId);
+        if (usingLastMatch) {
+          widget.setAttribute('label', 'Last verified');
+          status.textContent = 'Showing the last MATCH / OK verification from this browser.';
+        } else {
+          status.textContent = 'Showing the default demo signature.';
+        }
+        root.appendChild(widget);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        renderLiveDemo(readLastMatch());
+      });
+    })();
+  </script>
 </body>
 </html>
