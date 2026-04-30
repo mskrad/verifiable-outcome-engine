@@ -19,6 +19,14 @@
     "feeLamports": "0",
     "treasury": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT"
   },
+  "canonical_program_migration_2026_04_30": {
+    "note": "Migrated from frozen canonical 3b7TFK... to new canonical 9tEramtR... with correct Squads vault PDA upgrade authority",
+    "swig_role_update_tx": "2JVWwmCzEGi3g4AcWNSjzXNxVuL1g1LvXN3fRVxE1QFUY4noAqUc4wNnt3qgSPjc4VCTrvu7ffUHmeQhrrdKtnZS",
+    "program_config_admin_transfer_tx": "4SxRQUefjw5YjoJLaKkZNHCCCAdWNaZAGKEwARNmGqc5Tzi8Q5x2j1YXGtYBZcMsP45tTZss214zhBiXUmCDnZdq",
+    "new_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "new_program_config_pda": "BaRJ9KtcKegEuMQf6Ue4ewByCXEfy46bndU9KkxrQGyT",
+    "new_program_config_admin": "E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf"
+  },
   "policy": {
     "programLimit": {
       "programId": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
