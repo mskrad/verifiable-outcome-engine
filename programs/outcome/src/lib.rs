@@ -18,6 +18,9 @@ use instructions::initialize_outcome_config::{
 use instructions::initialize_program_config::{
     InitializeProgramConfig, InitializeProgramConfigArgs,
 };
+use instructions::recover_program_config_admin::{
+    RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
+};
 use instructions::refresh_master_seed::{RefreshMasterSeed, RefreshMasterSeedArgs};
 use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
@@ -45,6 +48,13 @@ pub mod outcome {
         args: SetProgramConfigArgs,
     ) -> Result<()> {
         instructions::set_program_config::handler(ctx, args)
+    }
+
+    pub fn recover_program_config_admin(
+        ctx: Context<RecoverProgramConfigAdmin>,
+        args: RecoverProgramConfigAdminArgs,
+    ) -> Result<()> {
+        instructions::recover_program_config_admin::handler(ctx, args)
     }
 
     pub fn submit_compiled_artifact(
@@ -111,6 +121,9 @@ mod __client_accounts_initialize_program_config {
 }
 mod __client_accounts_set_program_config {
     pub use crate::instructions::set_program_config::__client_accounts_set_program_config::*;
+}
+mod __client_accounts_recover_program_config_admin {
+    pub use crate::instructions::recover_program_config_admin::__client_accounts_recover_program_config_admin::*;
 }
 mod __client_accounts_submit_compiled_artifact {
     pub use crate::instructions::submit_compiled_artifact::__client_accounts_submit_compiled_artifact::*;
