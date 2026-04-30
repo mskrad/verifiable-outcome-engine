@@ -46,12 +46,35 @@ const DEFAULT_DAILY_LIMIT_LAMPORTS = BigInt(
 const DEFAULT_WINDOW_SLOTS = BigInt(
   process.env.SWIG_WINDOW_SLOTS || "216000"
 ); // ~24h at 400ms/slot
+const POLICY_MODE = String(process.env.SWIG_POLICY_MODE || "restricted").trim();
 
 function loadKeypair(p) {
   const expanded = p.replace("~", process.env.HOME);
   return Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(expanded, "utf-8")))
   );
+}
+
+function buildActions() {
+  if (POLICY_MODE === "all_but_manage") {
+    return Actions.set().allButManageAuthority().get();
+  }
+  if (POLICY_MODE === "program_all") {
+    return Actions.set()
+      .programAll()
+      .solRecurringLimit({
+        recurringAmount: DEFAULT_DAILY_LIMIT_LAMPORTS,
+        window: DEFAULT_WINDOW_SLOTS,
+      })
+      .get();
+  }
+  return Actions.set()
+    .programLimit({ programId: NEW_PROGRAM_ID })
+    .solRecurringLimit({
+      recurringAmount: DEFAULT_DAILY_LIMIT_LAMPORTS,
+      window: DEFAULT_WINDOW_SLOTS,
+    })
+    .get();
 }
 
 async function send(connection, instructions, signers) {
@@ -74,6 +97,7 @@ async function main() {
   console.log("Root (esjx):", root.publicKey.toBase58());
   console.log("Old program:", OLD_PROGRAM_ID.toBase58());
   console.log("New program:", NEW_PROGRAM_ID.toBase58());
+  console.log("Policy mode:", POLICY_MODE);
 
   // 1. Fetch current Swig state
   const swig = await fetchSwig(connection, SWIG_ADDRESS, { commitment: "confirmed" });
@@ -86,13 +110,7 @@ async function main() {
   console.log("Delegate role ID:", delegateRole.id);
 
   // 2. Build new actions: programLimit(newProgram) + solRecurringLimit
-  const newActions = Actions.set()
-    .programLimit({ programId: NEW_PROGRAM_ID })
-    .solRecurringLimit({
-      recurringAmount: DEFAULT_DAILY_LIMIT_LAMPORTS,
-      window: DEFAULT_WINDOW_SLOTS,
-    })
-    .get();
+  const newActions = buildActions();
 
   // 3. Replace all actions on the delegate role
   const updatePayload = updateAuthorityReplaceAllActions(newActions);
@@ -107,7 +125,15 @@ async function main() {
   console.log("\n[1/2] Updating Swig delegate role programLimit...");
   const updateSig = await send(connection, updateInstructions, [root]);
   console.log("✅ Swig role updated:", updateSig);
-  console.log(`    programLimit: ${OLD_PROGRAM_ID.toBase58()} → ${NEW_PROGRAM_ID.toBase58()}`);
+  if (POLICY_MODE === "restricted") {
+    console.log(`    programLimit: ${OLD_PROGRAM_ID.toBase58()} → ${NEW_PROGRAM_ID.toBase58()}`);
+    console.log(`    solRecurringLimit: ${DEFAULT_DAILY_LIMIT_LAMPORTS} lamports / ${DEFAULT_WINDOW_SLOTS} slots`);
+  } else if (POLICY_MODE === "program_all") {
+    console.log("    actions: programAll + solRecurringLimit");
+    console.log(`    solRecurringLimit: ${DEFAULT_DAILY_LIMIT_LAMPORTS} lamports / ${DEFAULT_WINDOW_SLOTS} slots`);
+  } else if (POLICY_MODE === "all_but_manage") {
+    console.log("    actions: allButManageAuthority");
+  }
 
   // 4. Transfer ProgramConfig admin on new program: esjx → Swig actor
   console.log("\n[2/2] Transferring ProgramConfig admin to Swig actor...");
