@@ -18,10 +18,11 @@ import {
 import swigPkg from "@swig-wallet/classic";
 const {
   fetchSwig,
-  findSwigPda,
   getUpdateAuthorityInstructions,
-  updateAuthorityReplaceAllActions,
+  updateAuthorityAddActions,
+  updateAuthorityRemoveByType,
   Actions,
+  Permission,
 } = swigPkg;
 import fs from "fs";
 import path from "path";
@@ -47,6 +48,7 @@ const DEFAULT_WINDOW_SLOTS = BigInt(
   process.env.SWIG_WINDOW_SLOTS || "216000"
 ); // ~24h at 400ms/slot
 const POLICY_MODE = String(process.env.SWIG_POLICY_MODE || "restricted").trim();
+const UPDATE_STRATEGY = String(process.env.SWIG_UPDATE_STRATEGY || "remove_add").trim();
 
 function loadKeypair(p) {
   const expanded = p.replace("~", process.env.HOME);
@@ -98,8 +100,10 @@ async function main() {
   console.log("Old program:", OLD_PROGRAM_ID.toBase58());
   console.log("New program:", NEW_PROGRAM_ID.toBase58());
   console.log("Policy mode:", POLICY_MODE);
+  console.log("Update strategy:", UPDATE_STRATEGY);
 
   // 1. Fetch current Swig state
+  console.log("\n[0/2] Fetching current Swig state...");
   const swig = await fetchSwig(connection, SWIG_ADDRESS, { commitment: "confirmed" });
   const rootRole = swig.findRolesByEd25519SignerPk(root.publicKey)[0];
   if (!rootRole) throw new Error("Root role not found for esjx");
@@ -112,18 +116,57 @@ async function main() {
   // 2. Build new actions: programLimit(newProgram) + solRecurringLimit
   const newActions = buildActions();
 
-  // 3. Replace all actions on the delegate role
-  const updatePayload = updateAuthorityReplaceAllActions(newActions);
-  const updateInstructions = await getUpdateAuthorityInstructions(
-    swig,
-    rootRole.id,
-    delegateRole.id,
-    updatePayload,
-    { payer: root.publicKey }
-  );
+  // 3. Remove old program/spend limit actions, then add the new desired policy.
+  const removableActionTypes = [
+    Permission.Program,
+    Permission.ProgramScope,
+    Permission.ProgramAll,
+    Permission.ProgramCurated,
+    Permission.SolLimit,
+    Permission.SolRecurringLimit,
+    Permission.SolDestinationLimit,
+    Permission.SolRecurringDestinationLimit,
+  ];
 
-  console.log("\n[1/2] Updating Swig delegate role programLimit...");
-  const updateSig = await send(connection, updateInstructions, [root]);
+  let updateSig;
+  if (UPDATE_STRATEGY === "replace_all") {
+    const { updateAuthorityReplaceAllActions } = swigPkg;
+    const updatePayload = updateAuthorityReplaceAllActions(newActions);
+    const updateInstructions = await getUpdateAuthorityInstructions(
+      swig,
+      rootRole.id,
+      delegateRole.id,
+      updatePayload,
+      { payer: root.publicKey }
+    );
+    console.log("\n[1/2] Replacing all delegate role actions...");
+    updateSig = await send(connection, updateInstructions, [root]);
+  } else {
+    console.log("\n[1/2] Removing old delegate role program/spend actions...");
+    const removePayload = updateAuthorityRemoveByType(removableActionTypes);
+    const removeInstructions = await getUpdateAuthorityInstructions(
+      swig,
+      rootRole.id,
+      delegateRole.id,
+      removePayload,
+      { payer: root.publicKey }
+    );
+    const removeSig = await send(connection, removeInstructions, [root]);
+    console.log("✅ Old actions removed:", removeSig);
+
+    console.log("\n[1b/2] Adding new delegate role actions...");
+    const refreshedSwig = await fetchSwig(connection, SWIG_ADDRESS, { commitment: "confirmed" });
+    const addPayload = updateAuthorityAddActions(newActions);
+    const addInstructions = await getUpdateAuthorityInstructions(
+      refreshedSwig,
+      rootRole.id,
+      delegateRole.id,
+      addPayload,
+      { payer: root.publicKey }
+    );
+    updateSig = await send(connection, addInstructions, [root]);
+  }
+
   console.log("✅ Swig role updated:", updateSig);
   if (POLICY_MODE === "restricted") {
     console.log(`    programLimit: ${OLD_PROGRAM_ID.toBase58()} → ${NEW_PROGRAM_ID.toBase58()}`);

@@ -233,6 +233,20 @@ Expected: `verification_result : MATCH` / `verification_reason : OK`
 
 Result files are written to `tmp/resolve-operator/` by default. Use `--out-dir <DIR>` to override.
 
+## Current Limitations
+
+### Participant list size
+
+The Partner Draw API commits participants directly in one Solana transaction.
+Because Solana transactions have a strict size limit, large lists or long participant IDs can fail with:
+
+```
+Transaction too large
+```
+
+For now, use short participant IDs (e.g. `"A1"`) and keep lists small (2–10 entries for readable IDs, up to ~20 with short IDs).
+For larger leaderboards, the upcoming chunked snapshot commit flow will remove this limit — see [INTEGRATION.md](./INTEGRATION.md#current-limitations) for details.
+
 ## Boundaries
 
 This package is:

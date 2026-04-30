@@ -313,3 +313,63 @@ On-chain data does not match local replay. Check that `--sig`, `--rpc`, and `--p
 
 **`could not determine executable to run`** (when using `npx verifiable-outcome-sdk`)  
 The package binary is named `vre`. Use `vre` directly after `npm install -g verifiable-outcome-sdk`, or prefix with `npx -p verifiable-outcome-sdk vre`.
+
+---
+
+## Current Limitations
+
+### Transaction size limit
+
+VRE currently commits the participant list directly inside a Solana transaction.
+Because Solana transactions have a strict size limit, large participant lists or long participant IDs may exceed the maximum transaction size.
+
+Example error:
+```
+Transaction too large: 1303 > 1232
+```
+
+**Practical limits for the Partner Draw API**
+
+For the `/api/partner/draw` flow, keep payloads small:
+
+| Parameter | Recommended |
+|-----------|-------------|
+| `participants` count | 2–10 for long readable IDs; up to ~15–20 with short IDs |
+| `winners_count` | 1–10 |
+| Participant ID length | Short when possible; avoid verbose labels |
+
+All participant IDs must be unique.
+
+**Recommended short-term workaround**
+
+Use short stable participant IDs:
+
+```json
+{ "id": "A1", "score": 18450 }
+```
+
+instead of:
+
+```json
+{ "id": "LongReadableTraderName", "score": 18450 }
+```
+
+If human-readable names are needed, keep the mapping off-chain:
+
+```
+A1 → wallet / username
+A2 → wallet / username
+```
+
+The committed ID is what gets verified on-chain; the display name is your concern.
+
+**Production path**
+
+For larger competitions, VRE will support a two-step commit flow:
+
+1. Submit participant snapshot in chunks
+2. Finalize snapshot hash on-chain
+3. Resolve winners from the committed snapshot
+4. Verify by transaction signature / snapshot hash
+
+This removes the single-transaction payload limit and supports leaderboards of any size.
