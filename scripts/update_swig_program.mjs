@@ -40,8 +40,12 @@ const NEW_PROGRAM_ID = new PublicKey(
   process.env.VRE_PROGRAM_ID || "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
 );
 
-const DEFAULT_DAILY_LIMIT_LAMPORTS = BigInt(50_000_000); // 0.05 SOL/day
-const DEFAULT_WINDOW_SLOTS = BigInt(216_000);            // ~24h at 400ms/slot
+const DEFAULT_DAILY_LIMIT_LAMPORTS = BigInt(
+  process.env.SWIG_DAILY_LIMIT_LAMPORTS || "2000000000"
+); // 2 SOL/day by default, aligned with live raffle evidence
+const DEFAULT_WINDOW_SLOTS = BigInt(
+  process.env.SWIG_WINDOW_SLOTS || "216000"
+); // ~24h at 400ms/slot
 
 function loadKeypair(p) {
   const expanded = p.replace("~", process.env.HOME);
@@ -121,6 +125,18 @@ async function main() {
     [Buffer.from("outcome_program_config")],
     NEW_PROGRAM_ID
   );
+
+  const currentProgramConfig = await program.account.programConfig.fetch(programConfigPda);
+  if (currentProgramConfig.admin.equals(SWIG_ACTOR)) {
+    console.log("ℹ ProgramConfig admin is already set to Swig actor; skipping transfer.");
+    console.log(`    admin: ${SWIG_ACTOR.toBase58()}`);
+    console.log("\n=== DONE ===");
+    console.log("Swig wallet:", SWIG_ADDRESS.toBase58());
+    console.log("Swig actor:", SWIG_ACTOR.toBase58());
+    console.log("Canonical program:", NEW_PROGRAM_ID.toBase58());
+    console.log("\nUpdate swig_operator_evidence.json and restart VPS.");
+    return;
+  }
 
   const adminSig = await program.methods
     .setProgramConfig({
