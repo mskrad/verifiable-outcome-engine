@@ -604,7 +604,7 @@
                     <td><code>participants</code></td>
                     <td>string[]</td>
                     <td>Yes</td>
-                    <td>2–100 unique Solana wallet addresses (base58).</td>
+                    <td>2–100 unique participant ids. Current protocol limit: printable ASCII, max 64 bytes.</td>
                   </tr>
                   <tr>
                     <td><code>winners_count</code></td>
@@ -647,12 +647,12 @@
                   <tr>
                     <td><code>outcome_id</code></td>
                     <td>string</td>
-                    <td>Primary winner address.</td>
+                    <td>Primary selected participant id.</td>
                   </tr>
                   <tr>
                     <td><code>outcome_ids</code></td>
                     <td>string[]</td>
-                    <td>All winner addresses (length = <code>winners_count</code>).</td>
+                    <td>All selected participant ids (length = <code>winners_count</code>).</td>
                   </tr>
                   <tr>
                     <td><code>replay_url</code></td>
@@ -684,7 +684,7 @@
                 </thead>
                 <tbody>
                   <tr><td><code>200</code></td><td>Draw completed successfully.</td></tr>
-                  <tr><td><code>400</code></td><td>Validation error (bad addresses, duplicates, invalid <code>winners_count</code> or <code>use_case</code>).</td></tr>
+                  <tr><td><code>400</code></td><td>Validation error (bad participant ids, duplicates, invalid <code>winners_count</code> or <code>use_case</code>).</td></tr>
                   <tr><td><code>401</code></td><td>Missing or unknown API key.</td></tr>
                   <tr><td><code>403</code></td><td>Valid key but <code>draw_enabled</code> is not <code>true</code> for this partner.</td></tr>
                   <tr><td><code>429</code></td><td>Rate limit exceeded; retry after 60 s.</td></tr>
@@ -701,14 +701,14 @@
               <div class="terminal-body"><span class="prompt">$</span> curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
     -H <span class="ok">"Content-Type: application/json"</span> \
     -H <span class="ok">"x-api-key: vresk_YOUR_KEY"</span> \
-    -d <span class="ok">'{"participants":["&lt;addr1&gt;","&lt;addr2&gt;","&lt;addr3&gt;"],"winners_count":1,"label":"Campaign #1"}'</span>
+    -d <span class="ok">'{"participants":["user-001","user-002","user-003"],"winners_count":1,"label":"Campaign #1"}'</span>
 
 <span class="comment"># 200 response:</span>
 {
   <span class="ok">"ok"</span>: true,
   <span class="ok">"signature"</span>: "5xYz...",
-  <span class="ok">"outcome_id"</span>: "&lt;addr1&gt;",
-  <span class="ok">"outcome_ids"</span>: ["&lt;addr1&gt;"],
+  <span class="ok">"outcome_id"</span>: "user-001",
+  <span class="ok">"outcome_ids"</span>: ["user-001"],
   <span class="ok">"replay_url"</span>: "https://verifiableoutcome.online/verify?sig=5xYz...",
   <span class="ok">"artifact_slot"</span>: 340123456,
   <span class="ok">"resolution_slot"</span>: 340123512

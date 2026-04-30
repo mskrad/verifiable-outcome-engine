@@ -46,6 +46,8 @@ const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
 const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
+const PRINTABLE_ASCII_RE = /^[\x20-\x7E]+$/;
+const MAX_PARTNER_PARTICIPANT_ID_BYTES = 64;
 const SAFE_ARTIFACT_ROOTS = [
   path.join(REF_ROOT, "artifacts"),
   path.join(REF_ROOT, "tmp", "live-raffle"),
@@ -853,12 +855,31 @@ function buildLiveRaffleConfig(judgeAddress) {
 
 function buildPartnerDrawConfig(participants, winnersCount) {
   return {
-    type: "raffle",
+    type: "loot",
     input_lamports: 10,
     payout_lamports: 3,
     winners_count: winnersCount,
-    participants: participants.map((address) => ({ address, weight: 1 })),
+    outcomes: participants.map((id) => ({ id, weight: 1, payout_lamports: 3 })),
   };
+}
+
+function validatePartnerParticipantId(value, index) {
+  const participantId = String(value ?? "").trim();
+  if (!participantId) {
+    throw httpError(400, `participants[${index}] must be a non-empty string`);
+  }
+  const byteLength = Buffer.byteLength(participantId, "ascii");
+  if (
+    byteLength === 0 ||
+    byteLength > MAX_PARTNER_PARTICIPANT_ID_BYTES ||
+    !PRINTABLE_ASCII_RE.test(participantId)
+  ) {
+    throw httpError(
+      400,
+      `participants[${index}] must be printable ASCII <= ${MAX_PARTNER_PARTICIPANT_ID_BYTES} bytes`
+    );
+  }
+  return participantId;
 }
 
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
@@ -1057,12 +1078,11 @@ async function handlePartnerDraw(req, res) {
   if (!Array.isArray(body.participants))
     throw httpError(400, "participants must be an array");
   if (body.participants.length < 2 || body.participants.length > 100)
-    throw httpError(400, "participants must contain 2–100 addresses");
+    throw httpError(400, "participants must contain 2–100 entries");
 
-  const participants = body.participants.map((v, i) => {
-    try { return validateSolanaAddress(String(v)); }
-    catch (_) { throw httpError(400, `participants[${i}] is not a valid Solana address`); }
-  });
+  const participants = body.participants.map((value, index) =>
+    validatePartnerParticipantId(value, index)
+  );
   if (new Set(participants).size !== participants.length)
     throw httpError(400, "duplicate participants not allowed");
 

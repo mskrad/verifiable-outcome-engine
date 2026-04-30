@@ -316,7 +316,7 @@ To enable draws for a partner, edit `config/partners.json`:
 curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
   -H "Content-Type: application/json" \
   -H "x-api-key: vresk_YOUR_KEY" \
-  -d '{"participants":["<addr1>","<addr2>","<addr3>"],"winners_count":1,"label":"Campaign #1"}'
+  -d '{"participants":["user-001","user-002","user-003"],"winners_count":1,"label":"Campaign #1"}'
 ```
 
 **Response codes:**
@@ -324,11 +324,13 @@ curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
 | Code | Meaning |
 |------|---------|
 | `200` | Draw completed; `signature`, `outcome_id`, `outcome_ids`, `replay_url`, `artifact_slot`, `resolution_slot` returned |
-| `400` | Validation error (bad participants, duplicate addresses, invalid `winners_count`, bad `use_case`) |
+| `400` | Validation error (bad participant ids, duplicates, invalid `winners_count`, bad `use_case`) |
 | `401` | Missing or unknown API key |
 | `403` | Partner key valid but `draw_enabled` is not `true` |
 | `429` | Rate limit exceeded; one draw per partner key per 60 s |
 | `504` | Devnet timeout; retry |
+
+`participants` are generic participant ids, not necessarily Solana addresses. Current artifact format still requires printable ASCII ids up to 64 bytes.
 
 ## 10) Partner API keys for `/api/resolutions` and `/api/participant`
 
