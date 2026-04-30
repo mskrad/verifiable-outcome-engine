@@ -1,10 +1,21 @@
 /**
- * Transfer program upgrade authority from Squads vault PDA back to esjx.json
- * so we can extend + deploy directly, then return authority to Squads.
+ * Transfer program upgrade authority.
+ *
+ * Direction rule:
+ *   --to esjx   : vault PDA → esjx  (current authority = vault PDA → must go through Squads)
+ *   --to squads : esjx → vault PDA  (current authority = esjx → direct CLI, NOT through Squads)
  *
  * Usage:
  *   yarn ts-node scripts/squads_set_authority.ts --to esjx
- *   yarn ts-node scripts/squads_set_authority.ts --to squads
+ *
+ *   # --to squads is intentionally NOT handled here.
+ *   # Use the Solana CLI directly (esjx is the current authority):
+ *   #
+ *   #   solana program set-upgrade-authority 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+ *   #     --new-upgrade-authority 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA \
+ *   #     --upgrade-authority ~/.config/solana/esjx.json \
+ *   #     --skip-new-upgrade-authority-signer-check \
+ *   #     --url https://api.devnet.solana.com
  */
 
 import * as multisig from "@sqds/multisig";
@@ -43,6 +54,19 @@ async function main() {
   const direction = process.argv.includes("--to")
     ? process.argv[process.argv.indexOf("--to") + 1]
     : "esjx";
+
+  if (direction === "squads") {
+    console.error(
+      "❌ --to squads is not supported here.\n" +
+      "   When current authority is esjx, use the Solana CLI directly:\n\n" +
+      "   solana program set-upgrade-authority 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \\\n" +
+      "     --new-upgrade-authority 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA \\\n" +
+      "     --upgrade-authority ~/.config/solana/esjx.json \\\n" +
+      "     --skip-new-upgrade-authority-signer-check \\\n" +
+      "     --url https://api.devnet.solana.com"
+    );
+    process.exit(1);
+  }
 
   const connection = new Connection(RPC_URL, "confirmed");
   const keypair = Keypair.fromSecretKey(
