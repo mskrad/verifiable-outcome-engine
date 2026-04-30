@@ -8,6 +8,8 @@ artifacts/*.bin
 sdk/*.js
 sdk/*.d.ts
 config/partners.json
+configs/
+package-lock.json
 
 # Internal multi-agent coordination — not part of public reviewer surface
 agent-instructions/
