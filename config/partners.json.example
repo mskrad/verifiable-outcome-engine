@@ -3,6 +3,7 @@
     "key": "vresk_4a3304a5cb2804331078c6e09b687fdb",
     "name": "Assetux / Bogdan",
     "tier": 1,
-    "created": "2026-04-28"
+    "created": "2026-04-28",
+    "draw_enabled": false
   }
 ]

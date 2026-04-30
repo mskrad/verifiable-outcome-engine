@@ -588,6 +588,132 @@
             <div class="card" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
               <p style="margin:0;color:var(--text-dim);font-size:13.5px;">Partner API endpoints are distinct from the public SDK surface (<code>/api/replay</code>, <code>/api/live-raffle</code>). The public endpoints are rate-limited but require no key. Partner endpoints carry higher rate limits and return richer indexer data suitable for dashboards and integrations.</p>
             </div>
+
+            <h3 style="margin-top:32px;margin-bottom:12px;">POST /api/partner/draw</h3>
+            <p class="mb-4">
+              Submit a participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet. Requires <code>"draw_enabled": true</code> in the partner config entry.
+            </p>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>participants</code></td>
+                    <td>string[]</td>
+                    <td>Yes</td>
+                    <td>2–100 unique Solana wallet addresses (base58).</td>
+                  </tr>
+                  <tr>
+                    <td><code>winners_count</code></td>
+                    <td>integer</td>
+                    <td>No</td>
+                    <td>Number of winners to select (1–10). Defaults to <code>1</code>. Must be ≤ <code>participants.length</code>.</td>
+                  </tr>
+                  <tr>
+                    <td><code>label</code></td>
+                    <td>string</td>
+                    <td>No</td>
+                    <td>Human-readable label for the draw (max 80 chars). Auto-generated if omitted.</td>
+                  </tr>
+                  <tr>
+                    <td><code>use_case</code></td>
+                    <td>string</td>
+                    <td>No</td>
+                    <td>One of <code>raffle</code>, <code>airdrop</code>, <code>competition</code>. Informational only.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Response field</th><th>Type</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>ok</code></td>
+                    <td>boolean</td>
+                    <td><code>true</code> on success.</td>
+                  </tr>
+                  <tr>
+                    <td><code>signature</code></td>
+                    <td>string</td>
+                    <td>Solana transaction signature of the resolution tx.</td>
+                  </tr>
+                  <tr>
+                    <td><code>outcome_id</code></td>
+                    <td>string</td>
+                    <td>Primary winner address.</td>
+                  </tr>
+                  <tr>
+                    <td><code>outcome_ids</code></td>
+                    <td>string[]</td>
+                    <td>All winner addresses (length = <code>winners_count</code>).</td>
+                  </tr>
+                  <tr>
+                    <td><code>replay_url</code></td>
+                    <td>string</td>
+                    <td>Public verifier URL for independent replay.</td>
+                  </tr>
+                  <tr>
+                    <td><code>artifact_slot</code></td>
+                    <td>number | null</td>
+                    <td>Slot when the artifact was committed on-chain (null if lookup failed).</td>
+                  </tr>
+                  <tr>
+                    <td><code>resolution_slot</code></td>
+                    <td>number | null</td>
+                    <td>Slot when the resolution tx landed (null if lookup failed).</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="card mb-4" style="background:rgba(163,132,255,0.04);border-color:rgba(163,132,255,0.18);">
+              <p style="margin:0;color:var(--text-dim);font-size:13.5px;"><strong>Rate limit:</strong> one draw per partner key per 60 seconds. Exceeding the limit returns HTTP <code>429</code> with <code>retry_after_ms</code>.</p>
+            </div>
+
+            <div class="card mb-4" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>HTTP status</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>200</code></td><td>Draw completed successfully.</td></tr>
+                  <tr><td><code>400</code></td><td>Validation error (bad addresses, duplicates, invalid <code>winners_count</code> or <code>use_case</code>).</td></tr>
+                  <tr><td><code>401</code></td><td>Missing or unknown API key.</td></tr>
+                  <tr><td><code>403</code></td><td>Valid key but <code>draw_enabled</code> is not <code>true</code> for this partner.</td></tr>
+                  <tr><td><code>429</code></td><td>Rate limit exceeded; retry after 60 s.</td></tr>
+                  <tr><td><code>504</code></td><td>Devnet timeout; retry.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="terminal mb-4">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>POST /api/partner/draw</span>
+              </div>
+              <div class="terminal-body"><span class="prompt">$</span> curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
+    -H <span class="ok">"Content-Type: application/json"</span> \
+    -H <span class="ok">"x-api-key: vresk_YOUR_KEY"</span> \
+    -d <span class="ok">'{"participants":["&lt;addr1&gt;","&lt;addr2&gt;","&lt;addr3&gt;"],"winners_count":1,"label":"Campaign #1"}'</span>
+
+<span class="comment"># 200 response:</span>
+{
+  <span class="ok">"ok"</span>: true,
+  <span class="ok">"signature"</span>: "5xYz...",
+  <span class="ok">"outcome_id"</span>: "&lt;addr1&gt;",
+  <span class="ok">"outcome_ids"</span>: ["&lt;addr1&gt;"],
+  <span class="ok">"replay_url"</span>: "https://verifiableoutcome.online/verify?sig=5xYz...",
+  <span class="ok">"artifact_slot"</span>: 340123456,
+  <span class="ok">"resolution_slot"</span>: 340123512
+}</div>
+            </div>
           </article>
 
           <div class="mt-8 flex gap-3" style="flex-wrap: wrap;">

@@ -289,6 +289,47 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 - `vanish_withdraw_tx` — Vanish → winner transfer
 - `mock: true` if run in mock mode
 
+## 11) Partner Draw API
+
+`POST /api/partner/draw` lets B2B partners submit a participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet (same as `/api/live-raffle`).
+
+**Requirements:**
+
+- Header: `x-api-key: vresk_...` (existing partner key)
+- `"draw_enabled": true` in the partner's entry in `config/partners.json`
+
+To enable draws for a partner, edit `config/partners.json`:
+
+```json
+{
+  "key": "vresk_...",
+  "name": "Partner Name",
+  "tier": 1,
+  "created": "2026-04-28",
+  "draw_enabled": true
+}
+```
+
+**Example request:**
+
+```bash
+curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{"participants":["<addr1>","<addr2>","<addr3>"],"winners_count":1,"label":"Campaign #1"}'
+```
+
+**Response codes:**
+
+| Code | Meaning |
+|------|---------|
+| `200` | Draw completed; `signature`, `outcome_id`, `outcome_ids`, `replay_url`, `artifact_slot`, `resolution_slot` returned |
+| `400` | Validation error (bad participants, duplicate addresses, invalid `winners_count`, bad `use_case`) |
+| `401` | Missing or unknown API key |
+| `403` | Partner key valid but `draw_enabled` is not `true` |
+| `429` | Rate limit exceeded; one draw per partner key per 60 s |
+| `504` | Devnet timeout; retry |
+
 ## 10) Partner API keys for `/api/resolutions` and `/api/participant`
 
 These two endpoints are partner-only and require:

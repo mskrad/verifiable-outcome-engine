@@ -32,6 +32,7 @@ const CORS_API_PATHS = new Set([
   "/api/world-id/rp-context",
   "/api/resolutions",
   "/api/participant",
+  "/api/partner/draw",
 ]);
 const JSON_BODY_LIMIT_BYTES = Number(process.env.JSON_BODY_LIMIT_BYTES || 16_384);
 const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
@@ -41,12 +42,14 @@ const REPLAY_RATE_LIMIT_MAX = Number(process.env.REPLAY_RATE_LIMIT_MAX || 12);
 const LIVE_RAFFLE_TIMEOUT_MS = 45_000;
 const LIVE_RAFFLE_RATE_LIMIT_MS = 60_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
+const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
 const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
 const SAFE_ARTIFACT_ROOTS = [
   path.join(REF_ROOT, "artifacts"),
   path.join(REF_ROOT, "tmp", "live-raffle"),
+  path.join(REF_ROOT, "tmp", "partner-draw"),
 ];
 const LIVE_RAFFLE_PRESETS = [
   "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9",
@@ -56,7 +59,9 @@ const LIVE_RAFFLE_PRESETS = [
 ];
 
 const liveRaffleRateLimit = new Map();
+const partnerDrawRateLimit = new Map(); // partnerKey → blockedUntil ms
 const apiRateLimit = new Map();
+const PARTNER_DRAW_RATE_LIMIT_MS = 60_000;
 const resolutionsCache = new Map();
 const worldIdNullifiers = new Set();
 const RESOLUTIONS_CACHE_TTL_MS = 60_000;
@@ -586,6 +591,7 @@ function loadPartnerConfig() {
       name,
       tier: item?.tier ?? null,
       created: item?.created ?? null,
+      draw_enabled: item?.draw_enabled === true,
     });
   }
   return {
@@ -806,6 +812,19 @@ function checkLiveRaffleRateLimit(req) {
   return { ok: true, retryAfterMs: 0 };
 }
 
+function checkPartnerDrawRateLimit(partnerKey) {
+  const now = Date.now();
+  for (const [key, until] of partnerDrawRateLimit) {
+    if (until <= now) partnerDrawRateLimit.delete(key);
+  }
+  const blockedUntil = partnerDrawRateLimit.get(partnerKey) || 0;
+  if (blockedUntil > now) {
+    return { ok: false, retryAfterMs: blockedUntil - now };
+  }
+  partnerDrawRateLimit.set(partnerKey, now + PARTNER_DRAW_RATE_LIMIT_MS);
+  return { ok: true, retryAfterMs: 0 };
+}
+
 function withTimeout(promise, ms, message) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -829,6 +848,16 @@ function buildLiveRaffleConfig(judgeAddress) {
       address,
       weight,
     })),
+  };
+}
+
+function buildPartnerDrawConfig(participants, winnersCount) {
+  return {
+    type: "raffle",
+    input_lamports: 10,
+    payout_lamports: 3,
+    winners_count: winnersCount,
+    participants: participants.map((address) => ({ address, weight: 1 })),
   };
 }
 
@@ -1017,6 +1046,98 @@ async function handleLiveRaffle(req, res) {
       error: isTimeout ? "Devnet is slow right now, try again" : message,
     });
   }
+}
+
+async function handlePartnerDraw(req, res) {
+  const partner = requirePartnerApiKey(req, "/api/partner/draw");
+  if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
+
+  const body = await readJsonBody(req);
+
+  if (!Array.isArray(body.participants))
+    throw httpError(400, "participants must be an array");
+  if (body.participants.length < 2 || body.participants.length > 100)
+    throw httpError(400, "participants must contain 2–100 addresses");
+
+  const participants = body.participants.map((v, i) => {
+    try { return validateSolanaAddress(String(v)); }
+    catch (_) { throw httpError(400, `participants[${i}] is not a valid Solana address`); }
+  });
+  if (new Set(participants).size !== participants.length)
+    throw httpError(400, "duplicate participants not allowed");
+
+  const winnersCount = body.winners_count === undefined ? 1 : body.winners_count;
+  if (!Number.isInteger(winnersCount) || winnersCount < 1 || winnersCount > 10)
+    throw httpError(400, "winners_count must be an integer 1–10");
+  if (winnersCount > participants.length)
+    throw httpError(400, "winners_count must be <= participants length");
+
+  const rawLabel = body.label !== undefined ? String(body.label).trim().slice(0, 80) : "";
+  const label = rawLabel || `partner-draw-${Date.now()}`;
+
+  const VALID_USE_CASES = new Set(["raffle", "airdrop", "competition"]);
+  if (body.use_case !== undefined && !VALID_USE_CASES.has(body.use_case))
+    throw httpError(400, "use_case must be raffle, airdrop, or competition");
+
+  const rateCheck = checkPartnerDrawRateLimit(partner.key);
+  if (!rateCheck.ok) {
+    json(res, 429, { ok: false, error: "rate limit exceeded; retry in 60s", retry_after_ms: rateCheck.retryAfterMs });
+    return;
+  }
+
+  const config = buildPartnerDrawConfig(participants, winnersCount);
+  const resolveInline = await loadResolveInline();
+  const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
+  const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
+  const walletPath = swigOperatorConfig
+    ? undefined
+    : process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
+
+  let result;
+  try {
+    result = await withTimeout(
+      resolveInline(config, {
+        rpcUrl,
+        programId,
+        walletPath,
+        swigWallet: swigOperatorConfig,
+        outputDir: PARTNER_DRAW_OUTPUT_DIR,
+        label,
+      }),
+      LIVE_RAFFLE_TIMEOUT_MS,
+      "Devnet is slow right now, try again"
+    );
+  } catch (error) {
+    const msg = error?.message || String(error);
+    const isTimeout = msg.includes("Devnet is slow");
+    json(res, isTimeout ? 504 : 500, { ok: false, error: msg });
+    return;
+  }
+
+  let artifact_slot = null;
+  let resolution_slot = null;
+  try {
+    const timeline = await fetchTimeline({
+      signature: result.signature,
+      rpcUrl,
+      programId,
+      compiledArtifactHash: result.artifactHash,
+    });
+    artifact_slot = timeline.artifact_slot;
+    resolution_slot = timeline.resolution_slot;
+  } catch (_) {
+    // non-fatal
+  }
+
+  json(res, 200, {
+    ok: true,
+    signature: result.signature,
+    outcome_id: result.outcome,
+    outcome_ids: result.outcomeIds ?? [result.outcome],
+    replay_url: `https://verifiableoutcome.online/verify?sig=${result.signature}`,
+    artifact_slot,
+    resolution_slot,
+  });
 }
 
 async function rpcCall(rpcUrl, payload, timeoutMs = 8000) {
@@ -1237,6 +1358,11 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/live-raffle") {
       await handleLiveRaffle(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/draw") {
+      await handlePartnerDraw(req, res);
       return;
     }
 
