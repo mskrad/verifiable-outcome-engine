@@ -7,6 +7,7 @@ import path from "path";
 import {
   Keypair,
   PublicKey,
+  SendTransactionError,
   sendAndConfirmTransaction,
   SystemProgram,
   Transaction,
@@ -286,9 +287,21 @@ async function sendOperatorInstructions(
   );
   const tx = new Transaction().add(...signedInstructions);
   tx.feePayer = client.authority.delegate.publicKey;
-  return sendAndConfirmTransaction(connection, tx, [client.authority.delegate], {
-    commitment: "confirmed",
-  });
+  try {
+    return await sendAndConfirmTransaction(connection, tx, [client.authority.delegate], {
+      commitment: "confirmed",
+    });
+  } catch (error) {
+    if (error instanceof SendTransactionError) {
+      const logs = await error.getLogs(connection).catch(() => error.logs ?? []);
+      if (logs?.length) {
+        throw new Error(
+          `${error.message}\nSwig logs:\n${logs.join("\n")}`
+        );
+      }
+    }
+    throw error;
+  }
 }
 
 async function ensureWalletFunds(
