@@ -217,6 +217,44 @@
               </p>
             </div>
 
+            <h3 style="margin-bottom: 12px;">Live Governance Upgrade</h3>
+            <p class="mb-4">
+              The upgrade authority is not just configured — it has been exercised on-chain.
+              VRE was upgraded via the full Squads proposal flow on devnet: create → approve → execute.
+            </p>
+            <div class="card mb-6" style="padding: 0;">
+              <table class="rules-table">
+                <thead>
+                  <tr><th>Step</th><th>Transaction</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="text-teal">1. Vault tx create</td>
+                    <td><a href="https://explorer.solana.com/tx/48de7CyMKZA921ArsMhMMTj3g9j6vmYNUkTGmYFsP7jSA9xMeV8RLfNdjQoX1Q3j6KNrh1iK1RN8EhDmfMoiXn41?cluster=devnet" target="_blank" rel="noopener" class="mono text-teal">48de7Cy…</a></td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal">2. Proposal create</td>
+                    <td><a href="https://explorer.solana.com/tx/2dqUG4EHyc9y3ws3XLw2gBn1tLHWvjhFCEKhVEAyBBJEETLnYUbpUpsykYsJHkrj1AqUWkB1nkZMsK2y1dbmvHGT?cluster=devnet" target="_blank" rel="noopener" class="mono text-teal">2dqUG4E…</a></td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal">3. Proposal approve</td>
+                    <td><a href="https://explorer.solana.com/tx/5AuwR1bZRDo4pek5cZXhJsa7uFZ3nvpdog7HJj4JoyAiVMUsqxjzpBaWTau9bQaU433wF2wsuCcPLUSgzgyAHJUs?cluster=devnet" target="_blank" rel="noopener" class="mono text-teal">5AuwR1b…</a></td>
+                  </tr>
+                  <tr>
+                    <td class="text-teal">4. Execute (upgrade)</td>
+                    <td><a href="https://explorer.solana.com/tx/2AKZBt5BgnujHyErKNweksMoxew6bGfQzzQCdha2GhHu81VPu7xSkZyTWEmN2RFn3T5P3UtxRicZG3PZ76JTEXrr?cluster=devnet" target="_blank" rel="noopener" class="mono text-teal">2AKZBt5…</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card mb-6" style="background:rgba(20,241,149,0.04);border-color:rgba(20,241,149,0.18);">
+              <p style="font-size:13.5px;color:var(--text-dim);margin:0;line-height:1.8;">
+                Deployed at slot <strong>459318657</strong>. Upgrade authority remained <code>8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA</code> throughout —
+                the Squads vault PDA, not any individual keypair.
+                Evidence artifact: <code>artifacts/squads_upgrade_evidence.json</code>.
+              </p>
+            </div>
+
             <h3 style="margin-bottom: 12px;">Protocol Fee</h3>
             <p class="mb-4">
               Each <code>resolveOutcome</code> call may collect a protocol fee from the calling operator.

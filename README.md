@@ -64,6 +64,7 @@ Canonical devnet program id:
 - `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`
 - Upgrade authority: Squads vault PDA `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA` under multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` ([Squads](https://squads.xyz/multisig)).
 - Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
+- Governance upgrade executed on-chain: proposal created → approved → executed via Squads at slot `459318657`. Execute tx: [`2AKZBt5…`](https://explorer.solana.com/tx/2AKZBt5BgnujHyErKNweksMoxew6bGfQzzQCdha2GhHu81VPu7xSkZyTWEmN2RFn3T5P3UtxRicZG3PZ76JTEXrr?cluster=devnet). Evidence: `artifacts/squads_upgrade_evidence.json`.
 
 ## Live Examples
 
