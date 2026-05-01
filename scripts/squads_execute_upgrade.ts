@@ -21,7 +21,7 @@ import path from "path";
 const RPC_URL = "https://api.devnet.solana.com";
 const MULTISIG_KEY = new PublicKey("7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ");
 const PROGRAM_ID = new PublicKey("9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F");
-const BUFFER_ADDRESS = new PublicKey("3m2FRBnVQiDsiuoWpaMH34cooJ97moGGpKEy6M7YdfYr");
+const BUFFER_ADDRESS = new PublicKey("C5iVzwhvasJGMJt9VLVgQQCrsE5SUjENEqDcMe34qb31");
 const SPILL_ADDRESS = new PublicKey("ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT");
 const VAULT_INDEX = 0;
 const BPF_UPGRADEABLE_LOADER = new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111");

@@ -1,0 +1,16 @@
+{
+  "task": "HACKATHON-SQUADS-PROGRAM-UPGRADE-001",
+  "timestamp": "2026-05-01T09:34:54.674Z",
+  "multisig": "7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ",
+  "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+  "buffer_address": "C5iVzwhvasJGMJt9VLVgQQCrsE5SUjENEqDcMe34qb31",
+  "vault_pda": "8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA",
+  "transaction_index": 8,
+  "transactions": {
+    "vault_transaction_create": "48de7CyMKZA921ArsMhMMTj3g9j6vmYNUkTGmYFsP7jSA9xMeV8RLfNdjQoX1Q3j6KNrh1iK1RN8EhDmfMoiXn41",
+    "proposal_create": "2dqUG4EHyc9y3ws3XLw2gBn1tLHWvjhFCEKhVEAyBBJEETLnYUbpUpsykYsJHkrj1AqUWkB1nkZMsK2y1dbmvHGT",
+    "proposal_approve": "5AuwR1bZRDo4pek5cZXhJsa7uFZ3nvpdog7HJj4JoyAiVMUsqxjzpBaWTau9bQaU433wF2wsuCcPLUSgzgyAHJUs",
+    "vault_transaction_execute": "2AKZBt5BgnujHyErKNweksMoxew6bGfQzzQCdha2GhHu81VPu7xSkZyTWEmN2RFn3T5P3UtxRicZG3PZ76JTEXrr"
+  },
+  "narrative": "VRE W3O1 v3 formula support upgrade via Squads multisig governance"
+}
