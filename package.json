@@ -1,7 +1,7 @@
 {
   "name": "verifiable-outcome-sdk",
-  "version": "0.3.0",
-  "description": "Build and verify outcomes with Verifiable Outcome Engine on Solana",
+  "version": "0.4.0",
+  "description": "On-chain proof of who won. Commit rules before the draw, anyone verifies from a transaction signature.",
   "license": "MIT",
   "keywords": [
     "solana",
@@ -9,6 +9,8 @@
     "outcome",
     "raffle",
     "airdrop",
+    "competition",
+    "proof",
     "sdk"
   ],
   "homepage": "https://verifiableoutcome.online",
@@ -41,6 +43,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && chmod +x dist/sdk/cli.js",
+    "prepack": "yarn build",
     "build:artifact": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/build_artifact.ts",
     "metaplex:agent:mint": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/metaplex_register_agent.ts mint",
     "metaplex:agent:verify": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/metaplex_register_agent.ts verify",

@@ -1,8 +1,9 @@
 # Integration Guide — verifiable-outcome-sdk
 
-## Roles
+VRE gives your app on-chain proof of who won. Rules committed before the draw.
+Anyone verifies from a transaction signature. One POST request to get started.
 
-There are four distinct roles. Each requires a different level of access:
+## Roles
 
 | Role | What they do | Wallet needed? | Repo clone? |
 |------|-------------|----------------|-------------|

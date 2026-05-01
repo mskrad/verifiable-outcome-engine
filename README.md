@@ -1,6 +1,10 @@
 # Verifiable Outcome Engine
 
-We help Solana apps replace backend-trust reward logic with replay-verifiable on-chain outcomes.
+On-chain proof of who won.
+
+Every competition, raffle, or airdrop on Solana announces a winner. VRE commits
+the rules on-chain before the draw — anyone can take the transaction signature and
+verify the result themselves. No backend trust required.
 
 ## Quick Verify
 
@@ -32,33 +36,28 @@ VRE treasury.
 instance under a commercial agreement — no per-tx fee.
 [Contact us →](mailto:hello@verifiableoutcome.online)
 
-## Problem
+## Why this exists
 
-On-chain apps often ask users to trust that an outcome was computed correctly:
+Every Solana app that picks a winner — competition, raffle, airdrop, loot drop — asks
+users to trust the backend. The more money follows, the bigger the trust gap.
 
-- a raffle picks a winner,
-- a reviewer wants to verify the selected winner.
-
-The usual review path is weak: users see a transaction or UI result, but not an easy way to independently check how that outcome was derived.
+VRE closes it. Rules are committed on-chain before resolution. Anyone can take the
+transaction signature and replay the outcome from public RPC data.
 
 | Without VRE | With VRE |
 |---|---|
 | Operator picks winner, posts TX | Rules committed on-chain before draw |
 | Users trust the result | Anyone replays from public RPC data |
-| No way to verify selection logic | `vre verify --sig <TX>` -> `MATCH / OK` |
+| No way to verify | `vre verify --sig <TX>` → `MATCH / OK` |
 
-## Solution
+## How it works
 
-Verifiable Outcome Engine replays a Solana outcome from a transaction signature plus public RPC data.
+VRE replays a Solana outcome from a transaction signature plus public RPC data:
 
-This package demonstrates the verification path and the current W3O1 surface:
-
-- use a transaction signature,
-- fetch public on-chain logs/accounts through RPC,
-- recompute the outcome locally,
-- compare the replayed result with the recorded outcome,
-- expect `MATCH / OK` for the included devnet examples,
-- inspect `artifact_format_version`, `resolution_formula`, `winners_count`, and `target` for W3O1 v3 artifacts.
+- fetch the on-chain artifact via the signature,
+- recompute the outcome locally using the committed rules,
+- compare replayed result with the recorded outcome,
+- expect `MATCH / OK`.
 
 Canonical devnet program id:
 
@@ -66,16 +65,16 @@ Canonical devnet program id:
 - Upgrade authority: Squads vault PDA `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA` under multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` ([Squads](https://squads.xyz/multisig)).
 - Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
 
-## Evidence Set
+## Live Examples
 
-The public devnet bundle currently exposes four active blessed signatures on the canonical program:
+Four active signatures on the canonical devnet program — click any to verify:
 
-- `Raffle` — W3O1 v1 weighted random
-- `Rewards Selection` — W3O1 v2 multi-winner weighted random
-- `Trading Competition` — W3O1 v3 `rank_desc`
-- `Prediction Market` — W3O1 v3 `closest_to`
+- `Raffle` — weighted random, single winner
+- `Rewards Selection` — multi-winner weighted random
+- `Trading Competition` — `rank_desc`, top by score
+- `Prediction Market` — `closest_to`, nearest prediction wins
 
-The verifier is the reusable part: resolve on-chain, replay independently, compare the result, and expose the same evidence set in CLI, web, and widget surfaces.
+All examples live at [verifiableoutcome.online/play](https://verifiableoutcome.online/play)
 
 ## Verify Flow
 
