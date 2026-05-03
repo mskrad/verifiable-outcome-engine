@@ -170,97 +170,10 @@
     );
   };
 
-  function buildTweaks() {
-    const panel = document.createElement('div');
-    panel.className = 'tweaks-panel';
-    panel.innerHTML = `
-      <div class="tweaks-head">
-        <span class="tweaks-title">Theme</span>
-        <button class="tweaks-close" aria-label="Close">×</button>
-      </div>
-      <div class="tweaks-row">
-        <span class="tweaks-label">Theme</span>
-        <div class="tweaks-options" data-key="theme">
-          <button data-val="dark">Dark</button>
-          <button data-val="light">Light</button>
-        </div>
-      </div>
-      <div class="tweaks-row">
-        <span class="tweaks-label">Palette</span>
-        <div class="tweaks-options" data-key="palette">
-          <button data-val="">Solana</button>
-          <button data-val="indigo">Indigo</button>
-          <button data-val="mono">Mono</button>
-        </div>
-      </div>
-      <div class="tweaks-row">
-        <span class="tweaks-label">Display</span>
-        <div class="tweaks-options" data-key="display">
-          <button data-val="">Geist</button>
-          <button data-val="serif">Serif</button>
-          <button data-val="mono">Mono</button>
-        </div>
-      </div>
-      <div class="tweaks-row">
-        <span class="tweaks-label">Density</span>
-        <div class="tweaks-options" data-key="density">
-          <button data-val="">Default</button>
-          <button data-val="dense">Dense</button>
-          <button data-val="spacious">Spacious</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(panel);
-
-    const fab = document.createElement('button');
-    fab.className = 'tweaks-fab';
-    fab.type = 'button';
-    fab.setAttribute('aria-label', 'Open theme tweaks');
-    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
-    document.body.appendChild(fab);
-
-    function syncTweaks() {
-      panel.querySelectorAll('.tweaks-options').forEach((group) => {
-        const key = group.getAttribute('data-key');
-        const current = key === 'theme'
-          ? (root.getAttribute('data-theme') || 'dark')
-          : (root.getAttribute(`data-${key}`) || '');
-        group.querySelectorAll('button').forEach((button) => {
-          button.classList.toggle('active', (button.getAttribute('data-val') || '') === current);
-        });
-      });
-    }
-
-    panel.querySelectorAll('.tweaks-options').forEach((group) => {
-      const key = group.getAttribute('data-key');
-      group.addEventListener('click', (e) => {
-        const button = e.target.closest('button');
-        if (!button) return;
-        const value = button.getAttribute('data-val') || '';
-        if (key === 'theme') {
-          root.setAttribute('data-theme', value || 'dark');
-          localStorage.setItem('vre-theme', value || 'dark');
-        } else if (value) {
-          root.setAttribute(`data-${key}`, value);
-          localStorage.setItem(`vre-${key}`, value);
-        } else {
-          root.removeAttribute(`data-${key}`);
-          localStorage.removeItem(`vre-${key}`);
-        }
-        syncTweaks();
-      });
-    });
-
-    fab.addEventListener('click', () => panel.classList.add('open'));
-    panel.querySelector('.tweaks-close').addEventListener('click', () => panel.classList.remove('open'));
-    syncTweaks();
-  }
-
   function boot() {
     initTheme();
     ensureGrain();
     markActiveNav();
-    buildTweaks();
   }
 
   if (document.readyState === 'loading') {
