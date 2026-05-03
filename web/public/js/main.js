@@ -85,10 +85,11 @@
 
     const toggle = e.target.closest('[data-theme-toggle]');
     if (toggle) {
-      const current = root.getAttribute('data-theme') || 'dark';
-      const next = current === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', next);
-      localStorage.setItem('vre-theme', next);
+      const panel = document.querySelector('.tweaks-panel-inline');
+      if (panel) {
+        panel.classList.toggle('open');
+      }
+      return;
     }
   });
 
@@ -170,10 +171,101 @@
     );
   };
 
+  function buildTweaks() {
+    const navActions = document.querySelector('.nav-actions');
+    if (!navActions) return;
+
+    const panel = document.createElement('div');
+    panel.className = 'tweaks-panel tweaks-panel-inline';
+    panel.innerHTML = `
+      <div class="tweaks-head">
+        <span class="tweaks-title">Design system</span>
+        <button class="tweaks-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="tweaks-row">
+        <span class="tweaks-label">Theme</span>
+        <div class="tweaks-options" data-key="theme">
+          <button data-val="dark" type="button">Dark</button>
+          <button data-val="light" type="button">Light</button>
+        </div>
+      </div>
+      <div class="tweaks-row">
+        <span class="tweaks-label">Palette</span>
+        <div class="tweaks-options" data-key="palette">
+          <button data-val="" type="button">Solana</button>
+          <button data-val="indigo" type="button">Indigo</button>
+          <button data-val="mono" type="button">Mono</button>
+        </div>
+      </div>
+      <div class="tweaks-row">
+        <span class="tweaks-label">Display</span>
+        <div class="tweaks-options" data-key="display">
+          <button data-val="" type="button">Geist</button>
+          <button data-val="serif" type="button">Serif</button>
+          <button data-val="mono" type="button">Mono</button>
+        </div>
+      </div>
+      <div class="tweaks-row">
+        <span class="tweaks-label">Density</span>
+        <div class="tweaks-options" data-key="density">
+          <button data-val="" type="button">Default</button>
+          <button data-val="dense" type="button">Dense</button>
+          <button data-val="spacious" type="button">Spacious</button>
+        </div>
+      </div>
+    `;
+    navActions.appendChild(panel);
+
+    function syncTweaks() {
+      panel.querySelectorAll('.tweaks-options').forEach((group) => {
+        const key = group.getAttribute('data-key');
+        const current = key === 'theme'
+          ? (root.getAttribute('data-theme') || 'dark')
+          : (root.getAttribute(`data-${key}`) || '');
+        group.querySelectorAll('button').forEach((button) => {
+          button.classList.toggle('active', (button.getAttribute('data-val') || '') === current);
+        });
+      });
+    }
+
+    panel.querySelectorAll('.tweaks-options').forEach((group) => {
+      const key = group.getAttribute('data-key');
+      group.addEventListener('click', (e) => {
+        const button = e.target.closest('button');
+        if (!button) return;
+        const value = button.getAttribute('data-val') || '';
+        if (key === 'theme') {
+          root.setAttribute('data-theme', value || 'dark');
+          localStorage.setItem('vre-theme', value || 'dark');
+        } else if (value) {
+          root.setAttribute(`data-${key}`, value);
+          localStorage.setItem(`vre-${key}`, value);
+        } else {
+          root.removeAttribute(`data-${key}`);
+          localStorage.removeItem(`vre-${key}`);
+        }
+        syncTweaks();
+      });
+    });
+
+    panel.querySelector('.tweaks-close').addEventListener('click', () => {
+      panel.classList.remove('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-theme-toggle]')) return;
+      if (e.target.closest('.tweaks-panel-inline')) return;
+      panel.classList.remove('open');
+    });
+
+    syncTweaks();
+  }
+
   function boot() {
     initTheme();
     ensureGrain();
     markActiveNav();
+    buildTweaks();
   }
 
   if (document.readyState === 'loading') {

@@ -412,6 +412,7 @@ section.tight { padding: calc(var(--section-py) * 0.5) 0; }
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .theme-toggle {
@@ -568,6 +569,9 @@ section.tight { padding: calc(var(--section-py) * 0.5) 0; }
   .integrations-strip-shell,
   .integrations-strip-shell .container {
     overflow: hidden;
+  }
+  .tweaks-panel-inline {
+    display: none !important;
   }
 }
 
@@ -2043,6 +2047,14 @@ footer {
   display: none;
 }
 .tweaks-panel.open { display: block; }
+.tweaks-panel-inline {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  bottom: auto;
+  width: 280px;
+  z-index: 220;
+}
 .tweaks-head {
   display: flex;
   align-items: center;
