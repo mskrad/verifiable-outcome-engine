@@ -252,7 +252,7 @@
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Formula</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">weighted_random</div>
+            <div class="lr-stat-value mono">weighted_random</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Wallet weight</div>
