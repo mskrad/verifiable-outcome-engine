@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Build · VRE</title>
   <meta name="description" content="On-chain proof of who won. Build committed rules, resolve once, let anyone verify from a transaction signature." />
-  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div class="grain"></div>
 
   <nav class="nav">
     <div class="nav-inner">
-      <a href="/" class="nav-brand" aria-label="VRE home">
+      <a href="index.html" class="nav-brand" aria-label="VRE home">
         <div class="nav-brand-mark"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
@@ -21,17 +20,17 @@
         </div>
       </a>
       <ul class="nav-links">
-        <li><a href="/play"   data-nav="play">Demo</a></li>
-        <li><a href="/build"  data-nav="build">Build</a></li>
-        <li><a href="/verify" data-nav="verify">Verify</a></li>
-        <li><a href="/spec"   data-nav="spec">Spec</a></li>
+        <li><a href="play.html"   data-nav="play">Demo</a></li>
+        <li><a href="build.html"  data-nav="build">Build</a></li>
+        <li><a href="verify.html" data-nav="verify">Verify</a></li>
+        <li><a href="spec.html"   data-nav="spec">Spec</a></li>
       </ul>
       <div class="nav-actions">
         <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
           <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <a href="/build" class="nav-cta">Launch App <span aria-hidden>→</span></a>
+        <a href="build.html" class="nav-cta">Launch App <span aria-hidden>→</span></a>
       </div>
     </div>
   </nav>
@@ -40,7 +39,7 @@
     <div class="container">
       <span class="eyebrow"><span class="dot"></span> Config engine + SDK</span>
       <h1 class="page-title">Build with VRE</h1>
-      <p class="lead">On-chain proof of who won. Build committed W3O1 rules, resolve once, let anyone verify from the transaction signature.</p>
+      <p class="lead">On-chain proof of who won. Build committed rules, resolve once, let anyone verify from a transaction signature.</p>
     </div>
   </header>
 
@@ -49,33 +48,33 @@
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> How it works</span>
-        <h2>Three steps. One artifact. One replay path.</h2>
-        <p>The public surface is simple: build a deterministic artifact, resolve it on-chain with an operator path, then replay the signature from public RPC data. <span class="text-faint">Artifact building is open. Operator execution depends on the program instance you use.</span></p>
+        <h2>Three steps. Three commits. Zero hidden state.</h2>
+        <p>Each step produces a public artifact referencing the previous one. The chain of hashes is the proof — no trust in the engine required. <span class="text-faint">Steps 1–2 are for operators. Step 3 is for everyone.</span></p>
       </div>
 
       <div class="stepper">
         <div class="step">
           <div class="step-num">1</div>
           <div class="step-tag">commit</div>
-          <h3>Build artifact bytes</h3>
-          <p>Define participants, weights or scores, winners count, and optional formula fields. The SDK compiles them into deterministic <span class="mono">W3O1</span> bytes.</p>
-          <div class="step-code"><span class="prompt">$</span> node build-artifact.mjs</div>
+          <h3>Define rules</h3>
+          <p>Write a JSON config: participants, weights, outcome ids, selection mode. The SDK hashes it and gives you an <span class="mono">artifact_hash</span>.</p>
+          <div class="step-code"><span class="prompt">$</span> vre init raffle.json</div>
         </div>
 
         <div class="step">
           <div class="step-num">2</div>
           <div class="step-tag">resolve</div>
-          <h3>Resolve on-chain</h3>
-          <p>An operator path submits the committed artifact to the canonical or partner-owned program. The resulting transaction becomes the public evidence surface.</p>
-          <div class="step-code"><span class="prompt">$</span> yarn -s resolve:operator --config raffle.json</div>
+          <h3>Commit on-chain</h3>
+          <p>Push the hash to Solana. The VRE program stores it against a <span class="mono">runtime_id</span>. Once committed, the ruleset cannot be edited.</p>
+          <div class="step-code"><span class="prompt">$</span> vre resolve --config raffle.json</div>
         </div>
 
         <div class="step">
           <div class="step-num">3</div>
           <div class="step-tag">verify</div>
           <h3>Share &amp; verify</h3>
-          <p>You get a signature. Paste it at <span class="mono">/verify</span> or call <span class="mono">verifyOutcome()</span>. Anyone can replay the same outcome from public RPC data.</p>
-          <div class="step-code"><span class="prompt">$</span> node verify.mjs <span class="ok">→ MATCH / OK</span></div>
+          <p>You get a signature. Paste it at <span class="mono">/verify</span> or run <span class="mono">vre verify</span>. Anyone does this — not just you.</p>
+          <div class="step-code"><span class="prompt">$</span> vre verify --sig &lt;SIG&gt; <span class="ok">→ MATCH / OK</span></div>
         </div>
       </div>
     </div>
@@ -86,7 +85,7 @@
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> Install</span>
-        <h2>One npm package. Deterministic build + replay.</h2>
+        <h2>One npm package. Three commands.</h2>
       </div>
 
       <div class="terminal">
@@ -94,14 +93,16 @@
           <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
           <span>~/projects/my-dapp</span>
         </div>
-        <div class="terminal-body"><span class="comment"># Install the public SDK</span>
+        <div class="terminal-body"><span class="comment"># Global CLI — for scripting, CI, and manual resolves</span>
+<span class="prompt">$</span> npm install -g verifiable-outcome-sdk
+
+<span class="comment"># Or embed the programmatic API in your dApp</span>
 <span class="prompt">$</span> npm install verifiable-outcome-sdk
 
-<span class="comment"># Public surface: artifact builder + replay verifier</span>
-<span class="prompt">$</span> node -e 'import("verifiable-outcome-sdk").then(m =&gt; console.log(Object.keys(m)))'
+<span class="comment"># Same deterministic kernel runs in Node, browser, and Deno</span>
+<span class="prompt">$</span> vre --version
 <span class="out">verifiable-outcome-sdk v0.4.0</span>
-<span class="out">surface: buildArtifact, verifyOutcome</span>
-<span class="out">formats: W3O1 v1-v3 · deterministic replay kernel</span></div>
+<span class="out">surface: W3O1 v1-v3 · deterministic replay kernel</span></div>
       </div>
     </div>
   </section>
@@ -118,55 +119,47 @@
         <div>
           <div class="code-pair-label"><span class="code-pair-name mono">raffle.json</span><span class="code-pair-tag">config</span></div>
           <div class="terminal">
-            <div class="terminal-body"><span class="comment">// Example formula config before compilation to W3O1 bytes</span>
+            <div class="terminal-body"><span class="comment">// The shape VRE commits on-chain</span>
 {
-  <span class="key">"type"</span>: <span class="ok">"formula_draw"</span>,
-  <span class="key">"formula"</span>: <span class="ok">"rank_desc"</span>,
-  <span class="key">"input_lamports"</span>: <span class="num">12</span>,
-  <span class="key">"payout_lamports"</span>: <span class="num">3</span>,
-  <span class="key">"winners_count"</span>: <span class="num">2</span>,
+  <span class="key">"version"</span>: <span class="ok">"1.0"</span>,
+  <span class="key">"runtime_id"</span>: <span class="ok">"rt_8a1f…c4d2"</span>,
+  <span class="key">"ruleset_id"</span>: <span class="ok">"rs_2e7b…9f01"</span>,
+  <span class="key">"mode"</span>: <span class="ok">"raffle"</span>,
   <span class="key">"participants"</span>: [
-    { <span class="key">"id"</span>: <span class="ok">"trader-alice"</span>, <span class="key">"score"</span>: <span class="num">1200</span> },
-    { <span class="key">"id"</span>: <span class="ok">"trader-bob"</span>,   <span class="key">"score"</span>: <span class="num">950</span> },
-    { <span class="key">"id"</span>: <span class="ok">"trader-carol"</span>, <span class="key">"score"</span>: <span class="num">1400</span> }
+    <span class="ok">"7FHkp…3GnV"</span>,
+    <span class="ok">"9LxTm…bV2a"</span>,
+    <span class="ok">"4NpQr…X9eY"</span>
   ],
-  <span class="key">"target"</span>: <span class="num">null</span>
+  <span class="key">"weights"</span>: [<span class="num">5</span>, <span class="num">3</span>, <span class="num">2</span>],
+  <span class="key">"seed_fn"</span>: <span class="ok">"slot_nonce"</span>
 }</div>
           </div>
         </div>
         <div>
           <div class="code-pair-label"><span class="code-pair-name mono">app.ts</span><span class="code-pair-tag">programmatic</span></div>
           <div class="terminal">
-            <div class="terminal-body"><span class="comment">// Current public npm surface</span>
-<span class="key">import</span> { buildArtifact, verifyOutcome } <span class="key">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
+            <div class="terminal-body"><span class="comment">// Same engine, from JS</span>
+<span class="key">import</span> { VRE } <span class="key">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
 
-<span class="key">const</span> artifact = buildArtifact({
-  type: <span class="ok">"formula_draw"</span>,
-  formula: <span class="ok">"rank_desc"</span>,
-  input_lamports: <span class="num">12</span>,
-  payout_lamports: <span class="num">3</span>,
-  winners_count: <span class="num">2</span>,
-  participants: [
-    { id: <span class="ok">"trader-alice"</span>, score: <span class="num">1200</span> },
-    { id: <span class="ok">"trader-bob"</span>, score: <span class="num">950</span> },
-    { id: <span class="ok">"trader-carol"</span>, score: <span class="num">1400</span> },
-  ],
-});
-
-<span class="key">const</span> replay = <span class="key">await</span> verifyOutcome({
-  signature: <span class="ok">"5wZUU5…RVd2"</span>,
-  rpcUrl: <span class="ok">"https://api.devnet.solana.com"</span>,
+<span class="key">const</span> vre = <span class="key">new</span> VRE({
+  cluster: <span class="ok">"devnet"</span>,
   programId: <span class="ok">"9tEram…FE1F"</span>,
 });
-<span class="comment">// { status: "MATCH", outcome_id, outcome_ids, ... }</span></div>
+
+<span class="key">const</span> runtime = <span class="key">await</span> vre.commit(config);
+<span class="key">const</span> outcome = <span class="key">await</span> vre.resolve(runtime.id);
+
+<span class="comment">// Independent check — anyone can run this</span>
+<span class="key">const</span> result = <span class="key">await</span> vre.verify(outcome.sig);
+<span class="comment">// { status: "MATCH", code: "OK", … }</span></div>
           </div>
         </div>
       </div>
 
       <div class="mt-8 flex gap-3" style="flex-wrap:wrap;">
-        <a class="btn btn-primary" href="/spec">Read the spec <span aria-hidden>→</span></a>
-        <a class="btn btn-secondary" href="/verify">Try a verification <span aria-hidden>→</span></a>
-        <a class="btn btn-ghost" href="/spec#error-codes">Error code reference ↗</a>
+        <a class="btn btn-primary" href="spec.html">Read the spec <span aria-hidden>→</span></a>
+        <a class="btn btn-secondary" href="verify.html">Try a verification <span aria-hidden>→</span></a>
+        <a class="btn btn-ghost" href="#" target="_blank" rel="noopener">Error code reference ↗</a>
       </div>
     </div>
   </section>
@@ -226,10 +219,10 @@
           <span>VRE · Verifiable Outcome Engine</span>
         </div>
         <ul class="footer-links">
-          <li><a href="/play">Demo</a></li>
-          <li><a href="/build">Build</a></li>
-          <li><a href="/verify">Verify</a></li>
-          <li><a href="/spec">Spec</a></li>
+          <li><a href="play.html">Demo</a></li>
+          <li><a href="build.html">Build</a></li>
+          <li><a href="verify.html">Verify</a></li>
+          <li><a href="spec.html">Spec</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
         <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
@@ -237,6 +230,6 @@
     </div>
   </footer>
 
-  <script src="/js/main.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

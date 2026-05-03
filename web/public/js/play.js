@@ -10,6 +10,8 @@
   const DEFAULT_PROGRAM_ID = '9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
   const WORLD_IDKIT_CORE_URL = 'https://esm.sh/@worldcoin/idkit-core@4.1.3?bundle';
+  const BLESSED_LIMIT = 4;
+  const HISTORICAL_LIMIT = 6;
 
   let liveRaffleWallet = { status: 'not-connected' };
   let liveRaffleHealth = null;
@@ -186,15 +188,40 @@
 
     if (state === 'not-installed') {
       root.innerHTML = `
+        <div class="live-raffle-grain"></div>
         <div class="live-raffle-head">
           <div>
-            <span class="eyebrow"><span class="dot"></span> Live raffle</span>
-            <h2>Try a real on-chain raffle</h2>
-            <p>Connect Phantom to enter a devnet raffle with your address weighted at 90%.</p>
+            <span class="eyebrow"><span class="dot pulse"></span> Live on devnet</span>
+            <h2 class="live-raffle-title">Try a real on-chain raffle</h2>
+            <div class="live-raffle-sub">Connect Phantom to enter a weighted devnet raffle and verify the result from the resulting transaction signature.</div>
+          </div>
+          <div class="live-raffle-countdown">
+            <div class="countdown-num"><span>—</span></div>
+            <div class="countdown-label">wallet missing</div>
           </div>
         </div>
-        <div class="live-raffle-status live-raffle-warn">
-          Phantom is not installed. <a class="text-teal" href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom</a>
+        <div class="live-raffle-stats">
+          <div class="lr-stat">
+            <div class="lr-stat-label">Network</div>
+            <div class="lr-stat-value">Devnet</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Program</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">9tEram…FE1F</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Flow</div>
+            <div class="lr-stat-value">Phantom</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">World ID</div>
+            <div class="lr-stat-value">Optional</div>
+          </div>
+        </div>
+        <div class="live-raffle-cta">
+          <a class="btn btn-primary btn-lg" href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom <span aria-hidden>→</span></a>
+          <a class="btn btn-secondary btn-lg" href="/verify">Open verifier</a>
+          <span class="text-faint" style="font-size:12.5px;">Phantom is required for the live raffle flow.</span>
         </div>
       `;
       return;
@@ -202,24 +229,56 @@
 
     if (state === 'idle') {
       const connected = liveRaffleWallet.status === 'connected';
+      const capability = worldIdCapability();
       root.innerHTML = `
+        <div class="live-raffle-grain"></div>
         <div class="live-raffle-head">
           <div>
-            <span class="eyebrow"><span class="dot"></span> Live raffle</span>
-            <h2>Try a real on-chain raffle</h2>
-            <p>${connected
-              ? `Your address: <span class="wallet-pill">${escapeHtml(liveRaffleWallet.shortAddress)}</span>`
-              : 'Connect Phantom to enter a devnet raffle with your address weighted at 90%.'}</p>
+            <span class="eyebrow"><span class="dot pulse"></span> Live on devnet</span>
+            <h2 class="live-raffle-title">Try a real on-chain raffle</h2>
+            <div class="live-raffle-sub">${connected
+              ? `Your address is connected: <span class="wallet-pill">${escapeHtml(liveRaffleWallet.shortAddress)}</span>`
+              : 'Connect Phantom to enter a weighted devnet raffle. Your wallet will be added to a fixed public test set.'}</div>
           </div>
-          <div class="live-raffle-actions">
-            ${connected
-              ? `<button class="btn btn-primary" type="button" data-live-raffle-start>${worldIdRequired ? 'Verify & Start Raffle →' : 'Start Raffle →'}</button>`
-              : '<button class="btn btn-secondary" type="button" data-live-raffle-connect>Connect Phantom</button>'}
+          <div class="live-raffle-countdown">
+            <div class="countdown-num"><span>${connected ? 'READY' : 'WAIT'}</span></div>
+            <div class="countdown-label">${connected ? 'wallet connected' : 'connect wallet'}</div>
           </div>
         </div>
+        <div class="live-raffle-stats">
+          <div class="lr-stat">
+            <div class="lr-stat-label">Network</div>
+            <div class="lr-stat-value">Devnet</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Formula</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">weighted_random</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Wallet weight</div>
+            <div class="lr-stat-value">90%</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">World ID</div>
+            <div class="lr-stat-value">${capability.enabled ? (worldIdRequired ? 'Required' : 'Optional') : 'Unavailable'}</div>
+          </div>
+        </div>
+        <div class="live-raffle-cta">
+          ${connected
+            ? `<button class="btn btn-primary btn-lg" type="button" data-live-raffle-start>${worldIdRequired ? 'Verify & Start Raffle' : 'Start Raffle'} <span aria-hidden>→</span></button>`
+            : '<button class="btn btn-primary btn-lg" type="button" data-live-raffle-connect>Connect Phantom <span aria-hidden>→</span></button>'}
+          <a class="btn btn-secondary btn-lg" href="/verify">Open verifier</a>
+          <span class="text-faint" style="font-size:12.5px;">The result is a real devnet transaction you can replay independently.</span>
+        </div>
         ${renderWorldIdControls()}
-        <div class="live-raffle-status">
-          You will be entered with four preset participants. The result is a real devnet transaction and can be verified independently.
+        <div class="status-bar" style="margin-top:16px;">
+          <div class="status-bar-left">
+            <span class="status-pill"><span class="dot pulse"></span> weighted draw</span>
+            <span class="text-faint" style="font-size:12.5px;">You will be entered with four preset participants.</span>
+          </div>
+          <div class="status-bar-right">
+            <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(DEFAULT_PROGRAM_ID)}">Copy program ID</button>
+          </div>
         </div>
       `;
       return;
@@ -227,11 +286,34 @@
 
     if (state === 'loading') {
       root.innerHTML = `
-        <div class="loading-state live-raffle-loading">
-          <div class="spinner spinner-lg"></div>
+        <div class="live-raffle-grain"></div>
+        <div class="live-raffle-head">
           <div>
-            <strong>${escapeHtml(data.title || 'Creating your raffle on Solana devnet...')}</strong>
-            <div class="text-faint">${escapeHtml(data.message || 'This takes about 15-45 seconds.')}</div>
+            <span class="eyebrow"><span class="dot pulse"></span> Live on devnet</span>
+            <h2 class="live-raffle-title">${escapeHtml(data.title || 'Creating your raffle on Solana devnet...')}</h2>
+            <div class="live-raffle-sub">${escapeHtml(data.message || 'This takes about 15-45 seconds.')}</div>
+          </div>
+          <div class="live-raffle-countdown">
+            <div class="spinner spinner-lg"></div>
+            <div class="countdown-label">in progress</div>
+          </div>
+        </div>
+        <div class="live-raffle-stats">
+          <div class="lr-stat">
+            <div class="lr-stat-label">Status</div>
+            <div class="lr-stat-value">Submitting</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Network</div>
+            <div class="lr-stat-value">Devnet</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Wallet</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(liveRaffleWallet.shortAddress || 'pending')}</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Verifier</div>
+            <div class="lr-stat-value">Queued</div>
           </div>
         </div>
       `;
@@ -240,20 +322,29 @@
 
     if (state === 'error') {
       root.innerHTML = `
+        <div class="live-raffle-grain"></div>
         <div class="live-raffle-head">
           <div>
-            <span class="eyebrow"><span class="dot"></span> Live raffle</span>
-            <h2>Try a real on-chain raffle</h2>
+            <span class="eyebrow"><span class="dot pulse"></span> Live on devnet</span>
+            <h2 class="live-raffle-title">Live raffle failed</h2>
+            <div class="live-raffle-sub">${escapeHtml(data.message || 'Live raffle failed')}</div>
           </div>
-          <button class="btn btn-secondary" type="button" data-live-raffle-reset>Try again</button>
+          <div class="live-raffle-countdown">
+            <div class="countdown-num"><span>FAIL</span></div>
+            <div class="countdown-label">simulation error</div>
+          </div>
         </div>
-        <div class="live-raffle-status live-raffle-error">${escapeHtml(data.message || 'Live raffle failed')}</div>
-        ${data.signature ? `
-          <div class="sig-actions mt-4">
-            <a class="btn btn-secondary btn-sm" href="/verify?sig=${encodeURIComponent(data.signature)}">Open verifier →</a>
-            <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
+        <div class="live-raffle-cta">
+          <button class="btn btn-primary btn-lg" type="button" data-live-raffle-reset>Try again</button>
+          ${data.signature ? `<a class="btn btn-secondary btn-lg" href="/verify?sig=${encodeURIComponent(data.signature)}">Open verifier</a>` : '<a class="btn btn-secondary btn-lg" href="/verify">Open verifier</a>'}
+          ${data.signature ? `<button class="btn btn-ghost btn-lg" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>` : ''}
+        </div>
+        <div class="status-bar" style="margin-top:16px;">
+          <div class="status-bar-left">
+            <span class="status-pill">${escapeHtml(worldIdRequired ? 'world-id flow' : 'standard flow')}</span>
+            <span class="text-faint" style="font-size:12.5px;">Inspect the verifier or explorer if the error persists.</span>
           </div>
-        ` : ''}
+        </div>
       `;
       return;
     }
@@ -266,33 +357,47 @@
         ? 'Your address was not in this draw'
         : 'Not selected this time';
       root.innerHTML = `
+        <div class="live-raffle-grain"></div>
         <div class="live-raffle-head">
           <div>
-            <span class="eyebrow"><span class="dot"></span> Live raffle complete</span>
-            <h2>${escapeHtml(title)}</h2>
-            <p>Selected outcome: <span class="mono text-teal">${escapeHtml(window.vreShort(data.outcome || '', 8, 8))}</span></p>
+            <span class="eyebrow"><span class="dot pulse"></span> Live raffle complete</span>
+            <h2 class="live-raffle-title">${escapeHtml(title)}</h2>
+            <div class="live-raffle-sub">Selected outcome: <span class="mono text-teal">${escapeHtml(window.vreShort(data.outcome || '', 8, 8))}</span></div>
+          </div>
+          <div class="live-raffle-countdown">
+            <div class="countdown-num"><span>${did === 'won' ? 'WIN' : 'DONE'}</span></div>
+            <div class="countdown-label">${did === 'won' ? 'selected' : 'resolved'}</div>
           </div>
         </div>
-        <div class="sig-meta">
-          <div class="sig-meta-item">
-            <div class="sig-meta-label">signature</div>
-            <div class="sig-meta-value">${escapeHtml(data.signature || '—')}</div>
+        <div class="live-raffle-stats">
+          <div class="lr-stat">
+            <div class="lr-stat-label">Signature</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(window.vreShort(data.signature || '—', 8, 8))}</div>
           </div>
-          <div class="sig-meta-item">
-            <div class="sig-meta-label">runtime_id</div>
-            <div class="sig-meta-value">${escapeHtml(data.runtimeId || '—')}</div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Runtime ID</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(window.vreShort(data.runtimeId || '—', 8, 8))}</div>
           </div>
-          <div class="sig-meta-item">
-            <div class="sig-meta-label">artifact_hash</div>
-            <div class="sig-meta-value">${escapeHtml(window.vreShort(data.artifactHash || '—', 10, 6))}</div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Artifact</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(window.vreShort(data.artifactHash || '—', 10, 6))}</div>
+          </div>
+          <div class="lr-stat">
+            <div class="lr-stat-label">Verifier</div>
+            <div class="lr-stat-value">MATCH</div>
           </div>
         </div>
-        <div class="sig-actions">
-          <a class="btn btn-primary btn-sm" href="/verify?sig=${encodeURIComponent(data.signature)}">Verify independently →</a>
-          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/tx/${encodeURIComponent(data.signature)}?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
-          <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
+        <div class="live-raffle-cta">
+          <a class="btn btn-primary btn-lg" href="/verify?sig=${encodeURIComponent(data.signature)}">Verify independently <span aria-hidden>→</span></a>
+          <a class="btn btn-secondary btn-lg" href="https://explorer.solana.com/tx/${encodeURIComponent(data.signature)}?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
+          <button class="btn btn-ghost btn-lg" data-copy="${escapeHtml(data.signature)}">Copy Sig</button>
         </div>
-        ${data.worldIdVerified ? '<div class="live-raffle-status live-raffle-success">World ID was verified before raffle execution.</div>' : ''}
+        <div class="status-bar" style="margin-top:16px;">
+          <div class="status-bar-left">
+            <span class="status-pill">${escapeHtml(did === 'won' ? 'winner' : 'resolved')}</span>
+            <span class="text-faint" style="font-size:12.5px;">${data.worldIdVerified ? 'World ID was verified before raffle execution.' : 'Replay matched independently against public RPC data.'}</span>
+          </div>
+        </div>
       `;
     }
   }
@@ -409,12 +514,21 @@
 
   function describe(entry) {
     if (entry.description) return entry.description;
+    if (entry.source === 'historical') {
+      const formula = String(entry.resolution_formula || '').trim();
+      const winners = Number(entry.winners_count || 0);
+      return formula
+        ? `Historical devnet transaction replayed as ${formula}${winners > 1 ? ` with ${winners} winners` : ''}.`
+        : 'Historical devnet transaction replayed from public RPC data.';
+    }
     if (entry.notes) return entry.notes;
     return 'Verifiable outcome resolved';
   }
 
   function primaryLabel(entry) {
-    return String(entry.label || '').trim() || 'Blessed Signature';
+    const label = String(entry.label || '').trim();
+    if (label) return label;
+    return entry.source === 'historical' ? 'Historical Transaction' : 'Blessed Signature';
   }
 
   function renderEvidenceBadges(entry) {
@@ -478,6 +592,13 @@
     const artifactSlot = timeline?.artifact_slot;
     const resolutionSlot = timeline?.resolution_slot;
     const gapSlots = timeline?.gap_slots;
+    const formula = String(entry.resolution_formula || '').trim() || 'unknown';
+    const ids = outcomeIds(entry);
+    const primaryOutcome = ids[0] || entry.outcome_id || '—';
+    const winnersText = ids.length > 1 ? `${ids.length} winners` : 'single outcome';
+    const statusText = String(entry.verification_result || 'MATCH').toUpperCase();
+    const reasonText = String(entry.verification_reason || 'OK').toUpperCase();
+    const isMatch = statusText === 'MATCH' && reasonText === 'OK';
     const timelineText = artifactSlot != null && resolutionSlot != null
       ? `slot ${artifactSlot} → ${resolutionSlot}`
       : 'timeline unavailable';
@@ -486,43 +607,61 @@
       : 'devnet evidence';
 
     return `
-      <article class="sig-card" data-idx="${idx}">
+      <article class="sig-card ${isMatch ? 'sig-card-resolved' : 'sig-card-pending'}" data-idx="${idx}">
         <div class="sig-card-head">
-          <div class="sig-card-heading">
-            <h3 class="sig-card-title">${escapeHtml(primaryLabel(entry))}</h3>
-            <div class="sig-card-badges">
-              ${renderEvidenceBadges(entry)}
-            </div>
+          <div>
+            <div class="sig-card-label">${escapeHtml(primaryLabel(entry))}</div>
+            <div class="sig-card-id mono">${escapeHtml(short)}</div>
           </div>
-          <div class="sig-card-status">
-            <span class="badge badge-match">${escapeHtml(entry.verification_result || 'MATCH')} / ${escapeHtml(entry.verification_reason || 'OK')}</span>
-            <span class="text-faint mono" style="font-size:11px;">${escapeHtml(updated)} UTC</span>
-          </div>
+          <span class="sig-status ${isMatch ? 'sig-status-ok' : 'sig-status-pending'}">${escapeHtml(`${statusText} / ${reasonText}`)}</span>
         </div>
         <div class="sig-card-desc">${escapeHtml(describe(entry))}</div>
+        <div class="sig-card-badges">
+          ${renderEvidenceBadges(entry)}
+        </div>
+        <div class="sig-card-body">
+          <div class="sig-row">
+            <span class="sig-row-label">Formula</span>
+            <span class="sig-row-value mono">${escapeHtml(formula)}</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Selected</span>
+            <span class="sig-row-value mono text-teal">${escapeHtml(primaryOutcome)}</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Winners</span>
+            <span class="sig-row-value">${escapeHtml(winnersText)}</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Timeline</span>
+            <span class="sig-row-value">${escapeHtml(timelineText)}</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Artifact</span>
+            <span class="sig-row-value mono">${escapeHtml(window.vreShort(entry.compiled_artifact_hash || '—', 10, 6))}</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Updated</span>
+            <span class="sig-row-value">${escapeHtml(updated)} UTC</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Runtime ID</span>
+            <span class="sig-row-value mono">${escapeHtml(window.vreShort(entry.runtime_id || '—', 8, 8))}</span>
+          </div>
+          <div class="sig-row">
+            <span class="sig-row-label">Resolve ID</span>
+            <span class="sig-row-value mono">${escapeHtml(window.vreShort(entry.resolve_id || '—', 8, 8))}</span>
+          </div>
+          ${gapSlots != null ? `
+            <div class="sig-row">
+              <span class="sig-row-label">Gap</span>
+              <span class="sig-row-value">+${gapSlots} slots</span>
+            </div>
+          ` : ''}
+        </div>
         ${renderWinnerList(entry)}
-        <div class="sig-hash" data-copy-target="${escapeHtml(entry.signature)}">${escapeHtml(short)}</div>
-        <div class="sig-meta">
-          <div class="sig-meta-item">
-            <div class="sig-meta-label">runtime_id</div>
-            <div class="sig-meta-value">${escapeHtml(entry.runtime_id || '—')}</div>
-          </div>
-          <div class="sig-meta-item">
-            <div class="sig-meta-label">resolve_id</div>
-            <div class="sig-meta-value">${escapeHtml(entry.resolve_id || '—')}</div>
-          </div>
-          <div class="sig-meta-item">
-            <div class="sig-meta-label">artifact_hash</div>
-            <div class="sig-meta-value">${escapeHtml(window.vreShort(entry.compiled_artifact_hash || '—', 10, 6))}</div>
-          </div>
-        </div>
-        <div class="sig-timeline">
-          <span>🜉</span>
-          <span>${escapeHtml(timelineText)}</span>
-          ${gapSlots != null ? `<span class="delta">+${gapSlots} slots</span>` : ''}
-        </div>
-        <div class="sig-actions">
-          <a class="btn btn-primary btn-sm" href="/verify?sig=${encodeURIComponent(entry.signature)}">▶ Verify Now</a>
+        <div class="sig-card-foot">
+          <a class="btn btn-primary btn-sm" href="/verify?sig=${encodeURIComponent(entry.signature)}">Verify now <span aria-hidden>→</span></a>
           <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/tx/${entry.signature}?cluster=devnet" target="_blank" rel="noopener">Explorer ↗</a>
           <button class="btn btn-ghost btn-sm" data-copy="${escapeHtml(entry.signature)}">Copy Sig</button>
         </div>
@@ -543,12 +682,32 @@
     `;
 
     try {
-      const [health, blessed] = await Promise.all([
+      const [health, blessed, recent] = await Promise.all([
         loadHealth(),
         getJson('/api/blessed-signatures'),
+        getJson(`/api/recent-resolutions?limit=${HISTORICAL_LIMIT}`),
       ]);
-      const entries = (blessed.data?.entries || [])
-        .filter((entry) => entry.status === 'active');
+      const blessedEntries = (blessed.data?.entries || [])
+        .filter((entry) => entry.status === 'active')
+        .slice(0, BLESSED_LIMIT)
+        .map((entry) => ({ ...entry, source: 'blessed' }));
+      const recentEntries = (recent.resolutions || [])
+        .slice(0, HISTORICAL_LIMIT)
+        .map((entry) => ({
+          ...entry,
+          source: 'historical',
+          timeline: entry.commit_slot != null && entry.resolve_slot != null
+            ? {
+                artifact_slot: entry.commit_slot,
+                resolution_slot: entry.resolve_slot,
+                gap_slots: entry.resolve_slot - entry.commit_slot,
+              }
+            : null,
+        }));
+      const dedupedRecentEntries = recentEntries.filter(
+        (entry) => !blessedEntries.some((blessedEntry) => blessedEntry.signature === entry.signature)
+      );
+      const entries = [...blessedEntries, ...dedupedRecentEntries];
 
       if (!entries.length) {
         listEl.innerHTML = `
@@ -564,11 +723,13 @@
 
       const enriched = await Promise.all(entries.map(async (entry) => ({
         ...entry,
-        timeline: await loadTimeline(entry, health),
+        timeline: entry.timeline || await loadTimeline(entry, health),
       })));
 
       listEl.innerHTML = enriched.map((entry, idx) => renderCard(entry, idx, health)).join('');
-      statusEl.textContent = `${enriched.length} blessed signature${enriched.length === 1 ? '' : 's'} · ${health.blessed_signatures_count} active · ${window.vreShort(health.program_id || DEFAULT_PROGRAM_ID, 8, 8)}`;
+      const historicalCount = enriched.filter((entry) => entry.source === 'historical').length;
+      const blessedCount = enriched.filter((entry) => entry.source === 'blessed').length;
+      statusEl.textContent = `Latest transactions · ${blessedCount} blessed · ${historicalCount} historical · last 24h`;
     } catch (err) {
       listEl.innerHTML = `
         <div class="empty-state">

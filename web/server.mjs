@@ -30,6 +30,7 @@ const CORS_API_PATHS = new Set([
   "/api/health",
   "/api/live-raffle",
   "/api/world-id/rp-context",
+  "/api/recent-resolutions",
   "/api/resolutions",
   "/api/participant",
   "/api/partner/draw",
@@ -387,7 +388,7 @@ async function loadVerifyOutcome() {
 
 async function fetchResolutions(limit, opts = {}) {
   const now = Date.now();
-  const cacheKey = `${opts.preferBlessed ? "blessed" : "latest"}:${limit}`;
+  const cacheKey = `${opts.preferBlessed ? "blessed" : "latest"}:${opts.includeBlessed === false ? "recent-only" : "with-blessed"}:${limit}:${typeof opts.recentLimit === "number" ? opts.recentLimit : "auto"}`;
   const cached = resolutionsCache.get(cacheKey);
   if (cached && cached.expireAt > now) return cached.data;
 
@@ -427,9 +428,10 @@ async function fetchResolutions(limit, opts = {}) {
   if (typeof opts.recentLimit === "number") {
     recentSigs = recentSigs.slice(0, Math.max(0, opts.recentLimit));
   }
+  const includeBlessed = opts.includeBlessed !== false;
   const allSigs = opts.preferBlessed
     ? [...blessedSigs, ...recentSigs]
-    : [...recentSigs, ...blessedSigs];
+    : [...recentSigs, ...(includeBlessed ? blessedSigs : [])];
 
   // Verify in batches to avoid hammering devnet with too many concurrent RPC calls
   const VERIFY_BATCH_SIZE = 8;
@@ -505,6 +507,15 @@ async function fetchResolutions(limit, opts = {}) {
         signature: sigEntry.signature,
         outcome_id: verified.outcome_id,
         outcome_ids: verified.outcome_ids,
+        winners_count: verified.winners_count ?? (Array.isArray(verified.outcome_ids) ? verified.outcome_ids.length : 1),
+        artifact_format_version: verified.artifact_format_version ?? 1,
+        resolution_formula: verified.resolution_formula ?? null,
+        target: verified.target ?? null,
+        verification_result: verified.status,
+        verification_reason: verified.reason,
+        runtime_id: verified.runtime_id,
+        resolve_id: verified.resolve_id,
+        compiled_artifact_hash: verified.compiled_artifact_hash,
         participants: verified.outcomes ?? [],
         participants_count: (verified.outcomes ?? []).length,
         commit_slot: commitSlotByHash.get(verified.compiled_artifact_hash) ?? null,
@@ -658,6 +669,17 @@ function worldIdCapability() {
     rp_id: config.rpId || null,
     action: config.action,
     environment: config.environment,
+  };
+}
+
+function operatorModeCapability() {
+  const walletPath = process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || null;
+  return {
+    mode: swigOperatorConfig ? "swig" : "raw_keypair",
+    program_id: process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId(),
+    swig_address: swigOperatorConfig?.swigAddress || null,
+    swig_role_id: swigOperatorConfig?.roleId ?? null,
+    wallet_path: swigOperatorConfig ? null : walletPath,
   };
 }
 
@@ -860,13 +882,19 @@ const PARTNER_DRAW_FORMULAS = new Set([
   "first_n",
   "closest_to",
 ]);
+const PARTNER_DRAW_BASE_INPUT_LAMPORTS = 10;
+const PARTNER_DRAW_PAYOUT_LAMPORTS = 3;
 
 function buildPartnerDrawConfig(participants, winnersCount, formula, target) {
+  const inputLamports = Math.max(
+    PARTNER_DRAW_BASE_INPUT_LAMPORTS,
+    winnersCount * PARTNER_DRAW_PAYOUT_LAMPORTS
+  );
   return {
     type: "formula_draw",
     formula,
-    input_lamports: 10,
-    payout_lamports: 3,
+    input_lamports: inputLamports,
+    payout_lamports: PARTNER_DRAW_PAYOUT_LAMPORTS,
     winners_count: winnersCount,
     ...(target === undefined ? {} : { target }),
     participants,
@@ -1343,6 +1371,7 @@ async function handleApi(req, res, pathname) {
         mode: "standalone_public_reference",
         program_id: defaultProgramId(),
         rpc: defaultRpc(),
+        operator: operatorModeCapability(),
         world_id: worldIdCapability(),
         blessed_signatures_count: blessed.entries.filter(
           (entry) => entry.status === "active"
@@ -1353,6 +1382,42 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "GET" && pathname === "/api/blessed-signatures") {
       json(res, 200, { ok: true, data: loadBlessedSignatures() });
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/recent-resolutions") {
+      enforceApiRateLimit(req, pathname);
+      const reqUrl = new URL(req.url || "/", "http://localhost");
+      const rawLimit = reqUrl.searchParams.get("limit");
+      const limit = rawLimit
+        ? Math.min(Math.max(1, parseInt(rawLimit, 10) || 6), 20)
+        : 6;
+      const resolutions = await fetchResolutions(limit, {
+        preferBlessed: false,
+        includeBlessed: false,
+        recentLimit: Math.max(limit * 3, 12),
+      });
+      json(res, 200, {
+        ok: true,
+        resolutions: resolutions.map((r) => ({
+          signature: r.signature,
+          outcome_id: r.outcome_id,
+          outcome_ids: r.outcome_ids ?? [r.outcome_id],
+          winners_count: r.winners_count ?? 1,
+          artifact_format_version: r.artifact_format_version ?? 1,
+          resolution_formula: r.resolution_formula ?? null,
+          target: r.target ?? null,
+          verification_result: r.verification_result ?? "MATCH",
+          verification_reason: r.verification_reason ?? "OK",
+          runtime_id: r.runtime_id,
+          resolve_id: r.resolve_id,
+          compiled_artifact_hash: r.compiled_artifact_hash,
+          participants_count: r.participants_count,
+          commit_slot: r.commit_slot,
+          resolve_slot: r.resolve_slot,
+          source: "historical",
+        })),
+      });
       return;
     }
 

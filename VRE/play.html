@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Demo · VRE</title>
   <meta name="description" content="Run a real on-chain raffle on Solana devnet. Verify the result independently from a transaction signature." />
-  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
-  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div class="grain"></div>
 
   <nav class="nav">
     <div class="nav-inner">
-      <a href="/" class="nav-brand" aria-label="VRE home">
+      <a href="index.html" class="nav-brand" aria-label="VRE home">
         <div class="nav-brand-mark"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
@@ -21,17 +20,17 @@
         </div>
       </a>
       <ul class="nav-links">
-        <li><a href="/play"   data-nav="play">Demo</a></li>
-        <li><a href="/build"  data-nav="build">Build</a></li>
-        <li><a href="/verify" data-nav="verify">Verify</a></li>
-        <li><a href="/spec"   data-nav="spec">Spec</a></li>
+        <li><a href="play.html"   data-nav="play">Demo</a></li>
+        <li><a href="build.html"  data-nav="build">Build</a></li>
+        <li><a href="verify.html" data-nav="verify">Verify</a></li>
+        <li><a href="spec.html"   data-nav="spec">Spec</a></li>
       </ul>
       <div class="nav-actions">
         <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
           <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
           <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <a href="/build" class="nav-cta">Launch App <span aria-hidden>→</span></a>
+        <a href="build.html" class="nav-cta">Launch App <span aria-hidden>→</span></a>
       </div>
     </div>
   </nav>
@@ -47,7 +46,7 @@
   <!-- Live raffle hero -->
   <section style="padding-top: 0;">
     <div class="container">
-      <div id="live-raffle" class="card glass-strong live-raffle">
+      <div class="card glass-strong live-raffle">
         <div class="live-raffle-grain"></div>
 
         <div class="live-raffle-head">
@@ -95,12 +94,12 @@
     <div class="container">
       <div class="status-bar">
         <div class="status-bar-left">
-          <span class="status-pill"><span class="dot pulse"></span> <span id="sig-status">Latest transactions · 4 blessed · 6 historical · last 24h</span></span>
+          <span class="status-pill"><span class="dot pulse"></span> 12 signatures · last 24h</span>
           <span class="text-faint" style="font-size:12.5px;">Program <span class="mono">9tEram…FE1F</span></span>
         </div>
         <div class="status-bar-right">
           <button class="btn btn-ghost btn-sm" data-copy="9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F">Copy program ID</button>
-          <a class="btn btn-secondary btn-sm" href="https://explorer.solana.com/address/9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F?cluster=devnet" target="_blank" rel="noopener">Open in explorer ↗</a>
+          <a class="btn btn-secondary btn-sm" href="#" target="_blank" rel="noopener">Open in explorer ↗</a>
         </div>
       </div>
     </div>
@@ -110,7 +109,7 @@
   <section style="padding-top: 16px;">
     <div class="container">
 
-      <div id="sig-list" class="sig-grid">
+      <div class="sig-grid">
 
         <article class="sig-card sig-card-resolved">
           <div class="sig-card-head">
@@ -140,7 +139,7 @@
           </div>
           <div class="sig-card-foot">
             <button class="btn btn-primary btn-sm">Verify now <span aria-hidden>→</span></button>
-            <a href="/verify" class="btn btn-ghost btn-sm">Open in verifier</a>
+            <a href="verify.html" class="btn btn-ghost btn-sm">Open in verifier</a>
           </div>
         </article>
 
@@ -172,7 +171,7 @@
           </div>
           <div class="sig-card-foot">
             <button class="btn btn-primary btn-sm">Verify now <span aria-hidden>→</span></button>
-            <a href="/verify" class="btn btn-ghost btn-sm">Open in verifier</a>
+            <a href="verify.html" class="btn btn-ghost btn-sm">Open in verifier</a>
           </div>
         </article>
 
@@ -204,7 +203,7 @@
           </div>
           <div class="sig-card-foot">
             <button class="btn btn-secondary btn-sm">Inspect commit</button>
-            <a href="/verify" class="btn btn-ghost btn-sm">Open in verifier</a>
+            <a href="verify.html" class="btn btn-ghost btn-sm">Open in verifier</a>
           </div>
         </article>
 
@@ -236,7 +235,7 @@
           </div>
           <div class="sig-card-foot">
             <button class="btn btn-primary btn-sm">Verify now <span aria-hidden>→</span></button>
-            <a href="/verify" class="btn btn-ghost btn-sm">Open in verifier</a>
+            <a href="verify.html" class="btn btn-ghost btn-sm">Open in verifier</a>
           </div>
         </article>
 
@@ -268,7 +267,7 @@
           </div>
           <div class="sig-card-foot">
             <button class="btn btn-primary btn-sm">Verify now <span aria-hidden>→</span></button>
-            <a href="/verify" class="btn btn-ghost btn-sm">Open in verifier</a>
+            <a href="verify.html" class="btn btn-ghost btn-sm">Open in verifier</a>
           </div>
         </article>
 
@@ -300,7 +299,7 @@
           </div>
           <div class="sig-card-foot">
             <button class="btn btn-primary btn-sm">Verify now <span aria-hidden>→</span></button>
-            <a href="/verify" class="btn btn-ghost btn-sm">Open in verifier</a>
+            <a href="verify.html" class="btn btn-ghost btn-sm">Open in verifier</a>
           </div>
         </article>
 
@@ -308,7 +307,7 @@
 
       <div class="mt-8 center text-faint" style="font-size:13px;">
         Signatures auto-refresh on load. Need a specific one?
-        <a href="/verify" class="text-teal">Paste it on the verify page →</a>
+        <a href="verify.html" class="text-teal">Paste it on the verify page →</a>
       </div>
 
     </div>
@@ -355,10 +354,10 @@
           <span>VRE · Verifiable Outcome Engine</span>
         </div>
         <ul class="footer-links">
-          <li><a href="/play">Demo</a></li>
-          <li><a href="/build">Build</a></li>
-          <li><a href="/verify">Verify</a></li>
-          <li><a href="/spec">Spec</a></li>
+          <li><a href="play.html">Demo</a></li>
+          <li><a href="build.html">Build</a></li>
+          <li><a href="verify.html">Verify</a></li>
+          <li><a href="spec.html">Spec</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
         <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
@@ -366,8 +365,7 @@
     </div>
   </footer>
 
-  <script src="/js/main.js"></script>
-  <script src="/js/play.js"></script>
+  <script src="js/main.js"></script>
   <script>
     // simple countdown
     (function () {

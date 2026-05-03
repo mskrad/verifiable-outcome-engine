@@ -4,11 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Widget · VRE</title>
-  <meta name="description" content="Drop-in web component for outcome verification. Add MATCH/OK to any page with two lines of HTML." />
+  <meta name="description" content="On-chain proof of who won. Embed verification on any page and replay a result from a transaction signature." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://verifiableoutcome.online/widget" />
   <meta property="og:title" content="VRE Widget · Embed Outcome Verification" />
-  <meta property="og:description" content="Drop-in web component for outcome verification. Add MATCH/OK to any page with two lines of HTML." />
+  <meta property="og:description" content="On-chain proof of who won. Embed verification on any page and replay a result from a transaction signature." />
   <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -16,10 +16,9 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@voutcomeengine" />
   <meta name="twitter:title" content="VRE Widget · Embed Outcome Verification" />
-  <meta name="twitter:description" content="Drop-in web component for outcome verification. Add MATCH/OK to any page with two lines of HTML." />
+  <meta name="twitter:description" content="On-chain proof of who won. Embed verification on any page and replay a result from a transaction signature." />
   <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
-<meta property="og:url" content="https://verifiableoutcome.online/widget" />  <meta property="og:title" content="VRE Widget · Embed Outcome Verification" />  <meta property="og:description" content="Drop-in web component for outcome verification. Add MATCH/OK to any page with two lines of HTML." />  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />  <meta property="og:image:width" content="1200" />  <meta property="og:image:height" content="630" />  <meta name="twitter:card" content="summary_large_image" />  <meta name="twitter:site" content="@voutcomeengine" />  <meta name="twitter:title" content="VRE Widget · Embed Outcome Verification" />  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
-  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <script src="/widget.js" defer></script>
 </head>
@@ -28,7 +27,7 @@
   <nav class="nav">
     <div class="nav-inner">
       <a href="/" class="nav-brand" aria-label="VRE home">
-        <img src="/assets/logo.webp" alt="" class="nav-brand-logo" />
+        <div class="nav-brand-mark"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
           <div class="nav-brand-caption">Verifiable Outcome Engine</div>
@@ -49,7 +48,7 @@
     <div class="container">
       <span class="eyebrow"><span class="dot"></span> Embed</span>
       <h1 class="page-title">Drop-in Verifier Widget</h1>
-      <p>One <span class="mono">&lt;script&gt;</span> tag embeds the verifier on any page. Your users verify the outcome themselves from public RPC data — including W3O1 v3 formula outputs.</p>
+      <p>One <span class="mono">&lt;script&gt;</span> tag adds on-chain proof of who won to any page. Users replay the outcome themselves from public RPC data — including W3O1 v3 formula outputs.</p>
     </div>
   </header>
 
@@ -92,7 +91,7 @@
           <div class="card widget-live-card" id="widget-live-demo">
             <vre-verify sig="5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2"></vre-verify>
           </div>
-          <p id="widget-live-demo-status" class="text-faint mt-3" style="font-size:12.5px;">Showing the default blessed Raffle signature on the canonical devnet program.</p>
+      <p id="widget-live-demo-status" class="text-faint mt-3" style="font-size:12.5px;">Showing the default blessed Raffle verification on the canonical devnet program.</p>
         </div>
 
       </div>
@@ -167,7 +166,7 @@
     <div class="container">
       <div class="footer-inner">
         <div class="footer-brand">
-          <img src="/assets/logo.webp" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <div class="nav-brand-mark" style="width:20px;height:20px;opacity:0.7;"></div>
           <span>VRE · Verifiable Outcome Engine</span>
         </div>
         <ul class="footer-links">
@@ -178,7 +177,7 @@
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
           <li><a href="mailto:hello@verifiableoutcome.online">Email</a></li>
         </ul>
-        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+        <div class="text-faint" style="font-size:12px;">W3O1 v1-v3 · canonical devnet program</div>
       </div>
     </div>
   </footer>
@@ -225,7 +224,7 @@
           widget.setAttribute('label', 'Last verified');
           status.textContent = 'Showing the last MATCH / OK verification from this browser.';
         } else {
-          status.textContent = 'Showing the default demo signature.';
+          status.textContent = 'Showing the default blessed Raffle verification on the canonical devnet program.';
         }
         root.appendChild(widget);
       }

@@ -1,0 +1,57 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vreGradient" x1="180" y1="180" x2="844" y2="844" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#22F0C7"/>
+      <stop offset="52%" stop-color="#4B8DFF"/>
+      <stop offset="100%" stop-color="#8A4DFF"/>
+    </linearGradient>
+
+    <radialGradient id="bgGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+      gradientTransform="translate(512 512) rotate(90) scale(512)">
+      <stop offset="0%" stop-color="#0D1323"/>
+      <stop offset="100%" stop-color="#05070C"/>
+    </radialGradient>
+
+    <filter id="outerGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="22" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="1 0 0 0 0
+                0 1 0 0 0.1
+                0 0 1 0 0.2
+                0 0 0 0.9 0" result="glow"/>
+      <feBlend in="SourceGraphic" in2="glow" mode="screen"/>
+    </filter>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+
+    <mask id="ringMask">
+      <rect width="1024" height="1024" fill="black"/>
+      <rect x="170" y="170" width="684" height="684" rx="180" fill="white"/>
+      <rect x="378" y="378" width="268" height="268" rx="74" fill="black"/>
+    </mask>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#bgGlow)"/>
+
+  <g filter="url(#softShadow)">
+    <rect x="70" y="70" width="884" height="884" rx="240" fill="#070A11" stroke="#121827" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#outerGlow)">
+    <rect x="170" y="170" width="684" height="684" rx="180" fill="url(#vreGradient)" mask="url(#ringMask)"/>
+    <rect x="170" y="170" width="684" height="684" rx="180" stroke="rgba(255,255,255,0.10)" stroke-width="6"/>
+    <rect x="378" y="378" width="268" height="268" rx="74" stroke="rgba(255,255,255,0.10)" stroke-width="6"/>
+  </g>
+
+  <rect x="188" y="188" width="648" height="648" rx="164" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+  <rect x="394" y="394" width="236" height="236" rx="64" fill="#05070C" opacity="0.92"/>
+
+  <path d="M512 170C597 170 683 220 737 292" stroke="white" stroke-opacity="0.12" stroke-width="12" stroke-linecap="round"/>
+  <path d="M621 378C637 392 646 413 646 438" stroke="white" stroke-opacity="0.10" stroke-width="8" stroke-linecap="round"/>
+
+  <circle cx="270" cy="250" r="3" fill="white" fill-opacity="0.14"/>
+  <circle cx="780" cy="292" r="2.5" fill="white" fill-opacity="0.12"/>
+  <circle cx="740" cy="760" r="2.5" fill="white" fill-opacity="0.10"/>
+</svg>

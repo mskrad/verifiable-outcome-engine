@@ -1,32 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Verify · VRE — Check who won</title>
-  <meta name="description" content="Paste a transaction signature. VRE replays the outcome from public chain data and shows MATCH / OK — or flags a mismatch." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://verifiableoutcome.online/verify" />
-  <meta property="og:title" content="VRE Verify · Check who won" />
-  <meta property="og:description" content="Paste a transaction signature. VRE replays the outcome from public chain data and shows MATCH / OK — or flags a mismatch." />
-  <meta property="og:image" content="https://verifiableoutcome.online/assets/og-image.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="VRE — Check who won · Solana outcome verifier" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" content="@voutcomeengine" />
-  <meta name="twitter:title" content="VRE Verify · Check who won" />
-  <meta name="twitter:description" content="Paste a transaction signature. VRE replays the outcome from public chain data and shows MATCH / OK — or flags a mismatch." />
-  <meta name="twitter:image" content="https://verifiableoutcome.online/assets/og-image.png" />
-  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+  <title>Verify · VRE</title>
+  <meta name="description" content="On-chain proof of who won. Paste a transaction signature and replay the result from public RPC data." />
+  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
+  <div class="grain"></div>
 
   <nav class="nav">
     <div class="nav-inner">
       <a href="/" class="nav-brand" aria-label="VRE home">
-        <img src="/assets/logo.webp" alt="" class="nav-brand-logo" />
+        <div class="nav-brand-mark"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
           <div class="nav-brand-caption">Verifiable Outcome Engine</div>
@@ -36,25 +24,35 @@
         <li><a href="/play"   data-nav="play">Demo</a></li>
         <li><a href="/build"  data-nav="build">Build</a></li>
         <li><a href="/verify" data-nav="verify">Verify</a></li>
-        <li><a href="/widget" data-nav="widget">Widget</a></li>
         <li><a href="/spec"   data-nav="spec">Spec</a></li>
       </ul>
-      <a href="/build" class="nav-cta">Launch App →</a>
+      <div class="nav-actions">
+        <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <a href="/build" class="nav-cta">Launch App <span aria-hidden>→</span></a>
+      </div>
     </div>
   </nav>
 
   <header class="page-head">
     <div class="container-narrow">
       <span class="eyebrow"><span class="dot"></span> Independent verifier</span>
-      <h1 class="page-title">Verify Outcome</h1>
-      <p>Paste a transaction signature from a <span class="mono">vre resolve</span> call. The verifier fetches it from a public RPC, reconstructs the committed <span class="mono">W3O1</span> rules, and replays the selection. For <span class="mono">v3</span> artifacts it also surfaces formula, target, score, and stable order.</p>
+      <h1 class="page-title">Verify outcome</h1>
+      <p class="lead">On-chain proof of who won starts with a transaction signature. The verifier reconstructs committed <span class="mono">W3O1</span> rules from public chain data and replays the same selection.</p>
     </div>
   </header>
 
   <section style="padding-top: 24px;">
     <div class="container-narrow">
 
-      <form id="verify-form" class="verify-form" autocomplete="off">
+      <form id="verify-form" class="verify-form card glass" autocomplete="off">
+        <div class="verify-form-head">
+          <span class="eyebrow"><span class="dot"></span> Step 1 · Inputs</span>
+          <h2 class="verify-form-title">Replay any signature</h2>
+        </div>
+
         <div class="form-row form-two-col">
           <div>
             <label class="form-label" for="field-cluster">Cluster</label>
@@ -65,33 +63,33 @@
             </select>
           </div>
           <div>
-            <label class="form-label" for="field-rpc">RPC URL <span class="hint">(override if you have your own endpoint)</span></label>
+            <label class="form-label" for="field-rpc">RPC URL <span class="hint">override</span></label>
             <input id="field-rpc" class="form-input" placeholder="https://api.devnet.solana.com" />
           </div>
         </div>
 
         <div class="form-row">
           <label class="form-label" for="field-program">Program ID</label>
-          <input id="field-program" class="form-input" placeholder="9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F" />
+          <input id="field-program" class="form-input mono" placeholder="9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F" value="9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F" />
         </div>
 
         <div class="form-row">
-          <label class="form-label" for="field-sig">Transaction Signature <span class="hint">(base58 — from a resolve call)</span></label>
-          <input id="field-sig" class="form-input form-input-large" placeholder="5KJp…9vW2" spellcheck="false" />
+          <label class="form-label" for="field-sig">Transaction signature <span class="hint">base58 — from a resolve call</span></label>
+          <input id="field-sig" class="form-input form-input-large mono" placeholder="5wZUU5…RVd2" spellcheck="false" value="5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2" />
         </div>
 
-        <div class="form-row flex gap-3" style="align-items:center;">
-          <button id="btn-verify" class="btn btn-primary btn-lg" type="submit">▶ Run Verification</button>
-          <span class="text-faint" style="font-size:12.5px;">
-            Anyone can run this. The public API replays the outcome from RPC data and returns a specific reason code.
+        <div class="verify-form-actions">
+          <button id="btn-verify" class="btn btn-primary btn-lg" type="submit">
+            <span class="btn-icon">▶</span> Run verification
+          </button>
+          <span class="text-faint" style="font-size:12.5px;max-width:36ch;">
+            Anyone can run this. The verifier replays from public RPC data and returns a specific reason code.
           </span>
         </div>
       </form>
 
-      <!-- Result area -->
       <div id="result-banner" class="result-banner hidden" aria-live="polite"></div>
       <div id="result-details" class="hidden"></div>
-
       <div id="result-raw-wrap" class="result-section hidden" style="margin-top:24px;">
         <div class="section-head-with-action">
           <div class="result-section-title">Raw output</div>
@@ -100,13 +98,44 @@
         <pre id="result-raw" class="raw-json"></pre>
       </div>
 
-      <!-- Error codes reference -->
-      <div class="mt-8">
-        <a class="btn btn-ghost btn-sm" href="/spec#error-codes">See full error code reference →</a>
+      <!-- Error code reference -->
+      <div class="error-codes">
+        <div class="error-codes-head">
+          <span class="eyebrow"><span class="dot"></span> Reason codes</span>
+          <h2>What each result means</h2>
+        </div>
+        <div class="error-codes-grid">
+          <div class="error-code error-code-ok">
+            <div class="error-code-tag">MATCH</div>
+            <div class="error-code-desc">Replay reproduces the on-chain outcome bit-for-bit. Verification succeeded.</div>
+          </div>
+          <div class="error-code error-code-warn">
+            <div class="error-code-tag">PENDING</div>
+            <div class="error-code-desc">Commit found, draw not yet resolved. Try again after the resolution slot.</div>
+          </div>
+          <div class="error-code error-code-err">
+            <div class="error-code-tag">RULESET_MISMATCH</div>
+            <div class="error-code-desc">The artifact hash on chain does not match what the verifier reconstructed.</div>
+          </div>
+          <div class="error-code error-code-err">
+            <div class="error-code-tag">NO_COMMIT</div>
+            <div class="error-code-desc">No prior commit was found for this resolve. Outcome is not verifiable.</div>
+          </div>
+          <div class="error-code error-code-err">
+            <div class="error-code-tag">REPLAY_DIVERGED</div>
+            <div class="error-code-desc">Kernel replay produced a different winner than the on-chain record.</div>
+          </div>
+          <div class="error-code error-code-warn">
+            <div class="error-code-tag">RPC_UNREACHABLE</div>
+            <div class="error-code-desc">Could not fetch the signature. Try a different RPC endpoint.</div>
+          </div>
+        </div>
+        <div class="mt-6">
+          <a class="btn btn-ghost btn-sm" href="/spec#error-codes">See full reference →</a>
+        </div>
       </div>
 
-      <!-- Shareable URL hint -->
-      <div class="mt-4 text-faint" style="font-size:12.5px;">
+      <div class="mt-6 text-faint" style="font-size:12.5px;">
         💡 Append <span class="mono">?sig=&lt;SIGNATURE&gt;</span> to this page's URL to share a pre-filled verifier link.
       </div>
 
@@ -117,7 +146,7 @@
     <div class="container">
       <div class="footer-inner">
         <div class="footer-brand">
-          <img src="/assets/logo.webp" alt="" style="width:20px;height:20px;opacity:0.7;" />
+          <div class="nav-brand-mark" style="width:22px;height:22px;"></div>
           <span>VRE · Verifiable Outcome Engine</span>
         </div>
         <ul class="footer-links">
@@ -126,9 +155,8 @@
           <li><a href="/verify">Verify</a></li>
           <li><a href="/spec">Spec</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
-          <li><a href="mailto:hello@verifiableoutcome.online">Email</a></li>
         </ul>
-        <div class="text-faint" style="font-size:12px;">v1.0 · Solana devnet</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
       </div>
     </div>
   </footer>
@@ -139,11 +167,13 @@
     document.addEventListener('DOMContentLoaded', () => {
       const btn = document.getElementById('btn-copy-json');
       btn?.addEventListener('click', async () => {
-        const text = document.getElementById('result-raw').textContent;
+        const text = document.getElementById('result-raw')?.textContent || '';
         try {
           await navigator.clipboard.writeText(text);
           window.vreToast('JSON copied');
-        } catch (_) { window.vreToast('Copy failed'); }
+        } catch (_) {
+          window.vreToast('Copy failed');
+        }
       });
     });
   </script>
