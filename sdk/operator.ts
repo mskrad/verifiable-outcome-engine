@@ -5,6 +5,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import {
+  ComputeBudgetProgram,
   Keypair,
   PublicKey,
   SendTransactionError,
@@ -13,6 +14,8 @@ import {
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
+
+const PRIORITY_FEE_MICRO_LAMPORTS = 100_000;
 
 import { buildArtifact } from "./artifact.js";
 import { OUTCOME_IDL } from "./idl.js";
@@ -260,8 +263,11 @@ async function sendOperatorInstructions(
   }
 
   const connection = client.provider.connection;
+  const priorityIx = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
+  });
   if (client.authority.kind === "keypair") {
-    const tx = new Transaction().add(...instructions);
+    const tx = new Transaction().add(priorityIx, ...instructions);
     return client.provider.sendAndConfirm(tx, []);
   }
 
@@ -281,7 +287,7 @@ async function sendOperatorInstructions(
   const signedInstructions = await getSignInstructions(
     swig,
     role.id,
-    instructions,
+    [priorityIx, ...instructions],
     false,
     { payer: client.authority.delegate.publicKey }
   );
