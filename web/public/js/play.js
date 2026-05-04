@@ -10,6 +10,7 @@
   const DEFAULT_PROGRAM_ID = '9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
   const WORLD_IDKIT_CORE_URL = 'https://esm.sh/@worldcoin/idkit-core@4.1.3?bundle';
+  const TOTAL_SIGNATURE_LIMIT = 6;
   const BLESSED_LIMIT = 4;
   const HISTORICAL_LIMIT = 6;
 
@@ -707,7 +708,10 @@
       const dedupedRecentEntries = recentEntries.filter(
         (entry) => !blessedEntries.some((blessedEntry) => blessedEntry.signature === entry.signature)
       );
-      const entries = [...blessedEntries, ...dedupedRecentEntries];
+      const entries = [
+        ...blessedEntries,
+        ...dedupedRecentEntries.slice(0, Math.max(0, TOTAL_SIGNATURE_LIMIT - blessedEntries.length)),
+      ].slice(0, TOTAL_SIGNATURE_LIMIT);
 
       if (!entries.length) {
         listEl.innerHTML = `
@@ -729,7 +733,7 @@
       listEl.innerHTML = enriched.map((entry, idx) => renderCard(entry, idx, health)).join('');
       const historicalCount = enriched.filter((entry) => entry.source === 'historical').length;
       const blessedCount = enriched.filter((entry) => entry.source === 'blessed').length;
-      statusEl.textContent = `Latest transactions · ${blessedCount} blessed · ${historicalCount} historical · last 24h`;
+      statusEl.textContent = `Latest transactions · ${enriched.length} total · ${blessedCount} blessed · ${historicalCount} historical · last 24h`;
     } catch (err) {
       listEl.innerHTML = `
         <div class="empty-state">
