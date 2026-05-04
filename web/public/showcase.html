@@ -6,6 +6,7 @@
   <title>VRE · Demo Showcase</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://verifiableoutcome.online/widget.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -348,6 +349,24 @@
 
   </div>
 
+  <!-- Widget embed section -->
+  <div style="margin-top:48px; padding:28px 32px; border-radius:16px; background:var(--s1); border:1px solid var(--border);">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:240px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);margin-bottom:8px;">Widget · embed anywhere</div>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px;">Two lines of code.<br/>Any website can verify.</div>
+        <div style="font-size:13px;color:var(--text-2);line-height:1.6;">After a draw, embed the result on your own site. No backend required — the widget calls the public VRE API and shows MATCH or MISMATCH inline.</div>
+      </div>
+      <div style="flex:1;min-width:280px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);margin-bottom:8px;">Live example — run a draw above first</div>
+        <div id="embed-sig" style="font-family:var(--mono);font-size:11px;color:var(--text-3);word-break:break-all;margin-bottom:12px;">← signature will appear here after draw</div>
+        <vre-verify id="embed-widget" sig="" style="display:block;margin-bottom:16px;"></vre-verify>
+        <pre id="embed-code" style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:11.5px;color:var(--text-2);white-space:pre-wrap;word-break:break-all;line-height:1.6;">&lt;script src="https://verifiableoutcome.online/widget.js"&gt;&lt;/script&gt;
+&lt;vre-verify sig="YOUR_SIGNATURE"&gt;&lt;/vre-verify&gt;</pre>
+      </div>
+    </div>
+  </div>
+
   <footer>
     Every result above is a real Solana devnet transaction ·
     <a href="https://verifiableoutcome.online/verify" target="_blank">Open Verifier →</a> ·
@@ -430,11 +449,20 @@
       <div class="result-match">MATCH · OK</div>
       <div class="result-winner">Winner: <strong>${escHtml(winnerId)}</strong></div>
       <div class="result-sig">${escHtml(sig)}</div>
-      <a class="verify-link" href="${escHtml(verifyUrl)}" target="_blank">
-        Verify on-chain →
+      <div style="margin:12px 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);">Live widget</div>
+      <vre-verify sig="${escHtml(sig)}" style="display:block;"></vre-verify>
+      <a class="verify-link" href="${escHtml(verifyUrl)}" target="_blank" style="margin-top:10px;">
+        Open full verifier →
       </a>
     `;
     box.classList.add('show');
+    // update embed section
+    const embedSig = document.getElementById('embed-sig');
+    const embedCode = document.getElementById('embed-code');
+    if (embedSig) embedSig.textContent = sig;
+    if (embedCode) embedCode.textContent = `<script src="https://verifiableoutcome.online/widget.js"><\/script>\n<vre-verify sig="${sig}"></vre-verify>`;
+    const embedWidget = document.getElementById('embed-widget');
+    if (embedWidget) embedWidget.setAttribute('sig', sig);
   }
 
   function showError(prefix, msg) {
