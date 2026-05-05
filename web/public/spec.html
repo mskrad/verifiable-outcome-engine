@@ -482,6 +482,8 @@ curl https://verifiableoutcome.online/api/resolutions \
             </div>
             <p>Partner API endpoints are distinct from the public SDK surface (<span class="mono">/api/replay</span>, <span class="mono">/api/live-raffle</span>). The public endpoints are rate-limited but require no key. Partner endpoints carry higher rate limits and return richer indexer data suitable for dashboards and integrations.</p>
 
+            <p><strong>Sybil detection data feed:</strong> <span class="mono">/api/resolutions</span> and <span class="mono">/api/participant</span> were built as a structured data source for sybil-detection models. A model can observe which wallets appear repeatedly across participant lists, correlate on-chain behavior with resolution outcomes, and use commit-slot vs resolution-slot timing as a signal. These endpoints are the integration point for <strong>Proof of Human Network</strong> — feeding high-quality on-chain participation data into their LLM-based sybil classifier.</p>
+
             <h3>POST /api/partner/draw</h3>
             <p>Submit a formula-driven participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet. Requires <span class="mono">"draw_enabled": true</span> in the partner config entry.</p>
             <div class="spec-table-wrap">
@@ -648,17 +650,22 @@ curl https://verifiableoutcome.online/api/resolutions \
                   <tr>
                     <td><strong>Zaebis.xyz</strong></td>
                     <td>Price prediction contests</td>
-                    <td>Partner Draw API — closest_to outcomes resolved on-chain</td>
+                    <td>Partner Draw API — closest_to outcomes resolved on-chain (planned post-hackathon)</td>
                   </tr>
                   <tr>
                     <td><strong>BharatFeed</strong></td>
                     <td>Equities leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard resolution</td>
+                    <td>Partner Draw API — rank_desc leaderboard resolution (planned post-hackathon)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>AlphaDex</strong></td>
+                    <td>Trading competition leaderboard</td>
+                    <td>Partner Draw API — rank_desc leaderboard pre-commitment (planned post-hackathon)</td>
                   </tr>
                   <tr>
                     <td><strong>Proof of Human</strong></td>
-                    <td>Sybil-resistant draws</td>
-                    <td>Partner Draw API — weighted_random draws with one entry per verified human</td>
+                    <td>Sybil detection data feed</td>
+                    <td><span class="mono">/api/resolutions</span> + <span class="mono">/api/participant</span> — participant lists and outcomes feed into PoH LLM sybil classifier</td>
                   </tr>
                   <tr>
                     <td><strong>Squads</strong></td>
