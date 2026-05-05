@@ -173,6 +173,155 @@
     </div>
   </section>
 
+  <!-- Partner Draw API -->
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Partner Draw API</span>
+        <h2>One POST request. Outcome committed on-chain.</h2>
+        <p>No SDK required. Send participants and a formula — get back a transaction signature and a public replay URL. Anyone can verify the result independently.</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="api-tabs" style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm api-tab-btn active" data-tab="weighted_random">weighted_random</button>
+        <button class="btn btn-ghost btn-sm api-tab-btn" data-tab="rank_desc">rank_desc</button>
+        <button class="btn btn-ghost btn-sm api-tab-btn" data-tab="closest_to">closest_to</button>
+      </div>
+
+      <!-- weighted_random -->
+      <div class="api-tab-panel" data-panel="weighted_random">
+        <div class="code-pair">
+          <div>
+            <div class="code-pair-label"><span class="code-pair-name mono">Request</span><span class="code-pair-tag">POST /api/partner/draw</span></div>
+            <div class="terminal">
+              <div class="terminal-body"><span class="prompt">$</span> curl -X POST https://verifiableoutcome.online/api/partner/draw \
+  -H <span class="ok">"Content-Type: application/json"</span> \
+  -H <span class="ok">"X-Api-Key: &lt;your-api-key&gt;"</span> \
+  -d '{
+    <span class="key">"formula"</span>:       <span class="ok">"weighted_random"</span>,
+    <span class="key">"winners_count"</span>: <span class="num">1</span>,
+    <span class="key">"participants"</span>: [
+      { <span class="key">"id"</span>: <span class="ok">"alice"</span>, <span class="key">"weight"</span>: <span class="num">3</span> },
+      { <span class="key">"id"</span>: <span class="ok">"bob"</span>,   <span class="key">"weight"</span>: <span class="num">1</span> },
+      { <span class="key">"id"</span>: <span class="ok">"carol"</span>, <span class="key">"weight"</span>: <span class="num">2</span> }
+    ]
+  }'</div>
+            </div>
+          </div>
+          <div>
+            <div class="code-pair-label"><span class="code-pair-name mono">Response</span><span class="code-pair-tag">200 OK</span></div>
+            <div class="terminal">
+              <div class="terminal-body">{
+  <span class="key">"ok"</span>:             <span class="ok">true</span>,
+  <span class="key">"signature"</span>:      <span class="ok">"5wZUU5…RVd2"</span>,
+  <span class="key">"outcome_id"</span>:     <span class="ok">"alice"</span>,
+  <span class="key">"outcome_ids"</span>:    [<span class="ok">"alice"</span>],
+  <span class="key">"replay_url"</span>:     <span class="ok">"https://verifiableoutcome.online/verify?sig=5wZUU5…RVd2"</span>,
+  <span class="key">"artifact_slot"</span>:  <span class="num">312847201</span>,
+  <span class="key">"resolution_slot"</span>:<span class="num">312847203</span>
+}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- rank_desc -->
+      <div class="api-tab-panel" data-panel="rank_desc" style="display:none;">
+        <div class="code-pair">
+          <div>
+            <div class="code-pair-label"><span class="code-pair-name mono">Request</span><span class="code-pair-tag">POST /api/partner/draw</span></div>
+            <div class="terminal">
+              <div class="terminal-body"><span class="prompt">$</span> curl -X POST https://verifiableoutcome.online/api/partner/draw \
+  -H <span class="ok">"Content-Type: application/json"</span> \
+  -H <span class="ok">"X-Api-Key: &lt;your-api-key&gt;"</span> \
+  -d '{
+    <span class="key">"formula"</span>:       <span class="ok">"rank_desc"</span>,
+    <span class="key">"winners_count"</span>: <span class="num">2</span>,
+    <span class="key">"participants"</span>: [
+      { <span class="key">"id"</span>: <span class="ok">"trader-alice"</span>, <span class="key">"score"</span>: <span class="num">1400</span> },
+      { <span class="key">"id"</span>: <span class="ok">"trader-bob"</span>,   <span class="key">"score"</span>: <span class="num">950</span>  },
+      { <span class="key">"id"</span>: <span class="ok">"trader-carol"</span>, <span class="key">"score"</span>: <span class="num">1200</span> }
+    ]
+  }'</div>
+            </div>
+          </div>
+          <div>
+            <div class="code-pair-label"><span class="code-pair-name mono">Response</span><span class="code-pair-tag">200 OK</span></div>
+            <div class="terminal">
+              <div class="terminal-body">{
+  <span class="key">"ok"</span>:             <span class="ok">true</span>,
+  <span class="key">"signature"</span>:      <span class="ok">"3xKPQ2…Mn4R"</span>,
+  <span class="key">"outcome_id"</span>:     <span class="ok">"trader-alice"</span>,
+  <span class="key">"outcome_ids"</span>:    [<span class="ok">"trader-alice"</span>, <span class="ok">"trader-carol"</span>],
+  <span class="key">"replay_url"</span>:     <span class="ok">"https://verifiableoutcome.online/verify?sig=3xKPQ2…Mn4R"</span>,
+  <span class="key">"artifact_slot"</span>:  <span class="num">312847310</span>,
+  <span class="key">"resolution_slot"</span>:<span class="num">312847312</span>
+}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- closest_to -->
+      <div class="api-tab-panel" data-panel="closest_to" style="display:none;">
+        <div class="code-pair">
+          <div>
+            <div class="code-pair-label"><span class="code-pair-name mono">Request</span><span class="code-pair-tag">POST /api/partner/draw</span></div>
+            <div class="terminal">
+              <div class="terminal-body"><span class="prompt">$</span> curl -X POST https://verifiableoutcome.online/api/partner/draw \
+  -H <span class="ok">"Content-Type: application/json"</span> \
+  -H <span class="ok">"X-Api-Key: &lt;your-api-key&gt;"</span> \
+  -d '{
+    <span class="key">"formula"</span>:       <span class="ok">"closest_to"</span>,
+    <span class="key">"winners_count"</span>: <span class="num">1</span>,
+    <span class="key">"target"</span>:        <span class="num">183</span>,
+    <span class="key">"participants"</span>: [
+      { <span class="key">"id"</span>: <span class="ok">"user-1"</span>, <span class="key">"score"</span>: <span class="num">175</span> },
+      { <span class="key">"id"</span>: <span class="ok">"user-2"</span>, <span class="key">"score"</span>: <span class="num">190</span> },
+      { <span class="key">"id"</span>: <span class="ok">"user-3"</span>, <span class="key">"score"</span>: <span class="num">182</span> }
+    ]
+  }'</div>
+            </div>
+          </div>
+          <div>
+            <div class="code-pair-label"><span class="code-pair-name mono">Response</span><span class="code-pair-tag">200 OK</span></div>
+            <div class="terminal">
+              <div class="terminal-body">{
+  <span class="key">"ok"</span>:             <span class="ok">true</span>,
+  <span class="key">"signature"</span>:      <span class="ok">"7mRTW9…Lp2K"</span>,
+  <span class="key">"outcome_id"</span>:     <span class="ok">"user-3"</span>,
+  <span class="key">"outcome_ids"</span>:    [<span class="ok">"user-3"</span>],
+  <span class="key">"replay_url"</span>:     <span class="ok">"https://verifiableoutcome.online/verify?sig=7mRTW9…Lp2K"</span>,
+  <span class="key">"artifact_slot"</span>:  <span class="num">312847490</span>,
+  <span class="key">"resolution_slot"</span>:<span class="num">312847492</span>
+}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Field reference -->
+      <div class="spec-table-wrap" style="margin-top:24px;">
+        <table class="spec-table">
+          <thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">formula</td><td>yes</td><td><span class="mono">weighted_random</span>, <span class="mono">rank_desc</span>, <span class="mono">rank_asc</span>, <span class="mono">first_n</span>, <span class="mono">closest_to</span></td></tr>
+            <tr><td class="mono">participants</td><td>yes</td><td>Array of 2–100 objects. Each has <span class="mono">id</span> (string) + <span class="mono">weight</span> (weighted_random) or <span class="mono">score</span> (others)</td></tr>
+            <tr><td class="mono">winners_count</td><td>no</td><td>Integer 1–10. Defaults to <span class="mono">1</span></td></tr>
+            <tr><td class="mono">target</td><td>closest_to only</td><td>Signed integer. The value participants are ranked by proximity to</td></tr>
+            <tr><td class="mono">label</td><td>no</td><td>Free-form string up to 80 chars for your records</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-8 flex gap-3" style="flex-wrap:wrap;margin-top:16px;">
+        <a class="btn btn-primary" href="mailto:hello@verifiableoutcome.online">Request API key <span aria-hidden>→</span></a>
+        <a class="btn btn-ghost" href="/spec#partner-api">Full Partner API spec ↗</a>
+      </div>
+    </div>
+  </section>
+
   <!-- Use cases -->
   <section style="padding-top: 0;">
     <div class="container">
@@ -240,5 +389,22 @@
   </footer>
 
   <script src="/js/main.js"></script>
+  <script>
+    document.querySelectorAll('.api-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.api-tab-btn').forEach(b => {
+          b.classList.remove('active');
+          b.classList.add('btn-ghost');
+          b.classList.remove('btn-secondary');
+        });
+        btn.classList.add('active', 'btn-secondary');
+        btn.classList.remove('btn-ghost');
+        document.querySelectorAll('.api-tab-panel').forEach(p => {
+          p.style.display = p.dataset.panel === tab ? '' : 'none';
+        });
+      });
+    });
+  </script>
 </body>
 </html>
