@@ -100,8 +100,13 @@ Partner API key: hello@verifiableoutcome.online
 
 ---
 
-## Founder video script (separate from deck, 60 sec)
+## Video submissions (two separate videos)
 
-See: JUDGE_MEETING_NOTES.md → "Founder video script"
-Record on Loom. Same room. No edits. If you stutter — record again.
+See full requirements: JUDGE_MEETING_NOTES.md → "Colosseum Frontier — Video Requirements"
+
+**Pitch video (≤3 min)** — WHY. Team, problem, audience, traction, vision.
+Startup pitch, not a demo. Record on Loom. Same room. No edits.
 Energy: DoorDash YC application video level.
+
+**Technical demo video (2–3 min)** — HOW. Features, stack, architecture, Solana integration.
+Screencast or interface walkthrough. Script in this session.

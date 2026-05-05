@@ -98,6 +98,35 @@ with one POST request. 10+ projects already building on it: trading
 competitions, pack breaks, prediction markets, airdrops.
 ```
 
+---
+
+## Colosseum Frontier — Video Requirements (verified May 2026)
+
+Source: https://blog.colosseum.com/perfecting-your-hackathon-submission/
+
+### Two separate videos required
+
+**1. Pitch video (≤3 min) — WHY**
+- Team background
+- Problem being solved
+- Who it's for
+- User validation / traction (conversations, feedback, partners)
+- Vision
+- Format: treat like a startup pitch, NOT a product demo
+- Avoid: buzzwords, flashy visuals, missing team background, vague descriptions
+
+**2. Technical demo video (2–3 min) — HOW**
+- Core features built
+- Tech stack
+- Design and implementation decisions
+- Why Solana, how on-chain logic works
+- Architecture overview
+- Format: screencast, interface walkthrough, or architecture visuals
+
+**Common mistake:** forgetting to make videos/repos publicly accessible to judges.
+
+---
+
 ### Founder video script (60 sec, no edits)
 ```
 Hey — I'm Timur, building Verifiable Outcome Engine on Solana.

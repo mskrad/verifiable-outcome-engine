@@ -72,6 +72,7 @@
             <li><a href="#sdk">11 · SDK</a></li>
             <li><a href="#partner-api">12 · Partner API</a></li>
             <li><a href="#w3o1-v3-layout">13 · W3O1 v3 Native Formula Layout</a></li>
+            <li><a href="#use-cases">14 · Use Cases &amp; Integrations</a></li>
           </ol>
           <div class="spec-toc-foot">
             <a class="btn btn-ghost btn-sm" href="/verify">Open verifier <span aria-hidden>→</span></a>
@@ -592,6 +593,100 @@ curl https://verifiableoutcome.online/api/resolutions \
               <a class="btn btn-ghost btn-sm" href="/verify">Try the verifier →</a>
               <a class="btn btn-ghost btn-sm" href="/build">Read the SDK docs →</a>
               <a class="btn btn-ghost btn-sm" href="https://github.com/mskrad/verifiable-outcome-engine" target="_blank" rel="noopener">Spec on GitHub ↗</a>
+            </div>
+          </section>
+
+          <section id="use-cases" class="spec-section">
+            <div class="spec-section-num">14</div>
+            <h2>Use Cases &amp; Integrations</h2>
+            <p>Real-world patterns that map directly to W3O1 formulas. Each use case commits rules before resolution — anyone can replay from the transaction signature and confirm the outcome.</p>
+
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Use case</th><th>Formula</th><th>How it works</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Raffle / NFT drop</strong></td>
+                    <td class="mono">weighted_random</td>
+                    <td>Each ticket holder is a participant with <span class="mono">weight</span> equal to their ticket count. The artifact commits weights before the draw — no backend can adjust probabilities after the list is published.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Trading competition</strong></td>
+                    <td class="mono">rank_desc</td>
+                    <td>Participants are registered with their final PnL as <span class="mono">score</span>. Top-N are selected deterministically. Anyone verifies the leaderboard is correct.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Prediction market / oracle contest</strong></td>
+                    <td class="mono">closest_to</td>
+                    <td>Participants submit predicted values. The <span class="mono">target</span> (e.g. actual price or temperature) is committed alongside scores. Winners are those closest to the target — provably, not just claimed.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Airdrop (first-come)</strong></td>
+                    <td class="mono">first_n</td>
+                    <td>Participants are ordered by registration timestamp encoded in <span class="mono">order</span>. First N wallets receive the drop. Order is locked on-chain before snapshot.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Pack break / loot drop</strong></td>
+                    <td class="mono">weighted_random</td>
+                    <td>Each slot in a card pack or loot pool is a weighted outcome. The full slot list and weights are committed before the break — viewers can verify no slot was swapped after the stream started.</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Lowest-bid contest</strong></td>
+                    <td class="mono">rank_asc</td>
+                    <td>Participants submit bids or scores; the lowest value wins. Scores are locked in the artifact — no late entries or score adjustments possible after commit.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 style="margin-top:28px;margin-bottom:12px;font-size:1rem;font-weight:600;letter-spacing:.03em;">Live integrations</h3>
+
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Project</th><th>Use case</th><th>Integration</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Zaebis.xyz</strong></td>
+                    <td>Price prediction contests</td>
+                    <td>Partner Draw API — closest_to outcomes resolved on-chain</td>
+                  </tr>
+                  <tr>
+                    <td><strong>BharatFeed</strong></td>
+                    <td>Equities leaderboard</td>
+                    <td>Partner Draw API — rank_desc leaderboard resolution</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Proof of Human</strong></td>
+                    <td>Sybil-resistant draws</td>
+                    <td>Partner Draw API — weighted_random draws with one entry per verified human</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Squads</strong></td>
+                    <td>Multisig governance</td>
+                    <td>Operator authority managed via Squads multisig</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Swig</strong></td>
+                    <td>Operator key management</td>
+                    <td>Swig role-based signing for operator transactions</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Metaplex Agent Registry</strong></td>
+                    <td>Agent discoverability</td>
+                    <td>VRE listed as verifiable-outcome agent on mainnet registry</td>
+                  </tr>
+                  <tr>
+                    <td><strong>World ID</strong></td>
+                    <td>Proof of Human</td>
+                    <td>World ID proof gating — one wallet per human (pending World App approval)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="spec-meta-row" style="margin-top:18px;">
+              <a class="btn btn-ghost btn-sm" href="/play">Try the demo →</a>
+              <a class="btn btn-ghost btn-sm" href="/build">Integration guide →</a>
             </div>
           </section>
         </article>
