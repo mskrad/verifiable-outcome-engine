@@ -45,7 +45,7 @@ const LIVE_RAFFLE_RATE_LIMIT_MS = 60_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
 const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
-const WORLD_VERIFY_URL_STAGING = "https://staging.developer.worldcoin.org/api/v4/verify";
+const WORLD_VERIFY_URL_STAGING_V2 = "https://developer.worldcoin.org/api/v2/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
 const PRINTABLE_ASCII_RE = /^[\x20-\x7E]+$/;
@@ -758,18 +758,48 @@ async function verifyWorldIdOrThrow(worldId, address) {
     throw httpError(400, "World ID is not configured");
   }
   const normalized = normalizeWorldIdProof(worldId, address);
+  const isStaging = config.environment === "staging";
 
-  const verifyBaseUrl = config.environment === "staging" ? WORLD_VERIFY_URL_STAGING : WORLD_VERIFY_URL;
-  const verifyUrl = `${verifyBaseUrl}/${encodeURIComponent(config.rpId)}`;
+  // Staging uses World ID Simulator (protocol v3) — verify via v2 API with app_id
+  if (isStaging) {
+    const response0 = normalized.proof.responses?.[0];
+    const verifyUrl = `${WORLD_VERIFY_URL_STAGING_V2}/${encodeURIComponent(config.appId)}`;
+    console.log("[WorldID] staging: posting to v2 verifier", verifyUrl);
+    let response;
+    try {
+      response = await fetch(verifyUrl, {
+        method: "POST",
+        headers: { "content-type": "application/json", "user-agent": "verifiable-outcome-engine/0.3.0" },
+        body: JSON.stringify({
+          proof: response0?.proof,
+          merkle_root: response0?.merkle_root,
+          nullifier_hash: response0?.nullifier,
+          verification_level: response0?.identifier || "device",
+          action: normalized.proof.action,
+          signal: address,
+        }),
+      });
+    } catch (err) {
+      console.error("[WorldID] staging fetch error", String(err));
+      throw httpError(400, "World ID verification failed");
+    }
+    let payload;
+    try { payload = await response.json(); } catch (_) { throw httpError(400, "World ID verification failed"); }
+    const nullifier = payload?.nullifier_hash;
+    if (!response.ok || !nullifier) {
+      console.error("[WorldID] staging verify failed", response.status, JSON.stringify(payload));
+      throw httpError(400, "World ID verification failed");
+    }
+    return { nullifier: String(nullifier), verification: { ...payload, environment: "staging" } };
+  }
+
+  const verifyUrl = `${WORLD_VERIFY_URL}/${encodeURIComponent(config.rpId)}`;
   console.log("[WorldID] posting to verifier", verifyUrl);
   let response;
   try {
     response = await fetch(verifyUrl, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "user-agent": "verifiable-outcome-engine/0.3.0",
-      },
+      headers: { "content-type": "application/json", "user-agent": "verifiable-outcome-engine/0.3.0" },
       body: JSON.stringify(normalized.proof),
     });
   } catch (err) {
