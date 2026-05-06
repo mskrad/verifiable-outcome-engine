@@ -45,6 +45,7 @@ const LIVE_RAFFLE_RATE_LIMIT_MS = 60_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
 const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
+const WORLD_VERIFY_URL_STAGING = "https://staging.developer.worldcoin.org/api/v4/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
 const PRINTABLE_ASCII_RE = /^[\x20-\x7E]+$/;
@@ -749,9 +750,10 @@ async function verifyWorldIdOrThrow(worldId, address) {
   }
   const normalized = normalizeWorldIdProof(worldId, address);
 
+  const verifyBaseUrl = config.environment === "staging" ? WORLD_VERIFY_URL_STAGING : WORLD_VERIFY_URL;
   let response;
   try {
-    response = await fetch(`${WORLD_VERIFY_URL}/${encodeURIComponent(config.rpId)}`, {
+    response = await fetch(`${verifyBaseUrl}/${encodeURIComponent(config.rpId)}`, {
       method: "POST",
       headers: {
         "content-type": "application/json",
