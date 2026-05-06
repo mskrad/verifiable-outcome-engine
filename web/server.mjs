@@ -776,6 +776,7 @@ async function verifyWorldIdOrThrow(worldId, address) {
     payload?.nullifier ||
     payload?.results?.find((result) => result?.success === true && result?.nullifier)?.nullifier;
   if (!response.ok || payload?.success !== true || !nullifier) {
+    console.error("[WorldID] verify failed", config.environment, response.status, JSON.stringify(payload));
     throw httpError(400, "World ID verification failed");
   }
 
