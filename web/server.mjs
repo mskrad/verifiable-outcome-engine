@@ -760,9 +760,11 @@ async function verifyWorldIdOrThrow(worldId, address) {
   const normalized = normalizeWorldIdProof(worldId, address);
 
   const verifyBaseUrl = config.environment === "staging" ? WORLD_VERIFY_URL_STAGING : WORLD_VERIFY_URL;
+  const verifyUrl = `${verifyBaseUrl}/${encodeURIComponent(config.rpId)}`;
+  console.log("[WorldID] posting to verifier", verifyUrl);
   let response;
   try {
-    response = await fetch(`${verifyBaseUrl}/${encodeURIComponent(config.rpId)}`, {
+    response = await fetch(verifyUrl, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -770,7 +772,8 @@ async function verifyWorldIdOrThrow(worldId, address) {
       },
       body: JSON.stringify(normalized.proof),
     });
-  } catch (_) {
+  } catch (err) {
+    console.error("[WorldID] fetch error", String(err));
     throw httpError(400, "World ID verification failed");
   }
 
