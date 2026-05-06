@@ -641,6 +641,36 @@ curl https://verifiableoutcome.online/api/resolutions \
               </table>
             </div>
 
+            <h3 style="margin-top:28px;margin-bottom:12px;font-size:1rem;font-weight:600;letter-spacing:.03em;">Sponsor integrations</h3>
+
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Sponsor</th><th>Role</th><th>Integration</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Squads</strong></td>
+                    <td>Multisig</td>
+                    <td>Program upgrade authority held by Squads vault PDA — proposals approved via multisig, executed on-chain</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Swig</strong></td>
+                    <td>Operator</td>
+                    <td>Delegated operator key scoped to VRE program with daily SOL cap — master keypair kept offline</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Metaplex Agent Registry</strong></td>
+                    <td>Agent</td>
+                    <td>VRE registered as verifiable-outcome agent — discoverable by other agents and dApps</td>
+                  </tr>
+                  <tr>
+                    <td><strong>World ID</strong></td>
+                    <td>Sybil resistance</td>
+                    <td>World ID 4.0 proof gating — one wallet per human before raffle entry (pending World App approval)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <h3 style="margin-top:28px;margin-bottom:12px;font-size:1rem;font-weight:600;letter-spacing:.03em;">Live integrations</h3>
 
             <div class="spec-table-wrap">
@@ -648,44 +678,9 @@ curl https://verifiableoutcome.online/api/resolutions \
                 <thead><tr><th>Project</th><th>Use case</th><th>Integration</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td><strong>Zaebis.xyz</strong></td>
-                    <td>Price prediction contests</td>
-                    <td>Partner Draw API — closest_to outcomes resolved on-chain (planned post-hackathon)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>BharatFeed</strong></td>
-                    <td>Equities leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard resolution (planned post-hackathon)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>AlphaDex</strong></td>
-                    <td>Trading competition leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard pre-commitment (planned post-hackathon)</td>
-                  </tr>
-                  <tr>
                     <td><strong>Proof of Human</strong></td>
                     <td>Sybil detection data feed</td>
-                    <td><span class="mono">/api/resolutions</span> + <span class="mono">/api/participant</span> — participant lists and outcomes feed into PoH LLM sybil classifier</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Squads</strong></td>
-                    <td>Multisig governance</td>
-                    <td>Operator authority managed via Squads multisig</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Swig</strong></td>
-                    <td>Operator key management</td>
-                    <td>Swig role-based signing for operator transactions</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Metaplex Agent Registry</strong></td>
-                    <td>Agent discoverability</td>
-                    <td>VRE listed as verifiable-outcome agent on mainnet registry</td>
-                  </tr>
-                  <tr>
-                    <td><strong>World ID</strong></td>
-                    <td>Proof of Human</td>
-                    <td>World ID proof gating — one wallet per human (pending World App approval)</td>
+                    <td><span class="mono">/api/resolutions</span> + <span class="mono">/api/participant</span> — outcome data feeds into PoH LLM sybil classifier</td>
                   </tr>
                   <tr>
                     <td><strong>NanoCommando</strong></td>
@@ -706,6 +701,21 @@ curl https://verifiableoutcome.online/api/resolutions \
                     <td><strong>UZPROOF</strong></td>
                     <td>Sybil-filter + verifiable selection</td>
                     <td>UZPROOF filters wallets → VRE selects winner on-chain — end-to-end sybil-proof draw (planned post-hackathon)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>AlphaDex</strong></td>
+                    <td>Trading competition leaderboard</td>
+                    <td>Partner Draw API — rank_desc leaderboard pre-commitment (planned post-hackathon)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Zaebis.xyz</strong></td>
+                    <td>Price prediction contests</td>
+                    <td>Partner Draw API — closest_to outcomes resolved on-chain (planned post-hackathon)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>BharatFeed</strong></td>
+                    <td>Equities leaderboard</td>
+                    <td>Partner Draw API — rank_desc leaderboard resolution (planned post-hackathon)</td>
                   </tr>
                 </tbody>
               </table>
