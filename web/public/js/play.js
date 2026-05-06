@@ -166,7 +166,10 @@
     }).constraints(CredentialRequest('proof_of_human', { signal: address }));
 
     if (request.connectorURI) {
-      window.open(request.connectorURI, '_blank', 'noopener,noreferrer');
+      const opened = window.open(request.connectorURI, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        window.location.href = request.connectorURI;
+      }
     }
 
     const completion = await request.pollUntilCompletion({
