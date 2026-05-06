@@ -712,21 +712,27 @@ function buildWorldIdRpContext() {
 
 function normalizeWorldIdProof(worldId, address) {
   const config = worldIdConfig();
+  console.log("[WorldID] normalizing proof", JSON.stringify({ worldId, address, configAction: config.action, configEnv: config.environment }));
   if (!worldId || typeof worldId !== "object" || Array.isArray(worldId)) {
+    console.error("[WorldID] fail: not object");
     throw httpError(400, "World ID verification failed");
   }
   if (String(worldId.protocol_version || "").trim() !== "4.0") {
+    console.error("[WorldID] fail: protocol_version", worldId.protocol_version);
     throw httpError(400, "World ID verification failed");
   }
   if (String(worldId.action || "").trim() !== config.action) {
+    console.error("[WorldID] fail: action mismatch", worldId.action, "vs", config.action);
     throw httpError(400, "World ID verification failed");
   }
   const environment = String(worldId.environment || "").trim();
   if (environment && environment !== config.environment) {
+    console.error("[WorldID] fail: environment mismatch", environment, "vs", config.environment);
     throw httpError(400, "World ID verification failed");
   }
   const responses = Array.isArray(worldId.responses) ? worldId.responses : [];
   if (!responses.length) {
+    console.error("[WorldID] fail: no responses");
     throw httpError(400, "World ID verification failed");
   }
   const expectedSignalHash = String(hashSignal(address)).toLowerCase();
@@ -735,6 +741,7 @@ function normalizeWorldIdProof(worldId, address) {
       String(responseItem?.signal_hash || "").trim().toLowerCase() === expectedSignalHash
   );
   if (!hasExpectedSignal) {
+    console.error("[WorldID] fail: signal_hash mismatch, expected", expectedSignalHash, "got", responses.map(r => r?.signal_hash));
     throw httpError(400, "World ID verification failed");
   }
   return {
