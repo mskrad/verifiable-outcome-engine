@@ -595,8 +595,12 @@
     const gapSlots = timeline?.gap_slots;
     const formula = String(entry.resolution_formula || '').trim() || 'unknown';
     const ids = outcomeIds(entry);
-    const primaryOutcome = ids[0] || entry.outcome_id || '—';
-    const winnersText = ids.length > 1 ? `${ids.length} winners` : 'single outcome';
+    const primaryOutcomeRaw = ids[0] || entry.outcome_id || '—';
+    const primaryOutcome = primaryOutcomeRaw.length > 20
+      ? window.vreShort(primaryOutcomeRaw, 8, 8)
+      : primaryOutcomeRaw;
+    const effectiveWinnersCount = ids.length > 1 ? ids.length : Number(entry.winners_count || 0);
+    const winnersText = effectiveWinnersCount > 1 ? `${effectiveWinnersCount} winners` : 'single outcome';
     const statusText = String(entry.verification_result || 'MATCH').toUpperCase();
     const reasonText = String(entry.verification_reason || 'OK').toUpperCase();
     const isMatch = statusText === 'MATCH' && reasonText === 'OK';

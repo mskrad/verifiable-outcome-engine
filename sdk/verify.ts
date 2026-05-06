@@ -1416,9 +1416,11 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           winners_count: event.winnerCount,
         }
       : {}),
+    resolution_formula: parsed.formatVersion === FORMAT_VERSION_V3
+      ? formulaCodeToName(parsed.formulaCode)
+      : "weighted_random",
     ...(parsed.formatVersion === FORMAT_VERSION_V3
       ? {
-          resolution_formula: formulaCodeToName(parsed.formulaCode),
           target: signedBigIntToSafeNumber(parsed.targetScore, "target"),
         }
       : {}),
