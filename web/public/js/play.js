@@ -20,6 +20,7 @@
   let worldIdRequired = false;
   let worldIdSdkPromise = null;
   let worldIdStatus = { phase: 'idle', message: '' };
+  let worldIdConnectorURI = null;
 
   function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, (c) => ({
@@ -166,16 +167,22 @@
     }).constraints(CredentialRequest('proof_of_human', { signal: address }));
 
     if (request.connectorURI) {
-      const opened = window.open(request.connectorURI, '_blank', 'noopener,noreferrer');
-      if (!opened) {
-        window.location.href = request.connectorURI;
-      }
+      worldIdConnectorURI = request.connectorURI;
+      renderLiveRaffle('loading', {
+        title: 'Scan with World App or Simulator',
+        message: 'Open simulator.worldcoin.org on desktop, or scan with World App on mobile.',
+      });
     }
 
-    const completion = await request.pollUntilCompletion({
-      pollInterval: 1500,
-      timeout: 120000,
-    });
+    let completion;
+    try {
+      completion = await request.pollUntilCompletion({
+        pollInterval: 1500,
+        timeout: 120000,
+      });
+    } finally {
+      worldIdConnectorURI = null;
+    }
     if (!completion.success) {
       throw new Error(humanizeWorldIdError(completion.error));
     }
@@ -297,10 +304,16 @@
             <h2 class="live-raffle-title">${escapeHtml(data.title || 'Creating your raffle on Solana devnet...')}</h2>
             <div class="live-raffle-sub">${escapeHtml(data.message || 'This takes about 15-45 seconds.')}</div>
           </div>
+          ${worldIdConnectorURI ? `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(worldIdConnectorURI)}&size=160x160&margin=8" width="160" height="160" style="border-radius:8px;background:#fff;" alt="World ID QR" />
+            <div style="font-size:11px;opacity:.6;text-align:center;">scan with World App or<br><a href="https://simulator.worldcoin.org" target="_blank" rel="noopener" style="color:inherit;">simulator.worldcoin.org</a></div>
+          </div>
+          ` : `
           <div class="live-raffle-countdown">
             <div class="spinner spinner-lg"></div>
             <div class="countdown-label">in progress</div>
-          </div>
+          </div>`}
         </div>
         <div class="live-raffle-stats">
           <div class="lr-stat">
