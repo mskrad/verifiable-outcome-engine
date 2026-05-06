@@ -167,11 +167,19 @@
     }).constraints(CredentialRequest('proof_of_human', { signal: address }));
 
     if (request.connectorURI) {
-      worldIdConnectorURI = request.connectorURI;
-      renderLiveRaffle('loading', {
-        title: 'Scan with World App or Simulator',
-        message: 'Open simulator.worldcoin.org on desktop, or scan with World App on mobile.',
-      });
+      if (context.environment === 'staging') {
+        worldIdConnectorURI = request.connectorURI;
+        renderLiveRaffle('loading', {
+          title: 'Scan with World ID Simulator',
+          message: 'Open simulator.worldcoin.org on desktop and scan the QR code.',
+        });
+      } else {
+        window.open(request.connectorURI, '_blank', 'noopener,noreferrer');
+        renderLiveRaffle('loading', {
+          title: 'Waiting for World ID approval...',
+          message: 'Approve the request in World App on your mobile device.',
+        });
+      }
     }
 
     let completion;
