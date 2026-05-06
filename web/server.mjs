@@ -717,8 +717,10 @@ function normalizeWorldIdProof(worldId, address) {
     console.error("[WorldID] fail: not object");
     throw httpError(400, "World ID verification failed");
   }
-  if (String(worldId.protocol_version || "").trim() !== "4.0") {
-    console.error("[WorldID] fail: protocol_version", worldId.protocol_version);
+  const protocolVersion = String(worldId.protocol_version || "").trim();
+  const isStaging = config.environment === "staging";
+  if (!isStaging && protocolVersion !== "4.0") {
+    console.error("[WorldID] fail: protocol_version", protocolVersion);
     throw httpError(400, "World ID verification failed");
   }
   if (String(worldId.action || "").trim() !== config.action) {
@@ -740,7 +742,7 @@ function normalizeWorldIdProof(worldId, address) {
     (responseItem) =>
       String(responseItem?.signal_hash || "").trim().toLowerCase() === expectedSignalHash
   );
-  if (!hasExpectedSignal) {
+  if (!isStaging && !hasExpectedSignal) {
     console.error("[WorldID] fail: signal_hash mismatch, expected", expectedSignalHash, "got", responses.map(r => r?.signal_hash));
     throw httpError(400, "World ID verification failed");
   }
