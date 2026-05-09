@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>VRE — Verifiable Outcome Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="deck-stage.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<style>
+  :root {
+    --bg:           #0d0f14;
+    --bg-surface:   #13161e;
+    --bg-surface-2: #1a1d28;
+    --border:       #252835;
+    --border-strong:#323644;
+    --text:         #ebeaf0;
+    --text-dim:     #8b91a8;
+    --text-faint:   #5a6078;
+    --teal:         #14f195;
+    --violet:       #9945ff;
+    --red:          #f14d4d;
+    --font-sans:    'Geist', 'Inter', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+    /* Tweakable identity layer (overridden by [data-accent] / [data-atmo] / [data-voice]) */
+    --accent:        var(--teal);
+    --accent-rgb:    20,241,149;
+    --accent-deep:   #0ec97c;
+    --accent-deeper: #0aa566;
+    --accent-ink:    #062a1b;
+    --accent-2:      var(--violet);
+    --accent-2-rgb:  153,69,255;
+
+    --glow-top-a:    0.10;
+    --glow-bot-a:    0.12;
+    --glow-strong-top-a: 0.22;
+    --glow-strong-bot-a: 0.16;
+    --vignette-a:    0;
+  }
+
+  /* ===== Accent identity presets ===== */
+  html[data-accent="violet"] {
+    --accent: #9945ff;
+    --accent-rgb: 153,69,255;
+    --accent-deep: #7a32d9;
+    --accent-deeper: #5a1fb0;
+    --accent-ink: #18062a;
+    --accent-2: #14f195;
+    --accent-2-rgb: 20,241,149;
+  }
+  html[data-accent="alarm"] {
+    --accent: #ff5d4d;
+    --accent-rgb: 255,93,77;
+    --accent-deep: #d94032;
+    --accent-deeper: #a82a1f;
+    --accent-ink: #2a0806;
+    --accent-2: #ffb84d;
+    --accent-2-rgb: 255,184,77;
+  }
+
+  /* ===== Atmosphere presets ===== */
+  html[data-atmo="calm"] {
+    --glow-top-a: 0.025; --glow-bot-a: 0.03;
+    --glow-strong-top-a: 0.06; --glow-strong-bot-a: 0.04;
+    --vignette-a: 0;
+  }
+  html[data-atmo="cinematic"] {
+    --glow-top-a: 0.20; --glow-bot-a: 0.22;
+    --glow-strong-top-a: 0.36; --glow-strong-bot-a: 0.26;
+    --vignette-a: 0.55;
+  }
+
+  /* ===== Voice presets ===== */
+  html[data-voice="editorial"] {
+    --font-sans: 'Instrument Serif', 'Inter', serif;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+  }
+  html[data-voice="editorial"] .eyebrow,
+  html[data-voice="editorial"] .breaks .col-label,
+  html[data-voice="editorial"] .how .step .kicker {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-style: italic;
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+  }
+  html[data-voice="editorial"] h1,
+  html[data-voice="editorial"] h2,
+  html[data-voice="editorial"] h3,
+  html[data-voice="editorial"] .cover h1,
+  html[data-voice="editorial"] .cover .tagline,
+  html[data-voice="editorial"] .pivot .big,
+  html[data-voice="editorial"] .cta h1,
+  html[data-voice="editorial"] .situation .line,
+  html[data-voice="editorial"] .situation .quote,
+  html[data-voice="editorial"] .team h1 {
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  deck-stage { background: var(--bg); }
+
+  section.slide {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 120px 160px 128px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background:
+      radial-gradient(1100px 700px at 18% -10%, rgba(var(--accent-rgb), var(--glow-top-a)), transparent 62%),
+      radial-gradient(1000px 700px at 92% 8%, rgba(var(--accent-2-rgb), calc(var(--glow-top-a) * 0.85)), transparent 62%),
+      radial-gradient(900px 650px at 110% 110%, rgba(var(--accent-2-rgb), var(--glow-bot-a)), transparent 60%),
+      radial-gradient(800px 600px at -10% 105%, rgba(var(--accent-rgb), calc(var(--glow-bot-a) * 0.55)), transparent 60%),
+      var(--bg);
+  }
+  section.slide.glow-strong {
+    background:
+      radial-gradient(1300px 800px at 22% -10%, rgba(var(--accent-rgb), var(--glow-strong-top-a)), transparent 62%),
+      radial-gradient(1200px 800px at 88% 5%, rgba(var(--accent-2-rgb), calc(var(--glow-strong-top-a) * 0.9)), transparent 62%),
+      radial-gradient(1000px 750px at 110% 110%, rgba(var(--accent-2-rgb), var(--glow-strong-bot-a)), transparent 60%),
+      radial-gradient(900px 700px at -10% 110%, rgba(var(--accent-rgb), calc(var(--glow-strong-bot-a) * 0.7)), transparent 60%),
+      var(--bg);
+  }
+  section.slide::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0, var(--vignette-a)) 100%);
+    opacity: 1;
+    transition: background .3s ease;
+  }
+  section.slide > *:not(.cover-corner) { position: relative; z-index: 1; }
+  section.slide > .cover-corner { z-index: 2; }
+
+  /* progress bar */
+  .progress {
+    position: absolute;
+    left: 0; bottom: 0;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb),0.6);
+    transition: width .25s ease;
+  }
+  .slide-counter {
+    position: absolute;
+    right: 32px; bottom: 22px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* eyebrow */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  /* card */
+  .card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px;
+  }
+
+  /* MATCH badge */
+  .match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb),0.08);
+    border: 1px solid rgba(var(--accent-rgb),0.3);
+    border-radius: 999px;
+    padding: 6px 14px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .match-badge::before { content: "·"; opacity: 0.8; }
+  .match-badge::after { content: "·"; opacity: 0.8; }
+
+  /* live pulse */
+  .pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0.6);
+    animation: pulse 1.6s infinite;
+    display: inline-block;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(var(--accent-rgb),0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb),0); }
+  }
+
+  /* terminal block */
+  .terminal {
+    background: #0a0c11;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 26px 30px;
+    font-family: var(--font-mono);
+    font-size: 19px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .terminal .dim { color: var(--text-dim); }
+  .terminal .ok { color: var(--accent); }
+  .terminal .prompt { color: var(--text-faint); }
+
+  /* ============ SLIDE 1 — COVER ============ */
+  .cover {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .logo-mark {
+    width: 132px; height: 132px;
+    border-radius: 32px;
+    position: relative;
+    background:
+      radial-gradient(60% 50% at 25% 20%, rgba(20,241,149,0.55), transparent 70%),
+      radial-gradient(70% 60% at 80% 90%, rgba(153,69,255,0.55), transparent 70%),
+      linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,0.18),
+      inset 0 0 32px rgba(20,241,149,0.18),
+      inset 0 0 32px rgba(153,69,255,0.18),
+      0 0 60px rgba(20,241,149,0.18),
+      0 0 80px rgba(153,69,255,0.18);
+    margin-bottom: 44px;
+  }
+  .logo-mark::before {
+    content: "";
+    position: absolute;
+    inset: 28%;
+    border-radius: 18px;
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,0.18),
+      inset 0 0 14px rgba(20,241,149,0.25),
+      inset 0 0 14px rgba(153,69,255,0.25);
+  }
+  .cover h1 {
+    font-size: 56px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 64px;
+    color: var(--text);
+  }
+  .cover .tagline {
+    font-size: 124px;
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    margin: 0;
+    background: linear-gradient(180deg, #ffffff 0%, #c4c8d6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .cover .tagline .accent {
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  .cover .domain {
+    margin-top: 64px;
+    font-family: var(--font-mono);
+    font-size: 22px;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+  }
+  .cover-corner {
+    position: absolute;
+    right: 48px; top: 48px;
+    display: inline-flex; align-items: center; gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: var(--text-dim);
+    background: rgba(19,22,30,0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 10px 18px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* ============ SLIDE 2 — SITUATION ============ */
+  .situation {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .situation .lines {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 18px;
+    margin-top: 36px;
+  }
+  .situation .line {
+    font-size: 44px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .situation .quote {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 152px;
+    color: var(--accent);
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    margin-top: 24px;
+    text-shadow: 0 0 80px rgba(var(--accent-rgb),0.25);
+  }
+  .situation .quote .q { color: var(--text-faint); font-weight: 400; }
+  .situation .targets {
+    margin-top: 64px;
+    font-size: 22px;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+  .situation .targets span { padding: 0 14px; }
+  .situation .targets span + span { border-left: 1px solid var(--border); }
+
+  /* ============ SLIDE 3 — WHAT BREAKS ============ */
+  .breaks {
+    gap: 36px;
+  }
+  .breaks h2 {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .breaks .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    flex: 1;
+  }
+  .breaks .col {
+    display: flex; flex-direction: column;
+    padding: 36px 36px 28px;
+    border-radius: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+  .breaks .col.vre {
+    border-left: 2px solid var(--accent);
+    background: linear-gradient(180deg, rgba(var(--accent-rgb),0.04) 0%, var(--bg-surface) 40%);
+  }
+  .breaks .col-label {
+    font-family: var(--font-mono);
+    font-size: 17px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .breaks .col.today .col-label { color: var(--text-dim); }
+  .breaks .col.vre   .col-label { color: var(--accent); }
+  .breaks ul {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 18px;
+    flex: 1;
+  }
+  .breaks li {
+    font-size: 26px;
+    color: var(--text);
+    line-height: 1.4;
+    padding-left: 26px;
+    position: relative;
+  }
+  .breaks .col.today li::before {
+    content: "";
+    position: absolute; left: 0; top: 13px;
+    width: 12px; height: 1px; background: var(--text-faint);
+  }
+  .breaks .col.vre li::before {
+    content: "";
+    position: absolute; left: 0; top: 11px;
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  }
+  .breaks .footer {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+  .breaks .col.today .footer { color: var(--red); }
+  .breaks .col.today .footer .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+
+  /* ============ SLIDE 4 — VALUE PROP ============ */
+  .pivot {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .pivot .big {
+    font-size: 88px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    color: var(--text);
+    max-width: 1500px;
+    margin: 0;
+  }
+  .pivot .accent {
+    margin-top: 44px;
+    font-size: 44px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    text-shadow: 0 0 40px rgba(var(--accent-rgb),0.25);
+  }
+
+  /* ============ SLIDE 5 — HOW IT WORKS ============ */
+  .how h2 {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .how .subtitle {
+    color: var(--text-dim);
+    font-size: 22px;
+    margin-bottom: 40px;
+  }
+  .how .row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr 40px 1fr;
+    align-items: stretch;
+    gap: 0;
+  }
+  .how .step {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    display: flex; flex-direction: column;
+    min-height: 280px;
+  }
+  .how .step .num {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(var(--accent-rgb),0.10);
+    border: 1px solid rgba(var(--accent-rgb),0.30);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .how .step .kicker {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+  .how .step h3 {
+    font-size: 30px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+  }
+  .how .step p {
+    color: var(--text-dim);
+    font-size: 18px;
+    line-height: 1.55;
+    margin: 0 0 18px;
+    flex: 1;
+  }
+  .how .step .badge {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--text-dim);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    align-self: flex-start;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .how .step .badge.teal {
+    color: var(--accent);
+    background: rgba(var(--accent-rgb),0.06);
+    border-color: rgba(var(--accent-rgb),0.25);
+  }
+  .how .arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--border-strong);
+    font-family: var(--font-mono);
+    font-size: 22px;
+  }
+  .how .terminal-wrap { margin-top: 36px; }
+
+  /* ============ SLIDE 6 — TRACTION ============ */
+  .traction h2 {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0 0 32px;
+    letter-spacing: -0.02em;
+  }
+  .traction .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 36px;
+  }
+  .traction .metric {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px 28px 26px;
+  }
+  .traction .metric .top {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 18px;
+  }
+  .traction .metric .value {
+    font-size: 76px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    font-family: var(--font-sans);
+    letter-spacing: -0.03em;
+  }
+  .traction .metric .value.text {
+    font-size: 40px;
+    color: var(--text);
+  }
+  .traction .metric .label {
+    color: var(--text-dim);
+    font-size: 17px;
+    margin-top: 12px;
+  }
+  .traction .partners {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .traction .partner {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .traction .partner .head {
+    display: flex; align-items: baseline; gap: 10px;
+    font-size: 22px;
+  }
+  .traction .partner .name { color: var(--text); font-weight: 600; }
+  .traction .partner .glyph {
+    font-family: var(--font-mono);
+    color: var(--accent);
+    font-size: 16px;
+  }
+  .traction .partner .desc {
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .traction .more {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    margin-bottom: 20px;
+  }
+  .traction .revenue {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 26px;
+    display: flex; align-items: center; gap: 18px;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: var(--text-dim);
+  }
+  .traction .revenue .label {
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .traction .revenue .sep { color: var(--text-faint); }
+  .traction .revenue .mrr { color: var(--accent); }
+
+  /* ============ SLIDE 7 — TEAM ============ */
+  .team {
+    align-items: center;
+    justify-content: center;
+  }
+  .team .founder-card {
+    width: 880px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 48px 52px;
+    box-shadow: 0 0 80px rgba(var(--accent-rgb),0.06);
+  }
+  .team h1 {
+    font-size: 64px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.03em;
+  }
+  .team .role {
+    color: var(--text-dim);
+    font-size: 22px;
+    margin: 4px 0 32px;
+  }
+  .team ul {
+    list-style: none; padding: 0; margin: 0 0 32px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .team li {
+    font-size: 20px;
+    color: var(--text);
+    line-height: 1.5;
+    padding-left: 22px;
+    position: relative;
+  }
+  .team li::before {
+    content: "";
+    position: absolute; left: 0; top: 9px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .team li b { font-weight: 600; }
+  .team .stack {
+    background: #0a0c11;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px;
+    font-family: var(--font-mono);
+    font-size: 17px;
+    line-height: 1.9;
+  }
+  .team .stack .row { display: grid; grid-template-columns: 220px 1fr; }
+  .team .stack .k { color: var(--accent); }
+  .team .stack .v { color: var(--text-dim); }
+
+  /* ============ SLIDE 8 — CTA ============ */
+  .cta {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .cta h1 {
+    font-size: 96px;
+    font-weight: 700;
+    margin: 0 0 48px;
+    letter-spacing: -0.035em;
+  }
+  .cta .actions {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 14px;
+    margin-bottom: 56px;
+  }
+  .cta .action {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    color: var(--text-dim);
+  }
+  .cta .action .url { color: var(--accent); }
+  .cta .qr {
+    width: 200px; height: 200px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 48px;
+    box-shadow: 0 0 60px rgba(var(--accent-rgb),0.08);
+    overflow: hidden;
+  }
+  .cta .qr img { border-radius: 10px; display: block; }
+  .cta .closing {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+    max-width: 1100px;
+    line-height: 1.45;
+  }
+
+  /* ============ within-slide animations ============ */
+  .reveal { opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  .countup { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<script>
+  // Tweak defaults (host writes these back on change)
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "accent": "teal",
+    "atmo": "cinematic",
+    "voice": "technical"
+  }/*EDITMODE-END*/;
+
+  // Apply tweak attrs to <html> immediately so initial paint is correct
+  function applyTweaks(t) {
+    const h = document.documentElement;
+    if (t.accent === 'teal') h.removeAttribute('data-accent');
+    else h.setAttribute('data-accent', t.accent);
+    if (t.atmo === 'standard') h.removeAttribute('data-atmo');
+    else h.setAttribute('data-atmo', t.atmo);
+    if (t.voice === 'technical') h.removeAttribute('data-voice');
+    else h.setAttribute('data-voice', t.voice);
+  }
+  applyTweaks(TWEAK_DEFAULTS);
+</script>
+
+<deck-stage>
+
+  <!-- ================= SLIDE 1 — HOOK ================= -->
+  <section class="slide situation" data-screen-label="01 Hook">
+    <div class="cover-corner"><span class="pulse"></span> COLOSSEUM FRONTIER · 2026</div>
+    <div class="lines">
+      <div class="line reveal" data-step="0">Trust in crypto is a resource.</div>
+      <div class="line reveal" data-step="1">And we know how to <span style="color:var(--accent);">mine it.</span></div>
+    </div>
+  </section>
+
+  <!-- ================= SLIDE 2 — PROBLEM ================= -->
+  <section class="slide situation" data-screen-label="02 Problem">
+    <div class="eyebrow" style="position:absolute; top:88px; left:50%; transform:translateX(-50%);">The Problem</div>
+    <div class="lines">
+      <div class="line reveal" data-step="0">The explorer shows you the transaction.</div>
+      <div class="line reveal" data-step="1">It never shows you the decision.</div>
+      <div class="line reveal" data-step="2" style="font-size:clamp(18px,2.2vw,28px); color:var(--text-dim); font-weight:500;">The operator picks the winner, commits it on-chain, and walks away.<br/>You have no idea if the rules were set before the draw or after.</div>
+    </div>
+  </section>
+
+  <!-- ================= SLIDE 3 — VALUE PROP ================= -->
+  <section class="slide pivot glow-strong" data-screen-label="03 Value">
+    <p class="big reveal" data-step="0">VRE commits the outcome rules<br/>on-chain before the draw.</p>
+    <p class="accent reveal" data-step="1" style="font-size:clamp(16px,2vw,26px); max-width:700px; text-align:center; line-height:1.6;">Anyone, users, competitors, auditors, can replay the result themselves and verify it independently.</p>
+    <p class="big reveal" data-step="2">The backend is no longer<br/>the source of truth.</p>
+  </section>
+
+  <!-- ================= SLIDE 4 — HOW IT WORKS ================= -->
+  <section class="slide how" data-screen-label="04 How it works">
+    <div class="eyebrow">How it works</div>
+    <h2>Commit. Resolve. Verify.</h2>
+    <p class="subtitle">No oracle. No VRF. One transaction signature is enough.</p>
+
+    <div class="row">
+      <div class="step reveal" data-step="0">
+        <div class="num">1</div>
+        <div class="kicker">Commit</div>
+        <h3>Rules on-chain</h3>
+        <p>One API call. Participant list, one of five formulas. Locked before resolution.</p>
+        <div class="badge">artifact_slot: 341,201,887</div>
+      </div>
+      <div class="arrow reveal" data-step="0">→</div>
+      <div class="step reveal" data-step="1">
+        <div class="num">2</div>
+        <div class="kicker">Resolve</div>
+        <h3>SHA-256. Deterministic.</h3>
+        <p>Identical output across Rust, TypeScript, on-chain. No oracle. No VRF.</p>
+        <div class="badge">SHA256(seed || slot || actor)</div>
+      </div>
+      <div class="arrow reveal" data-step="1">→</div>
+      <div class="step reveal" data-step="2">
+        <div class="num">3</div>
+        <div class="kicker">Verify</div>
+        <h3>MATCH · OK</h3>
+        <p>Anyone replays from the tx signature. Rules match. Winner correct.</p>
+        <div class="badge teal">MATCH · OK</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SLIDE 5 — TRACTION ================= -->
+  <section class="slide traction" data-screen-label="05 Traction">
+    <div class="eyebrow">Traction</div>
+    <h2>Live, integrated, growing.</h2>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="top"><span class="pulse"></span> Status</div>
+        <div class="value text">Live on devnet</div>
+        <div class="label">Public RPC, open SDK</div>
+      </div>
+      <div class="metric">
+        <div class="top">Partners</div>
+        <div class="value countup" data-target="8" data-suffix="">0</div>
+        <div class="label">Colosseum teams confirmed</div>
+      </div>
+      <div class="metric">
+        <div class="top">Time to integrate</div>
+        <div class="value countup" data-target="30" data-suffix=" min">0 min</div>
+        <div class="label">One POST request</div>
+      </div>
+    </div>
+
+    <div class="partners">
+      <div class="partner">
+        <div class="head"><span class="glyph">[G]</span> <span class="name">GAS Grading</span></div>
+        <div class="desc">Trading card giveaways &amp; pack breaks</div>
+      </div>
+      <div class="partner">
+        <div class="head"><span class="glyph">[A]</span> <span class="name">AlphaDex</span></div>
+        <div class="desc">Trading competition leaderboard pre-commitment</div>
+      </div>
+      <div class="partner">
+        <div class="head"><span class="glyph">[H]</span> <span class="name">Proof of Human</span></div>
+        <div class="desc">Sybil detection data feed for fair distribution</div>
+      </div>
+    </div>
+
+    <div class="more" style="color: var(--text-dim);">Sponsor integrations: Squads · Swig · World ID · Metaplex</div>
+  </section>
+
+  <!-- ================= SLIDE 6 — TEAM + CTA ================= -->
+  <section class="slide team" data-screen-label="06 Team">
+    <div class="eyebrow">Team</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; width:100%; max-width:980px; margin-top:24px;">
+      <div class="founder-card" style="width:auto;">
+        <h1>Timur</h1>
+        <div class="role">Technical founder</div>
+        <ul>
+          <li><b>7 years backend engineering.</b> Developer &amp; TeamLead in fintech and startups.</li>
+          <li><b>8 partners onboarded</b> in 6 weeks since start of hackathon.</li>
+        </ul>
+      </div>
+      <div class="founder-card" style="width:auto;">
+        <h1>Max</h1>
+        <div class="role">Co-founder · Crypto marketer</div>
+        <ul>
+          <li><b>Grew crypto projects</b> across Southeast Asia.</li>
+          <li><b>Building VRE distribution:</b> social strategy, ecosystem growth, community.</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:32px; display:flex; align-items:center; justify-content:center; gap:40px;">
+      <div style="text-align:left;">
+        <p style="font-size:22px; color:var(--text-dim); margin:0 0 8px;">Take any tx signature. Replay it. <span style="color:var(--accent); font-weight:700;">MATCH.</span></p>
+        <p style="font-size:20px; color:var(--text-dim); margin:0;">First integrations are free. <span style="color:var(--text);">verifiableoutcome.online</span></p>
+      </div>
+      <a href="https://verifiableoutcome.online/play" target="_blank" style="display:block; flex-shrink:0;">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https%3A%2F%2Fverifiableoutcome.online%2Fplay&color=ffffff&bgcolor=13161e" width="160" height="160" alt="verifiableoutcome.online/play" style="display:block; border-radius:8px;" />
+      </a>
+    </div>
+  </section>
+
+</deck-stage>
+
+<!-- progress + counter overlay -->
+<div class="progress" id="progress" style="width:0;"></div>
+
+<script>
+  // ----- progress bar + slide counter (inside deck-stage shadow handles its own counter, so we add an extra teal progress line) -----
+  const stage = document.querySelector('deck-stage');
+  const total = stage.querySelectorAll(':scope > section').length;
+  const progress = document.getElementById('progress');
+
+  function updateChrome(idxArg) {
+    const idx = (typeof idxArg === 'number')
+      ? idxArg
+      : (stage.index ?? stage.currentIndex ?? 0);
+    progress.style.width = (((idx + 1) / total) * 100) + '%';
+    runSlideAnimations(idx);
+  }
+
+  // listen for deck-stage's slideIndexChanged postMessage (authoritative index)
+  window.addEventListener('message', (e) => {
+    if (e.data && typeof e.data.slideIndexChanged === 'number') {
+      const i = e.data.slideIndexChanged;
+      requestAnimationFrame(() => updateChrome(i));
+    }
+  });
+
+  // also poll once at start in case message fires before listener attaches
+  setTimeout(() => updateChrome(), 50);
+  // and watch hash changes (deck-stage stores index in URL)
+  window.addEventListener('hashchange', () => updateChrome());
+
+  // ----- per-slide reveal animations -----
+  const animatedSlides = new Set();
+  function runSlideAnimations(idx) {
+    const slide = stage.querySelectorAll(':scope > section')[idx];
+    if (!slide) return;
+    if (animatedSlides.has(idx)) return;
+    animatedSlides.add(idx);
+
+    const reveals = slide.querySelectorAll('.reveal');
+    reveals.forEach((el) => {
+      const step = parseInt(el.dataset.step || '0', 10);
+      const delay = 200 + step * 250;
+      setTimeout(() => el.classList.add('in'), delay);
+    });
+
+    // count-up tiles on the traction slide
+    const counts = slide.querySelectorAll('.countup');
+    counts.forEach((el) => {
+      const target = parseFloat(el.dataset.target || '0');
+      const suffix = el.dataset.suffix || '';
+      const dur = 900;
+      const t0 = performance.now();
+      function tick(t) {
+        const p = Math.min(1, (t - t0) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const v = Math.round(target * eased);
+        el.textContent = v + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+  }
+</script>
+
+<div id="tweaks-root"></div>
+
+<script type="text/babel" data-presets="react">
+  const { useState, useEffect } = React;
+
+  function VreTweaks() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    useEffect(() => { applyTweaks(t); }, [t]);
+
+    return (
+      <TweaksPanel title="Tweaks">
+        <TweakSection label="Accent identity" />
+        <TweakRadio
+          label="Brand"
+          value={t.accent}
+          options={['teal', 'violet', 'alarm']}
+          onChange={(v) => setTweak('accent', v)}
+        />
+
+        <TweakSection label="Atmosphere" />
+        <TweakRadio
+          label="Mood"
+          value={t.atmo}
+          options={['calm', 'standard', 'cinematic']}
+          onChange={(v) => setTweak('atmo', v)}
+        />
+
+        <TweakSection label="Voice" />
+        <TweakRadio
+          label="Type"
+          value={t.voice}
+          options={['technical', 'editorial']}
+          onChange={(v) => setTweak('voice', v)}
+        />
+      </TweaksPanel>
+    );
+  }
+
+  // wait for tweaks-panel.jsx to finish transpiling and expose globals
+  function mount() {
+    if (typeof useTweaks === 'undefined' || typeof TweaksPanel === 'undefined') {
+      return setTimeout(mount, 30);
+    }
+    ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<VreTweaks />);
+  }
+  mount();
+</script>
+
+
+</body>
+</html>
