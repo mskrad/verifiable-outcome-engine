@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VRE · For Judges</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="grain"></div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="VRE home">
+        <div class="nav-brand-mark"></div>
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/play"     data-nav="play">Demo</a></li>
+        <li><a href="/build"    data-nav="build">Build</a></li>
+        <li><a href="/verify"   data-nav="verify">Verify</a></li>
+        <li><a href="/widget"   data-nav="widget">Widget</a></li>
+        <li><a href="/spec"     data-nav="spec">Spec</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container-narrow">
+      <span class="eyebrow"><span class="dot"></span> Colosseum Frontier 2026</span>
+      <h1 class="page-title">For Judges</h1>
+      <p class="lead">Trust is a resource. VRE is how you earn it. Everything you need to evaluate the project — in one place.</p>
+    </div>
+  </header>
+
+  <section style="padding-top:24px;padding-bottom:80px;">
+    <div class="container-narrow" style="display:flex;flex-direction:column;gap:32px;">
+
+      <!-- Videos -->
+      <div class="card glass">
+        <div style="padding:28px 32px 8px;">
+          <span class="eyebrow"><span class="dot"></span> Videos</span>
+          <h2 style="font-size:1.25rem;font-weight:700;margin-top:6px;margin-bottom:24px;">Pitch &amp; Demo</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:0 32px 28px;">
+          <div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:10px;">Pitch · 3 min · WHY</div>
+            <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;background:var(--surface-2);">
+              <iframe
+                src="https://www.loom.com/embed/cddf80a4f5434794b65718eb7f5ee0a3"
+                frameborder="0"
+                allowfullscreen
+                style="position:absolute;inset:0;width:100%;height:100%;">
+              </iframe>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:10px;">Demo · 3 min · HOW</div>
+            <div style="position:relative;padding-bottom:56.25%;height:0;border-radius:10px;overflow:hidden;background:var(--surface-2);">
+              <iframe
+                src="https://player.vimeo.com/video/1190760976"
+                frameborder="0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowfullscreen
+                style="position:absolute;inset:0;width:100%;height:100%;">
+              </iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="card glass" style="padding:28px 32px;">
+        <span class="eyebrow"><span class="dot"></span> Try it yourself</span>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-top:6px;margin-bottom:20px;">Verify in 2 seconds</h2>
+        <p style="color:var(--text-2);margin-bottom:20px;font-size:14px;">Paste this transaction signature into the verifier. Anyone can do this — from public Solana RPC data, no login, no trust required.</p>
+        <div class="mono" style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;word-break:break-all;margin-bottom:20px;color:var(--text-2);">5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2</div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="/verify?sig=5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2" class="btn btn-primary">Replay this signature →</a>
+          <a href="/play" class="btn btn-secondary">Run a live raffle</a>
+          <a href="/showcase" class="btn btn-ghost">See all use cases</a>
+        </div>
+      </div>
+
+      <!-- Links grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <a href="/play" class="card glass" style="padding:24px 28px;text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor=''">
+          <div style="font-size:20px;margin-bottom:8px;">🎮</div>
+          <div style="font-weight:600;margin-bottom:4px;">Live Demo</div>
+          <div style="font-size:13px;color:var(--text-2);">Connect Phantom, run a real on-chain raffle, get a verifiable tx signature.</div>
+        </a>
+        <a href="/showcase" class="card glass" style="padding:24px 28px;text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor=''">
+          <div style="font-size:20px;margin-bottom:8px;">🏆</div>
+          <div style="font-weight:600;margin-bottom:4px;">Showcase</div>
+          <div style="font-size:13px;color:var(--text-2);">Weighted random, rank by score, closest to target — all three formulas live.</div>
+        </a>
+        <a href="/build" class="card glass" style="padding:24px 28px;text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor=''">
+          <div style="font-size:20px;margin-bottom:8px;">🛠</div>
+          <div style="font-weight:600;margin-bottom:4px;">Build</div>
+          <div style="font-size:13px;color:var(--text-2);">npm install, one API call. 30-minute integration. First integrations are free.</div>
+        </a>
+        <a href="/spec" class="card glass" style="padding:24px 28px;text-decoration:none;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor=''">
+          <div style="font-size:20px;margin-bottom:8px;">📄</div>
+          <div style="font-weight:600;margin-bottom:4px;">Spec</div>
+          <div style="font-size:13px;color:var(--text-2);">Full protocol spec — W3O1 format, replay process, formulas, SDK, Partner API.</div>
+        </a>
+      </div>
+
+      <!-- Traction -->
+      <div class="card glass" style="padding:28px 32px;">
+        <span class="eyebrow"><span class="dot"></span> Traction</span>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-top:6px;margin-bottom:20px;">Projects building on VRE</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:13px;color:var(--text-2);">• AlphaDex — trading competitions</div>
+            <div style="font-size:13px;color:var(--text-2);">• Proof of Human — sybil-filtered airdrops</div>
+            <div style="font-size:13px;color:var(--text-2);">• NanoCommando — pack breaks</div>
+            <div style="font-size:13px;color:var(--text-2);">• Zaebis.xyz — prediction markets</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="font-size:13px;color:var(--text-2);">• 01 Pilot — agent bounty verification</div>
+            <div style="font-size:13px;color:var(--text-2);">• GAS Grading — collectible draws</div>
+            <div style="font-size:13px;color:var(--text-2);">• UZPROOF — identity-gated rewards</div>
+            <div style="font-size:13px;color:var(--text-2);">• BharatFeed — airdrop distribution</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sponsor integrations -->
+      <div class="card glass" style="padding:28px 32px;">
+        <span class="eyebrow"><span class="dot"></span> Sponsor integrations</span>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-top:6px;margin-bottom:20px;">All connected, all live on devnet</h2>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:13px;color:var(--text-2);">🔐 <b style="color:var(--text);">World ID</b> — Sybil-proof entries. Only verified humans enter the draw.</div>
+          <div style="font-size:13px;color:var(--text-2);">🏛 <b style="color:var(--text);">Squads</b> — Multisig upgrade governance. No single key controls the program.</div>
+          <div style="font-size:13px;color:var(--text-2);">⚡ <b style="color:var(--text);">Swig</b> — Delegated operator wallet scoped to VRE transactions only.</div>
+          <div style="font-size:13px;color:var(--text-2);">🤖 <b style="color:var(--text);">Metaplex</b> — VRE registered as a verifiable agent in Agent Registry.</div>
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="card glass" style="padding:28px 32px;">
+        <span class="eyebrow"><span class="dot"></span> Contact</span>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-top:6px;margin-bottom:16px;">Reach out directly</h2>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="https://t.me/maskradiator" target="_blank" rel="noopener" class="btn btn-ghost">Telegram @maskradiator</a>
+          <a href="https://x.com/voutcomeengine" target="_blank" rel="noopener" class="btn btn-ghost">X @voutcomeengine</a>
+          <a href="mailto:hello@verifiableoutcome.online" class="btn btn-ghost">hello@verifiableoutcome.online</a>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="nav-brand-mark" style="width:22px;height:22px;"></div>
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="/play">Demo</a></li>
+          <li><a href="/build">Build</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+        </ul>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>
