@@ -364,16 +364,6 @@ A2 → wallet / username
 
 The committed ID is what gets verified on-chain; the display name is your concern.
 
-**Mid-term path**
-
-Reduce per-participant payload by hashing IDs before committing:
-
-- Commit `sha256(participant_id)` instead of the raw string
-- Keep the full ID → hash mapping off-chain
-- Verification: hash the claimed winner ID and confirm it matches on-chain
-
-This allows base58 wallet addresses or longer IDs without expanding transaction size.
-
 **Large snapshot path (local-only first pass)**
 
 For full leaderboards of any size, VRE supports a chunked snapshot commit flow (`W3O1 v4`):
