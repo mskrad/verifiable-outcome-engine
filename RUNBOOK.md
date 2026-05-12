@@ -12,10 +12,10 @@ Optional: copy `.env.example` to `.env` to override defaults. Not required — s
 
 ## 2) Open pages
 
-- Reviewer flow: `http://127.0.0.1:8787/play.html`
-- Verify: `http://127.0.0.1:8787/verify.html`
-- Widget: `http://127.0.0.1:8787/widget.html`
-- Spec / Evidence: `http://127.0.0.1:8787/spec.html`
+- Reviewer flow: `http://127.0.0.1:8787/play`
+- Verify: `http://127.0.0.1:8787/verify`
+- Widget: `http://127.0.0.1:8787/widget`
+- Spec / Evidence: `http://127.0.0.1:8787/spec`
 
 ## 3) Web reviewer flow
 
@@ -291,7 +291,7 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 - `vanish_withdraw_tx` — Vanish → winner transfer
 - `mock: true` if run in mock mode
 
-## 11) Partner Draw API
+## 10) Partner Draw API
 
 `POST /api/partner/draw` lets B2B partners submit a formula-driven participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet (same as `/api/live-raffle`).
 
@@ -362,7 +362,7 @@ curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
 | `400` | Validation error (bad formula, bad participant ids, duplicates, invalid `score` / `weight` / `target`, bad `winners_count`, bad `use_case`) |
 | `401` | Missing or unknown API key |
 | `403` | Partner key valid but `draw_enabled` is not `true` |
-| `429` | Rate limit exceeded; one draw per partner key per 60 s |
+| `429` | Rate limit exceeded; one draw per partner key per 10 s |
 | `504` | Devnet timeout; retry |
 
 `participants` are generic participant ids, not necessarily Solana addresses. Current artifact format still requires printable ASCII ids up to 64 bytes.
@@ -378,7 +378,144 @@ Native W3O1 v3 layout:
 - header: `magic`, `format_version=3`, `min_input_lamports`, `max_input_lamports`, `outcome_count`, `effect_count`, `winners_count`, `formula_code`, `reserved[5]`, `target_score`
 - outcome: `outcome_id_len`, `outcome_id[64]`, `weight`, `score`, `order`, `first_effect_index`, `effect_count`
 
-## 10) Partner API keys for `/api/resolutions` and `/api/participant`
+## 11) Large Snapshot Partner Flow (local-only first pass)
+
+Small lists stay on `POST /api/partner/draw`. The additive snapshot flow is for very large participant sets and keeps the committed on-chain payload compact (`W3O1 v4`).
+
+Threshold model:
+
+- `<= 1,000` — simple
+- `1,001–10,000` — medium
+- `10,000+` — bulk
+- `100,000+` — streaming-oriented bulk
+
+Safety guardrail:
+
+- first pass is local-only by default
+- set `PARTNER_SNAPSHOT_RPC_URL` to a local validator such as `http://127.0.0.1:8899`
+- if you intentionally use a non-local RPC, you must also set `PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1` and point `PARTNER_SNAPSHOT_PROGRAM_ID` at a brand new isolated program id
+- current hackathon canonical program must not be used for this path
+
+Session flow:
+
+```bash
+curl -s -X POST http://127.0.0.1:8787/api/partner/snapshot/init \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{"label":"AlphaDex large snapshot"}'
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8787/api/partner/snapshot/chunk \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{
+    "session_id":"<SESSION_ID>",
+    "chunk_index":0,
+    "participants":[
+      {"id":"trader-alice","score":1200},
+      {"id":"trader-bob","score":900}
+    ]
+  }'
+```
+
+```bash
+curl -s -X POST http://127.0.0.1:8787/api/partner/snapshot/finalize \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{
+    "session_id":"<SESSION_ID>",
+    "formula":"rank_desc",
+    "winners_count":2,
+    "label":"AlphaDex large snapshot"
+  }'
+```
+
+What finalize writes locally:
+
+- `tmp/partner-snapshot/<SESSION_ID>/canonical_snapshot.jsonl`
+- `tmp/partner-snapshot/<SESSION_ID>/manifest.json`
+- operator artifact/result files for the local resolve run
+
+Verifier contract for `W3O1 v4`:
+
+- on-chain artifact binds `snapshot_hash`, `snapshot_count`, `formula_code`, `target_score` when needed, `payout_lamports`, and `snapshot_uri`
+- replay recomputes the winner-set from tx randomness plus the published canonical snapshot
+- v1/v2/v3 replay behavior remains unchanged
+
+Reproducible `1000+` testcase:
+
+```bash
+cd verifiable-outcome-engine
+PARTNER_API_KEY=vresk_4a3304a5cb2804331078c6e09b687fdb \
+node scripts/partner_snapshot_large_case.mjs \
+  --base-url http://127.0.0.1:8787 \
+  --count 1001 \
+  --chunk-size 500 \
+  --formula rank_desc \
+  --winners-count 2 \
+  --label "1001+ snapshot testcase"
+```
+
+What this testcase does:
+
+- generates `1001` participants locally
+- uploads them as three chunks: `500 + 500 + 1`
+- expects threshold mode `medium`
+- uses deterministic descending scores, so expected winners are `trader-0001,trader-0002`
+- prints the produced local signature plus a ready replay command
+
+Reproducible `100k+` testcase:
+
+```bash
+cd verifiable-outcome-engine
+PARTNER_API_KEY=vresk_4a3304a5cb2804331078c6e09b687fdb \
+node scripts/partner_snapshot_large_case.mjs \
+  --base-url http://127.0.0.1:8787 \
+  --count 100001 \
+  --chunk-size 5000 \
+  --formula rank_desc \
+  --winners-count 2 \
+  --label "100k+ snapshot testcase"
+```
+
+What this testcase does:
+
+- generates participants per chunk instead of keeping all `100001` entries in memory
+- uploads `20` full chunks of `5000` plus one tail chunk of `1`
+- crosses into the `bulk` range immediately after `10000`
+- still uses deterministic descending scores, so expected winners are `trader-000001,trader-000002`
+- prints the produced local signature plus a ready replay command
+
+Formula + multi-winner local matrix:
+
+```bash
+cd verifiable-outcome-engine
+PARTNER_API_KEY=vresk_4a3304a5cb2804331078c6e09b687fdb \
+node scripts/partner_snapshot_formula_matrix.mjs \
+  --base-url http://127.0.0.1:8787 \
+  --rpc-url http://127.0.0.1:8899 \
+  --count 1001 \
+  --chunk-size 500 \
+  --winners 1,2,3,5 \
+  --label-prefix "formula matrix"
+```
+
+What this matrix does:
+
+- runs all five formulas:
+  - `weighted_random`
+  - `rank_desc`
+  - `rank_asc`
+  - `first_n`
+  - `closest_to`
+- repeats each formula for several `winners_count`
+- executes `init/chunk/finalize` for every case
+- immediately runs local replay for every produced signature
+- asserts `MATCH / OK`, `artifact_format_version=4`, committed `snapshot_hash`, committed `snapshot_count`, and winner-set length
+- for deterministic formulas (`rank_desc`, `rank_asc`, `first_n`, `closest_to`) also asserts the exact expected winner ids
+
+## 12) Partner API keys for `/api/resolutions` and `/api/participant`
 
 These two endpoints are partner-only and require:
 
@@ -388,7 +525,7 @@ These two endpoints are partner-only and require:
 Bootstrap the config:
 
 ```bash
-cd /Users/timurkurmangaliev/verifiable-outcome-engine
+cd verifiable-outcome-engine
 mkdir -p config
 cp config/partners.json.example config/partners.json
 ```
