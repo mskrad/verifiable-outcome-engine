@@ -374,13 +374,17 @@ Reduce per-participant payload by hashing IDs before committing:
 
 This allows base58 wallet addresses or longer IDs without expanding transaction size.
 
-**Long-term path (correct architecture)**
+**Large snapshot path (local-only first pass)**
 
-For full leaderboards of any size, VRE will adopt a chunked snapshot commit flow — matching the existing artifact pipeline (`v2` chunk model):
+For full leaderboards of any size, VRE supports a chunked snapshot commit flow (`W3O1 v4`):
 
-1. Submit participant snapshot in chunks (multiple transactions)
+1. Submit participant snapshot in chunks via `/api/partner/snapshot/init` → `/chunk` → `/finalize`
 2. Finalize snapshot hash on-chain (single anchor point)
 3. Resolve winners from the committed snapshot hash
 4. Verify by transaction signature + snapshot hash
 
 This removes the single-transaction payload limit entirely and supports competitions of any scale.
+
+The current first pass runs against a local validator only. Non-local deployment against a new isolated program id is planned as a follow-up — the canonical hackathon program is not used for this path.
+
+See [Part 12 — Large Snapshot Partner Flow](#12-large-snapshot-partner-flow-local-only-first-pass) for the full session flow.

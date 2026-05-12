@@ -32,6 +32,12 @@ The **Solana program** (`9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`) runs
 on a protocol fee model: each `resolveOutcome` call pays a small fee to the
 VRE treasury.
 
+**Program source:** The full Anchor program source is not yet publicly released.
+The repository includes selected files (`submit_compiled_artifact`, `math/`, IDL)
+sufficient for integration and verification. The core resolution logic is planned
+for open-source release post-launch. The deployed program is verifiable via the
+IDL and on-chain replay without access to the source.
+
 **Partners** (large platforms, GameFi, NFT marketplaces) can deploy their own
 instance under a commercial agreement — no per-tx fee.
 [Contact us →](mailto:hello@verifiableoutcome.online)
@@ -245,7 +251,7 @@ Transaction too large
 ```
 
 For now, use short participant IDs (e.g. `"A1"`) and keep lists small (2–10 entries for readable IDs, up to ~20 with short IDs).
-For larger leaderboards, the upcoming chunked snapshot commit flow will remove this limit — see [INTEGRATION.md](./INTEGRATION.md#current-limitations) for details.
+For larger leaderboards, a chunked snapshot commit flow is available as a local-only first pass — see [INTEGRATION.md](./INTEGRATION.md#current-limitations) for details.
 
 ## Boundaries
 

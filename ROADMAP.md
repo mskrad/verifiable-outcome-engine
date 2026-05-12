@@ -1,6 +1,6 @@
 # Roadmap — Verifiable Outcome Engine
 
-**Hackathon:** Colosseum Frontier, Apr 6 – May 11, 2026
+**Hackathon:** Colosseum Frontier, Apr 6 – May 11, 2026 ✅ Submitted
 
 ---
 
@@ -45,7 +45,7 @@ Any developer building a Solana dApp that involves outcome selection — raffle,
 
 ---
 
-## Sprint 5 — Final Submission (May 5–11)
+## Sprint 5 — Final Submission (May 5–11) ✅
 
 - Pitch video (≤3 min): problem → solution → live demo → developer story
 - Final docs pass
@@ -53,9 +53,12 @@ Any developer building a Solana dApp that involves outcome selection — raffle,
 
 ---
 
-## Future Work (Post-Submission / Optional)
+## Post-Hackathon Sprint 1 — Scale & Permanence
 
-- **Phantom Connect embedded wallet:** replace the current extension-only Phantom path with Phantom Connect so users can connect on `play` and `verify` without requiring the Phantom browser extension. Keep the current backend/operator raffle flow unchanged; the embedded wallet is mainly for user address/session UX, not for server-side resolve signing.
+- **Large snapshot non-local validation** (PARTICIPANT-SCALE-002): isolated devnet deployment under a new program id; two representative cases (`1001`, `100001` participants) replay `MATCH / OK` against isolated RPC
+- **Public snapshot publication + Merkle proof API** (PARTICIPANT-SCALE-003): upload participant snapshot to Irys (Arweave L2) after finalize; build merkle tree over the sorted list; `GET /api/partner/draw/:sig/proof?address=<wallet>` returns O(log N) membership proof — "Did I win?" without downloading the full list
+- **Partner Draw API rate limit tuning**: expose `PARTNER_DRAW_RATE_LIMIT_MS` as a configurable env var per partner tier
+- **Phantom Connect embedded wallet**: replace the current extension-only Phantom path with Phantom Connect so users can connect on `play` and `verify` without requiring the Phantom browser extension
 
 ---
 
