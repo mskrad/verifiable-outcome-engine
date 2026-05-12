@@ -34,6 +34,8 @@
     "dist/sdk/verify.d.ts",
     "dist/sdk/artifact.js",
     "dist/sdk/artifact.d.ts",
+    "dist/sdk/snapshot.js",
+    "dist/sdk/snapshot.d.ts",
     "dist/sdk/types.js",
     "dist/sdk/types.d.ts",
     "README.md"

@@ -19,6 +19,10 @@ const PRIORITY_FEE_MICRO_LAMPORTS = 100_000;
 
 import { buildArtifact } from "./artifact.js";
 import { OUTCOME_IDL } from "./idl.js";
+import {
+  buildSnapshotClaimFromFile,
+  deriveResolveRandomness,
+} from "./snapshot.js";
 import { verifyOutcome } from "./verify.js";
 import { vanishPayoutRoute } from "./vanish.js";
 import {
@@ -42,6 +46,7 @@ const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey(
 );
 const STATUS_APPROVED = 1;
 const CHUNK_WRITE_BYTES = 900;
+const REFRESHED_MASTER_SEED = Buffer.alloc(32, 2);
 
 type OutcomeClient = {
   provider: anchor.AnchorProvider;
@@ -822,6 +827,71 @@ async function resolveOutcomeAndConfirm(
   return { signature, resolveId };
 }
 
+function padOutcomeId(id: string): Buffer {
+  const raw = Buffer.from(id, "ascii");
+  if (raw.length === 0 || raw.length > 64) {
+    throw new Error(`Invalid outcome id length for snapshot claim: ${id}`);
+  }
+  const out = Buffer.alloc(64, 0);
+  raw.copy(out, 0);
+  return out;
+}
+
+async function resolveOutcomeV4AndConfirm(
+  client: OutcomeClient,
+  opts: {
+    runtimeId: Buffer;
+    inputLamports: bigint;
+    chunkPdas: PublicKey[];
+    compiledArtifactHash: Buffer;
+    winnerIds: string[];
+    treasury?: PublicKey;
+    protocolTreasury?: PublicKey;
+  }
+): Promise<{ signature: string; resolveId: bigint }> {
+  const resolveId = (await fetchOutcomeConfigState(client, opts.runtimeId)).nextResolveId;
+  const outcomeResolutionPda = deriveOutcomeResolutionPda(
+    client.programId,
+    opts.runtimeId,
+    resolveId
+  );
+  const instruction = await (client.program.methods as any)
+    .resolveOutcomeV4({
+      runtimeId: [...opts.runtimeId],
+      inputLamports: new BN(opts.inputLamports.toString()),
+      outcomeIdLens: Buffer.from(
+        opts.winnerIds.map((id) => Buffer.byteLength(id, "ascii"))
+      ),
+      outcomeIds: opts.winnerIds.map((id) => padOutcomeId(id)),
+    })
+    .accounts({
+      actor: client.authority.publicKey,
+      programConfig: deriveProgramConfigPda(client.programId),
+      outcomeConfig: deriveOutcomeConfigPda(client.programId, opts.runtimeId),
+      outcomeVault: deriveOutcomeVaultPda(client.programId, opts.runtimeId),
+      outcomeResolution: outcomeResolutionPda,
+      approvedOutcomeArtifact: deriveApprovedArtifactPda(
+        client.programId,
+        opts.compiledArtifactHash
+      ),
+      outcomeTreasury: opts.treasury ?? client.authority.publicKey,
+      protocolTreasury: opts.protocolTreasury ?? client.authority.publicKey,
+      systemProgram: SystemProgram.programId,
+    })
+    .remainingAccounts(
+      opts.chunkPdas.map((pubkey) => ({
+        pubkey,
+        isSigner: false,
+        isWritable: false,
+      }))
+    )
+    .instruction();
+
+  const signature = await sendOperatorInstructions(client, [instruction]);
+  await client.provider.connection.confirmTransaction(signature, "confirmed");
+  return { signature, resolveId };
+}
+
 function writeResultManifest(
   outputDir: string,
   label: string,
@@ -872,7 +942,7 @@ async function resolveConfig(
 
   await refreshRuntimeMasterSeed(client, {
     runtimeId: runtime.runtimeId,
-    newMasterSeed: Buffer.alloc(32, 2),
+    newMasterSeed: REFRESHED_MASTER_SEED,
   });
 
   const programConfig = await fetchProgramConfigState(client);
@@ -880,14 +950,41 @@ async function resolveConfig(
     programConfig.feeLamports > 0n
       ? programConfig.treasury
       : client.authority.publicKey;
-  const resolution = await resolveOutcomeAndConfirm(client, {
-    runtimeId: runtime.runtimeId,
-    inputLamports: runtime.minInputLamports,
-    chunkPdas: runtime.chunkPdas,
-    compiledArtifactHash: runtime.compiledArtifactHash,
-    treasury: runtime.treasury,
-    protocolTreasury,
-  });
+  const resolution =
+    config.type === "formula_draw_snapshot"
+      ? await resolveOutcomeV4AndConfirm(client, {
+          runtimeId: runtime.runtimeId,
+          inputLamports: runtime.minInputLamports,
+          chunkPdas: runtime.chunkPdas,
+          compiledArtifactHash: runtime.compiledArtifactHash,
+          treasury: runtime.treasury,
+          protocolTreasury,
+          winnerIds: (
+            await buildSnapshotClaimFromFile({
+              snapshotPath: config.snapshot_uri,
+              formula: config.formula,
+              winnersCount: Number(config.winners_count ?? 1),
+              randomness: deriveResolveRandomness(
+                REFRESHED_MASTER_SEED,
+                runtime.runtimeId,
+                (await fetchOutcomeConfigState(client, runtime.runtimeId)).nextResolveId,
+                client.authority.publicKey.toBuffer()
+              ),
+              payoutLamports: asBigInt(config.payout_lamports ?? 3),
+              ...(config.target === undefined
+                ? {}
+                : { targetScore: asBigInt(config.target) }),
+            })
+          ).outcomeIds,
+        })
+      : await resolveOutcomeAndConfirm(client, {
+          runtimeId: runtime.runtimeId,
+          inputLamports: runtime.minInputLamports,
+          chunkPdas: runtime.chunkPdas,
+          compiledArtifactHash: runtime.compiledArtifactHash,
+          treasury: runtime.treasury,
+          protocolTreasury,
+        });
 
   const partialResult = {
     signature: resolution.signature,

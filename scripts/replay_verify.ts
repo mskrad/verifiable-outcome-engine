@@ -21,6 +21,9 @@ type ReplayOutput = {
   artifact_format_version?: number;
   resolution_formula?: VerifyResult["resolution_formula"];
   target?: VerifyResult["target"];
+  snapshot_hash?: string;
+  snapshot_count?: number;
+  snapshot_uri?: string;
   outcomes: Array<{ id: string; weight: number; score?: number; order?: number }>;
 };
 
@@ -71,6 +74,13 @@ function buildReplayOutput(
           target: result.target,
         }
       : {}),
+    ...(result.snapshot_hash
+      ? {
+          snapshot_hash: result.snapshot_hash,
+          snapshot_count: result.snapshot_count,
+          snapshot_uri: result.snapshot_uri,
+        }
+      : {}),
     outcomes: result.outcomes ?? [],
   };
 }
@@ -91,6 +101,11 @@ function printOutput(output: ReplayOutput, asJson: boolean): void {
   if (output.resolution_formula) {
     console.log("resolution_formula  :", output.resolution_formula);
     console.log("target              :", output.target);
+  }
+  if (output.snapshot_hash) {
+    console.log("snapshot_hash       :", output.snapshot_hash);
+    console.log("snapshot_count      :", output.snapshot_count);
+    console.log("snapshot_uri        :", output.snapshot_uri);
   }
   console.log("signature           :", output.signature);
   console.log("program_id          :", output.program_id);

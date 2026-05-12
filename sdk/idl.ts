@@ -641,6 +641,77 @@ export const OUTCOME_IDL = {
       ]
     },
     {
+      "name": "recover_program_config_admin",
+      "discriminator": [
+        202,
+        224,
+        129,
+        102,
+        129,
+        177,
+        223,
+        8
+      ],
+      "accounts": [
+        {
+          "name": "program_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "program",
+          "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+        },
+        {
+          "name": "program_data"
+        },
+        {
+          "name": "upgrade_authority",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RecoverProgramConfigAdminArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "refresh_master_seed",
       "discriminator": [
         217,
@@ -949,6 +1020,225 @@ export const OUTCOME_IDL = {
           "type": {
             "defined": {
               "name": "ResolveOutcomeArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "resolve_outcome_v4",
+      "discriminator": [
+        76,
+        52,
+        179,
+        128,
+        136,
+        188,
+        139,
+        87
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.next_resolve_id",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_treasury",
+          "writable": true
+        },
+        {
+          "name": "protocol_treasury",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "ResolveOutcomeV4Args"
             }
           }
         }
@@ -2282,6 +2572,22 @@ export const OUTCOME_IDL = {
       }
     },
     {
+      "name": "RecoverProgramConfigAdminArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "new_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_treasury",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "RefreshMasterSeedArgs",
       "type": {
         "kind": "struct",
@@ -2324,6 +2630,42 @@ export const OUTCOME_IDL = {
           {
             "name": "input_lamports",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolveOutcomeV4Args",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "input_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "outcome_id_lens",
+            "type": "bytes"
+          },
+          {
+            "name": "outcome_ids",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  64
+                ]
+              }
+            }
           }
         ]
       }
@@ -2432,4 +2774,4 @@ export const OUTCOME_IDL = {
       }
     }
   ]
-} as const;
+};

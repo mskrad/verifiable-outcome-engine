@@ -8,6 +8,7 @@ pub mod initialize_program_config;
 pub mod recover_program_config_admin;
 pub mod refresh_master_seed;
 pub mod resolve_outcome;
+pub mod resolve_outcome_v4;
 pub mod review_compiled_artifact;
 pub mod set_program_config;
 pub mod submit_compiled_artifact;

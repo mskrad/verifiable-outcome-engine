@@ -1,5 +1,11 @@
 import { PublicKey } from "@solana/web3.js";
 
+import {
+  buildArtifactV4,
+  buildSnapshotHash,
+  buildSnapshotManifest,
+  validateWinnersCount as validateSnapshotWinnersCount,
+} from "./snapshot.js";
 import type {
   AirdropConfig,
   ArtifactConfig,
@@ -520,5 +526,10 @@ function serializeW3O1(config: W3O1Config): Buffer {
 }
 
 export function buildArtifact(config: ArtifactConfig): Buffer {
+  if (config.type === "formula_draw_snapshot") {
+    return buildArtifactV4(config);
+  }
   return serializeW3O1(toW3O1Config(config));
 }
+
+export { buildArtifactV4, buildSnapshotHash, buildSnapshotManifest, validateSnapshotWinnersCount };

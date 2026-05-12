@@ -1,9 +1,18 @@
 import * as anchor from "@coral-xyz/anchor";
 import crypto from "crypto";
 import fs from "fs";
+import os from "os";
 import path from "path";
+import { fileURLToPath } from "url";
 import { PublicKey } from "@solana/web3.js";
 
+import {
+  buildSnapshotClaimFromFile,
+  formulaNameFromArtifactV4,
+  inspectSnapshotFile,
+  parseArtifactV4,
+  FORMAT_VERSION_V4,
+} from "./snapshot.js";
 import type {
   ResolutionFormula,
   VerifyOutcomeOptions,
@@ -955,6 +964,43 @@ function selectOutcomes(
   };
 }
 
+async function materializeSnapshotUri(snapshotUri: string): Promise<{
+  snapshotPath: string;
+  cleanup: () => void;
+}> {
+  if (/^https?:\/\//i.test(snapshotUri)) {
+    const response = await fetch(snapshotUri);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch snapshot_uri: HTTP ${response.status}`);
+    }
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vre-snapshot-"));
+    const snapshotPath = path.join(tempDir, "snapshot.jsonl");
+    fs.writeFileSync(snapshotPath, Buffer.from(await response.arrayBuffer()));
+    return {
+      snapshotPath,
+      cleanup: () => {
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        } catch (_) {
+          // ignore temp cleanup errors
+        }
+      },
+    };
+  }
+  if (snapshotUri.startsWith("file://")) {
+    return {
+      snapshotPath: fileURLToPath(snapshotUri),
+      cleanup: () => {},
+    };
+  }
+  return {
+    snapshotPath: path.isAbsolute(snapshotUri)
+      ? snapshotUri
+      : path.resolve(process.cwd(), snapshotUri),
+    cleanup: () => {},
+  };
+}
+
 async function reconstructArtifactBlob(
   connection: anchor.web3.Connection,
   coder: any,
@@ -1212,9 +1258,17 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     }
   }
 
-  let parsed: ParsedArtifact;
+  const blobFormatVersion = blob.readUInt16LE(4);
+  let parsed: ParsedArtifact | null = null;
+  let parsedV4:
+    | ReturnType<typeof parseArtifactV4>
+    | null = null;
   try {
-    parsed = parseCompiledArtifact(blob);
+    if (blobFormatVersion === FORMAT_VERSION_V4) {
+      parsedV4 = parseArtifactV4(blob);
+    } else {
+      parsed = parseCompiledArtifact(blob);
+    }
   } catch (error) {
     mismatch(
       "ERR_REPLAY_UNHANDLED",
@@ -1259,7 +1313,190 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     );
   }
 
-  const selected = selectOutcomes(blob, parsed, recomputedRandomness, replayInput);
+  const resolutionArtifactFormatVersion =
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+      ? Number(
+          pick(
+            outcomeResolution,
+            "artifact_format_version",
+            "artifactFormatVersion"
+          )
+        )
+      : FORMAT_VERSION_V1;
+  const resolutionWinnerCount =
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+      ? Number(pick(outcomeResolution, "winner_count", "winnerCount"))
+      : 1;
+
+  if (
+    event.artifactFormatVersion !== resolutionArtifactFormatVersion ||
+    event.artifactFormatVersion !== blobFormatVersion
+  ) {
+    mismatch(
+      "ERR_ARTIFACT_FORMAT_VERSION_MISMATCH",
+      "Artifact format version differs between event, resolution, and artifact"
+    );
+  }
+
+  if (parsedV4) {
+    const formula = formulaNameFromArtifactV4(parsedV4);
+    const expectedTarget = parsedV4.targetScore;
+    const resolutionOutput = asBigInt(
+      pick(outcomeResolution, "total_output_lamports", "totalOutputLamports")
+    );
+    const resolutionOutcomeIdLen = Number(
+      pick(outcomeResolution, "outcome_id_len", "outcomeIdLen")
+    );
+    const resolutionOutcomeId = Buffer.from(
+      pick<number[]>(outcomeResolution, "outcome_id", "outcomeId")
+    );
+    const resolutionOutcomeIdLens =
+      outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+        ? (pick<number[]>(outcomeResolution, "outcome_id_lens", "outcomeIdLens") ?? [])
+        : [resolutionOutcomeIdLen];
+    const resolutionOutcomeIds =
+      outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+        ? (pick<number[][]>(outcomeResolution, "outcome_ids", "outcomeIds") ?? []).map((id) =>
+            Buffer.from(id)
+          )
+        : [resolutionOutcomeId];
+    const resolutionEffectCount = Number(
+      pick(outcomeResolution, "effect_count", "effectCount")
+    );
+    const resolutionEffectsDigest = Buffer.from(
+      pick<number[]>(outcomeResolution, "effects_digest", "effectsDigest")
+    );
+
+    let cleanupSnapshot = () => {};
+    try {
+      const materialized = await materializeSnapshotUri(parsedV4.snapshotUri);
+      const snapshotPath = materialized.snapshotPath;
+      cleanupSnapshot = materialized.cleanup;
+      await inspectSnapshotFile({
+        snapshotPath,
+        formula,
+        expectedHash: parsedV4.snapshotHash.toString("hex"),
+        expectedCount: parsedV4.snapshotCount,
+      });
+      const selected = await buildSnapshotClaimFromFile({
+        snapshotPath,
+        formula,
+        winnersCount: parsedV4.winnersCount,
+        randomness: recomputedRandomness,
+        payoutLamports: parsedV4.payoutLamports,
+        ...(formula === "closest_to" ? { targetScore: expectedTarget } : {}),
+      });
+
+      if (
+        event.winnerCount !== resolutionWinnerCount ||
+        event.winnerCount !== parsedV4.winnersCount ||
+        event.winnerCount !== selected.outcomeIds.length
+      ) {
+        mismatch(
+          "ERR_WINNER_COUNT_MISMATCH",
+          "Winner count differs between event, resolution, artifact, and snapshot replay"
+        );
+      }
+      if (
+        event.totalOutputLamports !== resolutionOutput ||
+        event.totalOutputLamports !== selected.totalOutputLamports
+      ) {
+        mismatch(
+          "ERR_OUTPUT_MISMATCH",
+          "Output lamports differ between event, resolution, and snapshot replay"
+        );
+      }
+      if (
+        event.outcomeIdLens.length !== event.winnerCount ||
+        event.outcomeIds.length !== event.winnerCount ||
+        resolutionOutcomeIdLens.length !== event.winnerCount ||
+        resolutionOutcomeIds.length !== event.winnerCount
+      ) {
+        mismatch(
+          "ERR_OUTCOME_ID_MISMATCH",
+          "Winner outcome array length differs from winner count"
+        );
+      }
+      const seenOutcomeIds = new Set<string>();
+      for (let index = 0; index < event.winnerCount; index += 1) {
+        const expectedId = selected.outcomeIds[index];
+        const eventId = event.outcomeIds[index];
+        const resolutionId = resolutionOutcomeIds[index];
+        const eventLen = event.outcomeIdLens[index];
+        const resolutionLen = resolutionOutcomeIdLens[index];
+        expectZeroPadding(eventId, eventLen, "ERR_OUTCOME_ID_MISMATCH");
+        expectZeroPadding(resolutionId, resolutionLen, "ERR_OUTCOME_ID_MISMATCH");
+        const eventString = outcomeIdString(eventId, eventLen);
+        const resolutionString = outcomeIdString(resolutionId, resolutionLen);
+        if (
+          eventString !== expectedId ||
+          resolutionString !== expectedId
+        ) {
+          mismatch(
+            "ERR_OUTCOME_ID_MISMATCH",
+            "Winner outcome id differs between event, resolution, and snapshot replay"
+          );
+        }
+        if (seenOutcomeIds.has(expectedId)) {
+          mismatch("ERR_OUTCOME_ID_MISMATCH", "Winner outcome ids must be distinct");
+        }
+        seenOutcomeIds.add(expectedId);
+      }
+      expectZeroPadding(event.outcomeId, event.outcomeIdLen, "ERR_OUTCOME_ID_MISMATCH");
+      expectZeroPadding(
+        resolutionOutcomeId,
+        resolutionOutcomeIdLen,
+        "ERR_OUTCOME_ID_MISMATCH"
+      );
+      if (
+        outcomeIdString(event.outcomeId, event.outcomeIdLen) !== selected.outcomeIds[0] ||
+        outcomeIdString(resolutionOutcomeId, resolutionOutcomeIdLen) !== selected.outcomeIds[0]
+      ) {
+        mismatch(
+          "ERR_OUTCOME_ID_MISMATCH",
+          "Primary outcome id differs between event, resolution, and snapshot replay"
+        );
+      }
+      if (
+        event.effectCount !== resolutionEffectCount ||
+        event.effectCount !== selected.effectCount ||
+        !event.effectsDigest.equals(resolutionEffectsDigest) ||
+        !event.effectsDigest.equals(selected.effectsDigest)
+      ) {
+        mismatch(
+          "ERR_EFFECTS_DIGEST_MISMATCH",
+          "Effects digest differs between event, resolution, and snapshot replay"
+        );
+      }
+
+      return {
+        status: "MATCH",
+        reason: "OK",
+        outcome_id: selected.outcomeIds[0],
+        outcome_ids: selected.outcomeIds,
+        winners_count: selected.winnersCount,
+        artifact_format_version: FORMAT_VERSION_V4,
+        resolution_formula: formula,
+        ...(formula === "closest_to"
+          ? {
+              target: signedBigIntToSafeNumber(expectedTarget, "target"),
+            }
+          : {}),
+        snapshot_hash: parsedV4.snapshotHash.toString("hex"),
+        snapshot_count: parsedV4.snapshotCount,
+        snapshot_uri: parsedV4.snapshotUri,
+        outcomes: [],
+        resolve_id: resolveId,
+        compiled_artifact_hash: compiledArtifactHashHex,
+        runtime_id: runtimeIdHex,
+        program_id: programId.toBase58(),
+      };
+    } finally {
+      cleanupSnapshot();
+    }
+  }
+
+  const selected = selectOutcomes(blob, parsed!, recomputedRandomness, replayInput);
   const resolutionOutput = asBigInt(
     pick(outcomeResolution, "total_output_lamports", "totalOutputLamports")
   );
@@ -1297,23 +1534,9 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     );
   }
 
-  const resolutionArtifactFormatVersion =
-    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
-      ? Number(
-          pick(
-            outcomeResolution,
-            "artifact_format_version",
-            "artifactFormatVersion"
-          )
-        )
-      : FORMAT_VERSION_V1;
-  const resolutionWinnerCount =
-    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
-      ? Number(pick(outcomeResolution, "winner_count", "winnerCount"))
-      : 1;
   if (
     event.artifactFormatVersion !== resolutionArtifactFormatVersion ||
-    event.artifactFormatVersion !== parsed.formatVersion
+    event.artifactFormatVersion !== parsed!.formatVersion
   ) {
     mismatch(
       "ERR_ARTIFACT_FORMAT_VERSION_MISMATCH",
@@ -1322,7 +1545,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   }
   if (
     event.winnerCount !== resolutionWinnerCount ||
-    event.winnerCount !== parsed.winnersCount ||
+    event.winnerCount !== parsed!.winnersCount ||
     event.winnerCount !== selected.outcomeIds.length
   ) {
     mismatch(
@@ -1403,7 +1626,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     status: "MATCH",
     reason: "OK",
     outcome_id: outcomeIdString(event.outcomeId, event.outcomeIdLen),
-    ...((event.winnerCount > 1 || parsed.formatVersion === FORMAT_VERSION_V3)
+    ...((event.winnerCount > 1 || parsed!.formatVersion === FORMAT_VERSION_V3)
       ? {
           artifact_format_version: event.artifactFormatVersion,
         }
@@ -1416,18 +1639,18 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           winners_count: event.winnerCount,
         }
       : {}),
-    resolution_formula: parsed.formatVersion === FORMAT_VERSION_V3
-      ? formulaCodeToName(parsed.formulaCode)
+    resolution_formula: parsed!.formatVersion === FORMAT_VERSION_V3
+      ? formulaCodeToName(parsed!.formulaCode)
       : "weighted_random",
-    ...(parsed.formatVersion === FORMAT_VERSION_V3
+    ...(parsed!.formatVersion === FORMAT_VERSION_V3
       ? {
-          target: signedBigIntToSafeNumber(parsed.targetScore, "target"),
+          target: signedBigIntToSafeNumber(parsed!.targetScore, "target"),
         }
       : {}),
-    outcomes: parsed.outcomes.map((outcome) => ({
+    outcomes: parsed!.outcomes.map((outcome) => ({
       id: outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen),
       weight: outcome.weight,
-      ...(parsed.formatVersion === FORMAT_VERSION_V3
+      ...(parsed!.formatVersion === FORMAT_VERSION_V3
         ? {
             score: signedBigIntToSafeNumber(outcome.score, `score:${outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen)}`),
             order: outcome.order,

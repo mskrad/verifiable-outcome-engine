@@ -41,6 +41,13 @@ export type FormulaParticipant = {
   score?: SignedIntegerValue;
 };
 
+export type SnapshotParticipant = {
+  id: string;
+  weight?: number;
+  score?: SignedIntegerValue;
+  order?: number;
+};
+
 export type FormulaDrawConfig = {
   type: "formula_draw";
   formula: ResolutionFormula;
@@ -51,11 +58,38 @@ export type FormulaDrawConfig = {
   target?: SignedIntegerValue;
 };
 
+export type SnapshotFormulaDrawConfig = {
+  type: "formula_draw_snapshot";
+  formula: ResolutionFormula;
+  input_lamports: LamportsValue;
+  snapshot_hash: string;
+  snapshot_count: number;
+  snapshot_uri: string;
+  payout_lamports?: LamportsValue;
+  winners_count?: number;
+  target?: SignedIntegerValue;
+};
+
+export type SnapshotManifest = {
+  version: "vre_snapshot_manifest_v1";
+  artifact_format_version: 4;
+  snapshot_hash: string;
+  snapshot_count: number;
+  formula: ResolutionFormula;
+  winners_count: number;
+  snapshot_uri: string;
+  created_at: string;
+  target?: string;
+  payout_lamports?: string;
+  threshold_mode?: "simple" | "medium" | "bulk" | "streaming";
+};
+
 export type ArtifactConfig =
   | RaffleConfig
   | LootConfig
   | AirdropConfig
-  | FormulaDrawConfig;
+  | FormulaDrawConfig
+  | SnapshotFormulaDrawConfig;
 
 export type VerifyOutcomeOptions = {
   signature: string;
@@ -73,6 +107,9 @@ export type VerifyResult = {
   artifact_format_version?: number;
   resolution_formula?: ResolutionFormula;
   target?: number;
+  snapshot_hash?: string;
+  snapshot_count?: number;
+  snapshot_uri?: string;
   outcomes?: Array<{ id: string; weight: number; score?: number; order?: number }>;
   resolve_id: string;
   compiled_artifact_hash: string;

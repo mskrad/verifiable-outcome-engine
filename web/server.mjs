@@ -1,4 +1,5 @@
 import http from "http";
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
@@ -34,6 +35,9 @@ const CORS_API_PATHS = new Set([
   "/api/resolutions",
   "/api/participant",
   "/api/partner/draw",
+  "/api/partner/snapshot/init",
+  "/api/partner/snapshot/chunk",
+  "/api/partner/snapshot/finalize",
 ]);
 const JSON_BODY_LIMIT_BYTES = Number(process.env.JSON_BODY_LIMIT_BYTES || 16_384);
 const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
@@ -44,6 +48,7 @@ const LIVE_RAFFLE_TIMEOUT_MS = 45_000;
 const LIVE_RAFFLE_RATE_LIMIT_MS = 10_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
+const PARTNER_SNAPSHOT_ROOT_DIR = path.join(REF_ROOT, "tmp", "partner-snapshot");
 const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
 const WORLD_VERIFY_URL_STAGING_V2 = "https://developer.worldcoin.org/api/v2/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -54,6 +59,7 @@ const SAFE_ARTIFACT_ROOTS = [
   path.join(REF_ROOT, "artifacts"),
   path.join(REF_ROOT, "tmp", "live-raffle"),
   path.join(REF_ROOT, "tmp", "partner-draw"),
+  path.join(REF_ROOT, "tmp", "partner-snapshot"),
 ];
 const LIVE_RAFFLE_PRESETS = [
   "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9",
@@ -66,6 +72,29 @@ const liveRaffleRateLimit = new Map();
 const partnerDrawRateLimit = new Map(); // partnerKey → blockedUntil ms
 const apiRateLimit = new Map();
 const PARTNER_DRAW_RATE_LIMIT_MS = 10_000;
+const PARTNER_SNAPSHOT_JSON_BODY_LIMIT_BYTES = Number(
+  process.env.PARTNER_SNAPSHOT_JSON_BODY_LIMIT_BYTES || 2_000_000
+);
+const PARTNER_SNAPSHOT_SESSION_TTL_MS = Number(
+  process.env.PARTNER_SNAPSHOT_SESSION_TTL_MS || 24 * 60 * 60 * 1000
+);
+const PARTNER_SNAPSHOT_CHUNK_MAX_PARTICIPANTS = Number(
+  process.env.PARTNER_SNAPSHOT_CHUNK_MAX_PARTICIPANTS || 5000
+);
+const PARTNER_SNAPSHOT_SIMPLE_MAX = Number(
+  process.env.PARTNER_SNAPSHOT_SIMPLE_MAX || 1000
+);
+const PARTNER_SNAPSHOT_MEDIUM_MAX = Number(
+  process.env.PARTNER_SNAPSHOT_MEDIUM_MAX || 10000
+);
+const PARTNER_SNAPSHOT_STREAMING_MIN = Number(
+  process.env.PARTNER_SNAPSHOT_STREAMING_MIN || 100000
+);
+const PARTNER_SNAPSHOT_PAYOUT_LAMPORTS = 3;
+const PARTNER_SNAPSHOT_BASE_INPUT_LAMPORTS = 10;
+const PARTNER_SNAPSHOT_MAX_WINNERS = Number(
+  process.env.PARTNER_SNAPSHOT_MAX_WINNERS || 10
+);
 const resolutionsCache = new Map();
 const worldIdNullifiers = new Set();
 const RESOLUTIONS_CACHE_TTL_MS = 60_000;
@@ -73,6 +102,7 @@ const RESOLUTIONS_VERIFY_TIMEOUT_MS = 5_000;
 let tsSdkRegistered = false;
 let resolveInlinePromise;
 let verifyOutcomePromise;
+let snapshotHelpersPromise;
 let swigOperatorConfig;
 let vanishConfig;
 let partnerConfig;
@@ -385,6 +415,30 @@ async function loadVerifyOutcome() {
     });
   }
   return verifyOutcomePromise;
+}
+
+async function loadSnapshotHelpers() {
+  ensureTsSdkRuntime();
+  if (!snapshotHelpersPromise) {
+    snapshotHelpersPromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "snapshot.ts")).href
+    ).then((module) => {
+      const required = [
+        "buildSnapshotHash",
+        "buildSnapshotManifest",
+        "canonicalSnapshotLine",
+        "normalizeSnapshotParticipants",
+        "inspectSnapshotFile",
+      ];
+      for (const name of required) {
+        if (typeof module[name] !== "function") {
+          throw new Error(`snapshot helper export not found: ${name}`);
+        }
+      }
+      return module;
+    });
+  }
+  return snapshotHelpersPromise;
 }
 
 async function fetchResolutions(limit, opts = {}) {
@@ -971,6 +1025,370 @@ function validatePartnerWeight(value, label) {
   return value;
 }
 
+function snapshotThresholds() {
+  const simpleMax = PARTNER_SNAPSHOT_SIMPLE_MAX;
+  const mediumMax = PARTNER_SNAPSHOT_MEDIUM_MAX;
+  const streamingMin = PARTNER_SNAPSHOT_STREAMING_MIN;
+  if (
+    !Number.isInteger(simpleMax) ||
+    !Number.isInteger(mediumMax) ||
+    !Number.isInteger(streamingMin) ||
+    simpleMax < 1 ||
+    mediumMax <= simpleMax ||
+    streamingMin <= mediumMax
+  ) {
+    throw new Error("Invalid snapshot threshold configuration");
+  }
+  return { simpleMax, mediumMax, streamingMin };
+}
+
+function classifySnapshotMode(snapshotCount) {
+  const { simpleMax, mediumMax, streamingMin } = snapshotThresholds();
+  if (snapshotCount <= simpleMax) return "simple";
+  if (snapshotCount <= mediumMax) return "medium";
+  if (snapshotCount >= streamingMin) return "streaming";
+  return "bulk";
+}
+
+function ensureDir(dirPath) {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
+
+function readJsonFile(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function writeJsonFile(filePath, value) {
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+}
+
+function snapshotSessionDir(sessionId) {
+  return path.join(PARTNER_SNAPSHOT_ROOT_DIR, sessionId);
+}
+
+function snapshotMetaPath(sessionId) {
+  return path.join(snapshotSessionDir(sessionId), "meta.json");
+}
+
+function cleanupExpiredSnapshotSessions() {
+  ensureDir(PARTNER_SNAPSHOT_ROOT_DIR);
+  const now = Date.now();
+  for (const entry of fs.readdirSync(PARTNER_SNAPSHOT_ROOT_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const metaPath = path.join(PARTNER_SNAPSHOT_ROOT_DIR, entry.name, "meta.json");
+    if (!fs.existsSync(metaPath)) continue;
+    try {
+      const meta = readJsonFile(metaPath);
+      const createdAtMs = Number(meta.created_at_ms || 0);
+      if (createdAtMs > 0 && now - createdAtMs > PARTNER_SNAPSHOT_SESSION_TTL_MS) {
+        fs.rmSync(path.join(PARTNER_SNAPSHOT_ROOT_DIR, entry.name), {
+          recursive: true,
+          force: true,
+        });
+      }
+    } catch (_) {
+      // ignore malformed session metadata
+    }
+  }
+}
+
+function createSnapshotSession(partnerKey, label, useCase) {
+  cleanupExpiredSnapshotSessions();
+  const sessionId = crypto.randomUUID();
+  const dir = snapshotSessionDir(sessionId);
+  ensureDir(dir);
+  const meta = {
+    session_id: sessionId,
+    partner_key: partnerKey,
+    label,
+    use_case: useCase || null,
+    created_at_ms: Date.now(),
+    chunks_received: 0,
+    participant_count: 0,
+    chunk_indexes: [],
+    status: "open",
+  };
+  writeJsonFile(snapshotMetaPath(sessionId), meta);
+  return meta;
+}
+
+function loadSnapshotSession(sessionId, partnerKey) {
+  const metaPath = snapshotMetaPath(sessionId);
+  if (!fs.existsSync(metaPath)) {
+    throw httpError(404, "snapshot session not found");
+  }
+  const meta = readJsonFile(metaPath);
+  if (meta.partner_key !== partnerKey) {
+    throw httpError(403, "snapshot session belongs to another partner");
+  }
+  if (meta.status && meta.status !== "open") {
+    throw httpError(409, `snapshot session is ${meta.status}`);
+  }
+  if (Date.now() - Number(meta.created_at_ms || 0) > PARTNER_SNAPSHOT_SESSION_TTL_MS) {
+    throw httpError(410, "snapshot session expired");
+  }
+  return meta;
+}
+
+function saveSnapshotSession(meta) {
+  writeJsonFile(snapshotMetaPath(meta.session_id), meta);
+}
+
+function validateSnapshotChunkParticipant(value, index) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw httpError(400, `participants[${index}] must be an object`);
+  }
+  const participant = {
+    id: validatePartnerParticipantId(value.id, index),
+  };
+  if (value.weight !== undefined) {
+    participant.weight = validatePartnerWeight(value.weight, `participants[${index}].weight`);
+  }
+  if (value.score !== undefined) {
+    participant.score = parsePartnerSignedSafeInteger(value.score, `participants[${index}].score`);
+  }
+  return participant;
+}
+
+function snapshotChunkPath(sessionId, chunkIndex) {
+  return path.join(snapshotSessionDir(sessionId), `chunk_${String(chunkIndex).padStart(6, "0")}.json`);
+}
+
+function listSnapshotChunkIndexes(sessionId) {
+  return fs
+    .readdirSync(snapshotSessionDir(sessionId))
+    .map((name) => {
+      const match = name.match(/^chunk_(\d{6})\.json$/);
+      return match ? Number(match[1]) : null;
+    })
+    .filter((value) => value !== null)
+    .sort((left, right) => left - right);
+}
+
+async function sortSnapshotFile(inputPath, outputPath) {
+  await new Promise((resolve, reject) => {
+    const child = spawn("sort", [inputPath, "-o", outputPath], {
+      cwd: REF_ROOT,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(stderr.trim() || `sort exited with code ${code}`));
+    });
+  });
+}
+
+function isLocalRpcUrl(rpcUrl) {
+  const parsed = new URL(rpcUrl);
+  const hostname = parsed.hostname.toLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    isPrivateIp(hostname)
+  );
+}
+
+function resolveSnapshotRpcUrl() {
+  const raw = String(
+    process.env.PARTNER_SNAPSHOT_RPC_URL ||
+      process.env.LIVE_RAFFLE_RPC_URL ||
+      process.env.ANCHOR_PROVIDER_URL ||
+      ""
+  ).trim();
+  if (!raw) {
+    throw httpError(
+      503,
+      "snapshot v4 finalize requires PARTNER_SNAPSHOT_RPC_URL pointing to a local validator or isolated runtime"
+    );
+  }
+  let parsed;
+  try {
+    parsed = new URL(raw);
+  } catch (_) {
+    throw httpError(400, "PARTNER_SNAPSHOT_RPC_URL must be a valid URL");
+  }
+  if (!/^https?:$/.test(parsed.protocol)) {
+    throw httpError(400, "PARTNER_SNAPSHOT_RPC_URL must use http or https");
+  }
+  parsed.hash = "";
+  parsed.username = "";
+  parsed.password = "";
+  const rpcUrl = parsed.toString();
+  if (!isLocalRpcUrl(rpcUrl) && process.env.PARTNER_SNAPSHOT_ALLOW_NONLOCAL !== "1") {
+    throw httpError(
+      503,
+      "snapshot v4 finalize is local-only by default; set PARTNER_SNAPSHOT_RPC_URL to localhost or use PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1 with an isolated program id"
+    );
+  }
+  return rpcUrl;
+}
+
+function resolveSnapshotProgramId(rpcUrl) {
+  const defaultProgram = defaultProgramId();
+  const programId = validateProgramId(
+    process.env.PARTNER_SNAPSHOT_PROGRAM_ID ||
+      process.env.LIVE_RAFFLE_PROGRAM_ID ||
+      defaultProgram
+  );
+  if (!isLocalRpcUrl(rpcUrl) && programId === defaultProgram) {
+    throw httpError(
+      503,
+      "snapshot v4 non-local validation requires a brand new isolated program id; canonical hackathon program is blocked for this path"
+    );
+  }
+  return programId;
+}
+
+function buildPartnerSnapshotConfig({
+  formula,
+  snapshotHash,
+  snapshotCount,
+  snapshotUri,
+  winnersCount,
+  target,
+}) {
+  const inputLamports = Math.max(
+    PARTNER_SNAPSHOT_BASE_INPUT_LAMPORTS,
+    winnersCount * PARTNER_SNAPSHOT_PAYOUT_LAMPORTS
+  );
+  return {
+    type: "formula_draw_snapshot",
+    formula,
+    input_lamports: inputLamports,
+    payout_lamports: PARTNER_SNAPSHOT_PAYOUT_LAMPORTS,
+    winners_count: winnersCount,
+    snapshot_hash: snapshotHash,
+    snapshot_count: snapshotCount,
+    snapshot_uri: snapshotUri,
+    ...(target === undefined ? {} : { target }),
+  };
+}
+
+async function finalizeSnapshotSession({
+  sessionMeta,
+  formula,
+  winnersCount,
+  target,
+}) {
+  const snapshotHelpers = await loadSnapshotHelpers();
+  const chunkIndexes = listSnapshotChunkIndexes(sessionMeta.session_id);
+  if (chunkIndexes.length === 0) {
+    throw httpError(400, "snapshot session has no chunks");
+  }
+  for (let index = 0; index < chunkIndexes.length; index += 1) {
+    if (chunkIndexes[index] !== index) {
+      throw httpError(400, "snapshot chunk indexes must be contiguous and start at 0");
+    }
+  }
+
+  const participantCount = Number(sessionMeta.participant_count || 0);
+  if (participantCount < 2) {
+    throw httpError(400, "snapshot session must contain at least 2 participants");
+  }
+  if (winnersCount > participantCount) {
+    throw httpError(400, "winners_count must be <= participants length");
+  }
+
+  const mode = classifySnapshotMode(participantCount);
+  const sessionDir = snapshotSessionDir(sessionMeta.session_id);
+  const canonicalPath = path.join(sessionDir, "canonical_snapshot.jsonl");
+  if (mode === "simple" || mode === "medium") {
+    const collected = [];
+    let globalOrder = 0;
+    for (const chunkIndex of chunkIndexes) {
+      const chunkParticipants = readJsonFile(
+        snapshotChunkPath(sessionMeta.session_id, chunkIndex)
+      );
+      for (const participant of chunkParticipants) {
+        collected.push({ ...participant, order: globalOrder });
+        globalOrder += 1;
+      }
+    }
+    const built = snapshotHelpers.buildSnapshotHash({
+      formula,
+      participants: collected,
+    });
+    fs.writeFileSync(canonicalPath, built.canonicalSnapshot, "utf8");
+    return {
+      mode,
+      snapshotHash: built.snapshotHash,
+      snapshotCount: built.snapshotCount,
+      canonicalPath,
+      manifest: snapshotHelpers.buildSnapshotManifest({
+        snapshotHash: built.snapshotHash,
+        snapshotCount: built.snapshotCount,
+        formula,
+        winnersCount,
+        snapshotUri: canonicalPath,
+        payoutLamports: BigInt(PARTNER_SNAPSHOT_PAYOUT_LAMPORTS),
+        ...(target === undefined ? {} : { targetScore: BigInt(target) }),
+        thresholdMode: mode === "streaming" ? "streaming" : mode,
+      }),
+    };
+  }
+
+  const unsortedPath = path.join(sessionDir, "canonical_snapshot.unsorted.jsonl");
+  const unsortedFd = fs.openSync(unsortedPath, "w");
+  let globalOrder = 0;
+  try {
+    for (const chunkIndex of chunkIndexes) {
+      const chunkParticipants = readJsonFile(
+        snapshotChunkPath(sessionMeta.session_id, chunkIndex)
+      ).map((participant, index) => ({
+        ...participant,
+        order: globalOrder + index,
+      }));
+      const normalized = snapshotHelpers.normalizeSnapshotParticipants(
+        chunkParticipants,
+        formula
+      );
+      for (const entry of normalized) {
+        fs.writeSync(
+          unsortedFd,
+          snapshotHelpers.canonicalSnapshotLine(entry, formula),
+          null,
+          "utf8"
+        );
+      }
+      globalOrder += chunkParticipants.length;
+    }
+  } finally {
+    fs.closeSync(unsortedFd);
+  }
+
+  await sortSnapshotFile(unsortedPath, canonicalPath);
+  const inspected = await snapshotHelpers.inspectSnapshotFile({
+    snapshotPath: canonicalPath,
+    formula,
+    expectedCount: participantCount,
+  });
+  return {
+    mode,
+    snapshotHash: inspected.snapshotHash,
+    snapshotCount: inspected.snapshotCount,
+    canonicalPath,
+    manifest: snapshotHelpers.buildSnapshotManifest({
+      snapshotHash: inspected.snapshotHash,
+      snapshotCount: inspected.snapshotCount,
+      formula,
+      winnersCount,
+      snapshotUri: canonicalPath,
+      payoutLamports: BigInt(PARTNER_SNAPSHOT_PAYOUT_LAMPORTS),
+      ...(target === undefined ? {} : { targetScore: BigInt(target) }),
+      thresholdMode: mode === "streaming" ? "streaming" : mode,
+    }),
+  };
+}
+
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
   const args = [
     "--loader",
@@ -1297,6 +1715,166 @@ async function handlePartnerDraw(req, res) {
   });
 }
 
+async function handlePartnerSnapshotInit(req, res) {
+  const partner = requirePartnerApiKey(req, "/api/partner/snapshot/init");
+  if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
+  const body = await readJsonBody(req);
+  const rawLabel = body.label !== undefined ? String(body.label).trim().slice(0, 80) : "";
+  const label = rawLabel || `partner-snapshot-${Date.now()}`;
+  const VALID_USE_CASES = new Set(["raffle", "airdrop", "competition"]);
+  if (body.use_case !== undefined && !VALID_USE_CASES.has(body.use_case)) {
+    throw httpError(400, "use_case must be raffle, airdrop, or competition");
+  }
+  const meta = createSnapshotSession(partner.key, label, body.use_case);
+  json(res, 200, {
+    ok: true,
+    session_id: meta.session_id,
+    thresholds: snapshotThresholds(),
+    expires_in_ms: PARTNER_SNAPSHOT_SESSION_TTL_MS,
+  });
+}
+
+async function handlePartnerSnapshotChunk(req, res) {
+  const partner = requirePartnerApiKey(req, "/api/partner/snapshot/chunk");
+  if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
+  const body = await readJsonBody(req, PARTNER_SNAPSHOT_JSON_BODY_LIMIT_BYTES);
+  const sessionId = String(body.session_id || "").trim();
+  const chunkIndex = Number(body.chunk_index);
+  if (!sessionId) throw httpError(400, "session_id is required");
+  if (!Number.isInteger(chunkIndex) || chunkIndex < 0) {
+    throw httpError(400, "chunk_index must be a non-negative integer");
+  }
+  if (!Array.isArray(body.participants)) {
+    throw httpError(400, "participants must be an array");
+  }
+  if (
+    body.participants.length === 0 ||
+    body.participants.length > PARTNER_SNAPSHOT_CHUNK_MAX_PARTICIPANTS
+  ) {
+    throw httpError(
+      400,
+      `participants must contain 1–${PARTNER_SNAPSHOT_CHUNK_MAX_PARTICIPANTS} entries`
+    );
+  }
+
+  const meta = loadSnapshotSession(sessionId, partner.key);
+  if (meta.chunk_indexes.includes(chunkIndex)) {
+    throw httpError(409, "chunk_index already uploaded");
+  }
+  const participants = body.participants.map((participant, index) =>
+    validateSnapshotChunkParticipant(participant, index)
+  );
+  const chunkFile = snapshotChunkPath(sessionId, chunkIndex);
+  writeJsonFile(chunkFile, participants);
+  meta.chunk_indexes.push(chunkIndex);
+  meta.chunk_indexes.sort((left, right) => left - right);
+  meta.chunks_received = meta.chunk_indexes.length;
+  meta.participant_count = Number(meta.participant_count || 0) + participants.length;
+  saveSnapshotSession(meta);
+
+  json(res, 200, {
+    ok: true,
+    session_id: sessionId,
+    chunk_index: chunkIndex,
+    participant_count: meta.participant_count,
+    mode: classifySnapshotMode(meta.participant_count),
+  });
+}
+
+async function handlePartnerSnapshotFinalize(req, res) {
+  const partner = requirePartnerApiKey(req, "/api/partner/snapshot/finalize");
+  if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
+  const body = await readJsonBody(req);
+  const sessionId = String(body.session_id || "").trim();
+  if (!sessionId) throw httpError(400, "session_id is required");
+  const formula = validatePartnerFormula(body.formula);
+  const winnersCount = body.winners_count === undefined ? 1 : body.winners_count;
+  if (
+    !Number.isInteger(winnersCount) ||
+    winnersCount < 1 ||
+    winnersCount > PARTNER_SNAPSHOT_MAX_WINNERS
+  ) {
+    throw httpError(
+      400,
+      `winners_count must be an integer 1–${PARTNER_SNAPSHOT_MAX_WINNERS}`
+    );
+  }
+
+  let target;
+  if (formula === "closest_to") {
+    if (body.target === undefined) {
+      throw httpError(400, "target is required for closest_to");
+    }
+    target = parsePartnerSignedSafeInteger(body.target, "target");
+  } else if (body.target !== undefined) {
+    throw httpError(400, "target is only supported for closest_to");
+  }
+
+  const meta = loadSnapshotSession(sessionId, partner.key);
+  const finalized = await finalizeSnapshotSession({
+    sessionMeta: meta,
+    formula,
+    winnersCount,
+    target,
+  });
+
+  const sessionDir = snapshotSessionDir(sessionId);
+  const manifestPath = path.join(sessionDir, "manifest.json");
+  writeJsonFile(manifestPath, finalized.manifest);
+  const config = buildPartnerSnapshotConfig({
+    formula,
+    snapshotHash: finalized.snapshotHash,
+    snapshotCount: finalized.snapshotCount,
+    snapshotUri: finalized.canonicalPath,
+    winnersCount,
+    target,
+  });
+
+  const resolveInline = await loadResolveInline();
+  const rpcUrl = resolveSnapshotRpcUrl();
+  const programId = resolveSnapshotProgramId(rpcUrl);
+  const walletPath = swigOperatorConfig
+    ? undefined
+    : process.env.PARTNER_SNAPSHOT_WALLET ||
+      process.env.LIVE_RAFFLE_WALLET ||
+      process.env.ANCHOR_WALLET ||
+      undefined;
+  const result = await resolveInline(config, {
+    rpcUrl,
+    programId,
+    walletPath,
+    swigWallet: swigOperatorConfig,
+    outputDir: sessionDir,
+    label: meta.label || `partner-snapshot-${Date.now()}`,
+  });
+
+  meta.status = "finalized";
+  meta.formula = formula;
+  meta.winners_count = winnersCount;
+  meta.snapshot_hash = finalized.snapshotHash;
+  meta.snapshot_count = finalized.snapshotCount;
+  meta.snapshot_uri = finalized.canonicalPath;
+  meta.manifest_path = manifestPath;
+  meta.mode = finalized.mode;
+  meta.signature = result.signature;
+  saveSnapshotSession(meta);
+
+  json(res, 200, {
+    ok: true,
+    session_id: sessionId,
+    signature: result.signature,
+    outcome_id: result.outcome,
+    outcome_ids: result.outcomeIds ?? [result.outcome],
+    replay_url: `https://verifiableoutcome.online/verify?sig=${result.signature}`,
+    snapshot_hash: finalized.snapshotHash,
+    snapshot_count: finalized.snapshotCount,
+    snapshot_uri: finalized.canonicalPath,
+    manifest_uri: manifestPath,
+    mode: finalized.mode,
+    thresholds: snapshotThresholds(),
+  });
+}
+
 async function rpcCall(rpcUrl, payload, timeoutMs = 8000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -1552,6 +2130,21 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/live-raffle") {
       await handleLiveRaffle(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/snapshot/init") {
+      await handlePartnerSnapshotInit(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/snapshot/chunk") {
+      await handlePartnerSnapshotChunk(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/snapshot/finalize") {
+      await handlePartnerSnapshotFinalize(req, res);
       return;
     }
 
