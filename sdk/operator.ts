@@ -951,7 +951,7 @@ async function resolveConfig(
       ? programConfig.treasury
       : client.authority.publicKey;
   const resolution =
-    config.type === "formula_draw_snapshot"
+    config.type === "formula_draw_snapshot" || config.type === "outcome_standard_v1_2"
       ? await resolveOutcomeV4AndConfirm(client, {
           runtimeId: runtime.runtimeId,
           inputLamports: runtime.minInputLamports,

@@ -142,9 +142,13 @@ async function main() {
   console.log(`actual_winners      : ${(finalized.outcome_ids || []).join(",")}`);
   console.log(`snapshot_hash       : ${finalized.snapshot_hash}`);
   console.log(`snapshot_count      : ${finalized.snapshot_count}`);
+  console.log(`merkle_root         : ${finalized.merkle_root}`);
   console.log(`signature           : ${finalized.signature}`);
   console.log(`snapshot_uri        : ${finalized.snapshot_uri}`);
   console.log(`manifest_uri        : ${finalized.manifest_uri}`);
+  console.log(`irys_url            : ${finalized.irys_url || ""}`);
+  console.log(`proof_manifest_url  : ${finalized.proof_manifest_url || ""}`);
+  console.log(`publication_status  : ${finalized.publication_status || ""}`);
   console.log(`replay_command      : yarn -s replay --sig ${finalized.signature} --url http://127.0.0.1:8899 --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`);
   console.log(
     `snapshot_path_rel   : ${path.relative(process.cwd(), finalized.snapshot_uri)}`

@@ -1,0 +1,69 @@
+{
+  "task_id": "PROTOCOL-LINE-006",
+  "standard_version": "1.2",
+  "internal_artifact_format_version_metadata": 6,
+  "rpc_url": "https://api.devnet.solana.com",
+  "rpc_readiness": {
+    "solana_core": "4.0.0-rc.0",
+    "feature_set": 767961353,
+    "epoch": 1071,
+    "slot": 462747833
+  },
+  "canonical_program_guard": {
+    "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "isolated_program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+    "canonical_touched": false
+  },
+  "isolated_deploy": {
+    "program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+    "deploy_signature": "7c8vQ8wYW1uTDb23JWEAF7yo3cJPkiux9CyZ2zjqZu2YEafoJ9ouvXQF2YAVKrrn5fsoLsfPvHwWRR1ipgs1nTG",
+    "program_owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+    "executable": true,
+    "data_length": 36
+  },
+  "live_v12_transaction": {
+    "signature": "5ibJGNyacszJnbAjYLQrQ8uQNZGqUvz2hTfiggWoyDiS3gTCcTduYnj6cniP2YarR6BPR6gk7kxmJsK1PgHov4S8",
+    "formula": "rank_desc",
+    "entry_count": 104,
+    "winners_count": 3,
+    "outcome_id": "isolated-row-0001",
+    "outcome_ids": [
+      "isolated-row-0001",
+      "isolated-row-0002",
+      "isolated-row-0003"
+    ],
+    "runtime_id": "407ce7dcf08c7dae71f38c23ab180904",
+    "resolve_id": "0",
+    "compiled_artifact_hash": "b1d2acfa8fe58e80f57727e8a19bb173db5c91a47d345271fff5749412e21aec",
+    "artifact_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/protocol-line-006-v12-1778929792641-b1d2acfa8fe58e80.bin",
+    "result_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/protocol-line-006-v12-1778929792641-result.json"
+  },
+  "replay": {
+    "status": "MATCH",
+    "reason": "OK",
+    "standard_version": "1.2",
+    "internal_marker_metadata": 6,
+    "outcome_id": "isolated-row-0001",
+    "outcome_ids": [
+      "isolated-row-0001",
+      "isolated-row-0002",
+      "isolated-row-0003"
+    ],
+    "winners_count": 3,
+    "resolution_formula": "rank_desc",
+    "snapshot_hash": "d62e737bc4f1d93cab8713cb573627176bd740d4b0c2313d7aef4ac8a3df0460",
+    "snapshot_count": 104,
+    "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/canonical_snapshot.jsonl",
+    "merkle_root": "59daced4617d4a6d82f5eb4c9de9d40ff1121e95fb9b9ce9ca86e118ac6e929a",
+    "publication_status": "skipped_unconfigured",
+    "proof_manifest_url": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/proof_manifest.json",
+    "program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW"
+  },
+  "local_proof_surface": {
+    "snapshot_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/manifest.json",
+    "proof_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/proof_manifest.json",
+    "merkle_proof_participant": "isolated-row-0001",
+    "merkle_proof_included": true,
+    "merkle_proof_nodes": 7
+  }
+}

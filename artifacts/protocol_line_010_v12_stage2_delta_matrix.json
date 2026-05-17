@@ -1,0 +1,372 @@
+{
+  "task_id": "PROTOCOL-LINE-010",
+  "standard_version": "1.2",
+  "internal_marker_metadata": 6,
+  "stage": "stage_2_delta_matrix",
+  "rpc_url": "https://api.devnet.solana.com",
+  "commands_recorded": {
+    "main_invocation": "TS_NODE_PROJECT=tsconfig.json node --loader ts-node/esm scripts/protocol_line_010_v12_stage2_delta_matrix.ts --rpc https://api.devnet.solana.com --program-id 5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW --wallet /Users/timurkurmangaliev/.config/solana/esjx.json --deploy-sig 7c8vQ8wYW1uTDb23JWEAF7yo3cJPkiux9CyZ2zjqZu2YEafoJ9ouvXQF2YAVKrrn5fsoLsfPvHwWRR1ipgs1nTG"
+  },
+  "rpc_readiness": {
+    "solana_core": "4.0.0-rc.0",
+    "feature_set": 767961353,
+    "epoch": 1071,
+    "slot": 462861118
+  },
+  "canonical_program_guard": {
+    "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "isolated_program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+    "canonical_touched": false
+  },
+  "isolated_deploy": {
+    "program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+    "deploy_signature": "7c8vQ8wYW1uTDb23JWEAF7yo3cJPkiux9CyZ2zjqZu2YEafoJ9ouvXQF2YAVKrrn5fsoLsfPvHwWRR1ipgs1nTG",
+    "program_owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+    "executable": true,
+    "data_length": 36
+  },
+  "routing_coverage": {
+    "v11_compact_pass_103": true,
+    "v11_compact_103_artifact_byte_size": 8185,
+    "max_compiled_artifact_bytes": 8192,
+    "v5_entry_bytes": 79,
+    "v12_overflow_route_104": true,
+    "v12_overflow_reason_104": "Outcome Standard V1.1 compact artifact is 8264 bytes; route larger draws to Outcome Standard V1.2",
+    "explicit_v12_public_proof_route": true,
+    "explicit_v12_public_proof_route_case": {
+      "entry_count": 103,
+      "route": "scale_snapshot",
+      "standard_version": "1.2",
+      "internal_marker_metadata": 6,
+      "artifact_byte_size": 275,
+      "public_proof_requested": true,
+      "proof_surface": [
+        "snapshot_manifest",
+        "proof_manifest",
+        "merkle_proof"
+      ]
+    }
+  },
+  "matrix_cases": [
+    {
+      "case_id": "weighted_random-e104-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "weighted_random",
+      "entry_count": 104,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "weighted_random-e250-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "weighted_random",
+      "entry_count": 250,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "weighted_random-e1001-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "weighted_random",
+      "entry_count": 1001,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_desc-e104-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "rank_desc",
+      "entry_count": 104,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_desc-e250-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "rank_desc",
+      "entry_count": 250,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_desc-e1001-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "rank_desc",
+      "entry_count": 1001,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_asc-e104-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "rank_asc",
+      "entry_count": 104,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_asc-e250-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "rank_asc",
+      "entry_count": 250,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_asc-e1001-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "rank_asc",
+      "entry_count": 1001,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "first_n-e104-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "first_n",
+      "entry_count": 104,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "first_n-e250-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "first_n",
+      "entry_count": 250,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "first_n-e1001-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "first_n",
+      "entry_count": 1001,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "closest_to-e104-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "closest_to",
+      "entry_count": 104,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "closest_to-e250-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "closest_to",
+      "entry_count": 250,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "closest_to-e1001-w32",
+      "case_group": "winner_count_delta",
+      "result": "fail",
+      "formula": "closest_to",
+      "entry_count": 1001,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_desc-e100001-w32",
+      "case_group": "stress_100001",
+      "result": "operational_blocker",
+      "formula": "rank_desc",
+      "entry_count": 100001,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "rank_desc-e5000-w32",
+      "case_group": "stress_fallback",
+      "result": "fail",
+      "formula": "rank_desc",
+      "entry_count": 5000,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "first_n-e5000-w32",
+      "case_group": "stress_fallback",
+      "result": "fail",
+      "formula": "first_n",
+      "entry_count": 5000,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    },
+    {
+      "case_id": "weighted_random-e5000-w32",
+      "case_group": "stress_fallback",
+      "result": "fail",
+      "formula": "weighted_random",
+      "entry_count": 5000,
+      "winners_count": 32,
+      "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000",
+      "standard_version": null,
+      "internal_marker_metadata": 6,
+      "internal_marker_public_version": false
+    }
+  ],
+  "negative_tamper_cases": [
+    {
+      "name": "winners_tamper",
+      "result": "fail_as_expected",
+      "failure_reason": "local negative check: claimed winners differ from expected winners; no live Stage 2 success was available because winners_count=32 hit an instruction payload blocker",
+      "expected": "stage2-000001,stage2-000002",
+      "claimed": "tampered-winner,stage2-000002"
+    },
+    {
+      "name": "snapshot_hash_tamper",
+      "result": "fail_as_expected",
+      "failure_reason": "local negative check: tampered snapshot_hash differs from committed snapshot_hash",
+      "expected": "1111111111111111111111111111111111111111111111111111111111111111",
+      "claimed": "0111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "name": "merkle_root_proof_tamper",
+      "result": "fail_as_expected",
+      "failure_reason": "local negative check: tampered merkle_root/proof does not match committed merkle_root",
+      "expected": "2222222222222222222222222222222222222222222222222222222222222222",
+      "claimed": "0222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "name": "version_mismatch_tamper",
+      "result": "fail_as_expected",
+      "failure_reason": "Unsupported snapshot artifact format version",
+      "expected_standard_version": "1.2",
+      "claimed_internal_format_version": 5
+    }
+  ],
+  "large_stress_blocker": {
+    "entry_count": 100001,
+    "formula": "rank_desc",
+    "winners_count": 32,
+    "failure_reason": "The value of \"offset\" is out of range. It must be >= 0 and <= 999. Received 1000"
+  },
+  "stage_2_summary": {
+    "total_cases": 19,
+    "successful_cases": 0,
+    "passed": 0,
+    "failed": 18,
+    "operational_blockers": 1,
+    "delta_cases": 15,
+    "stress_100001_cases": 1,
+    "fallback_cases": 3,
+    "formulas": [
+      "weighted_random",
+      "rank_desc",
+      "rank_asc",
+      "first_n",
+      "closest_to"
+    ],
+    "delta_entry_counts": [
+      104,
+      250,
+      1001
+    ],
+    "winners_count": 32,
+    "stress_entry_count": 100001,
+    "routing_pass": true,
+    "v12_successes_have_standard_version_1_2": false,
+    "proof_and_manifest_integrity_pass": true,
+    "negative_tamper_pass": true,
+    "blocker_classification": {
+      "kind": "winner_count_32_instruction_payload_encoding_limit",
+      "reason": "Current V1.2 resolve instruction passes claimed winner ids as Vec<[u8;64]>; winners_count=32 exceeds the current client/transaction encoding buffer before replay can run.",
+      "affected_cases": [
+        "weighted_random-e104-w32",
+        "weighted_random-e250-w32",
+        "weighted_random-e1001-w32",
+        "rank_desc-e104-w32",
+        "rank_desc-e250-w32",
+        "rank_desc-e1001-w32",
+        "rank_asc-e104-w32",
+        "rank_asc-e250-w32",
+        "rank_asc-e1001-w32",
+        "first_n-e104-w32",
+        "first_n-e250-w32",
+        "first_n-e1001-w32",
+        "closest_to-e104-w32",
+        "closest_to-e250-w32",
+        "closest_to-e1001-w32",
+        "rank_desc-e100001-w32",
+        "rank_desc-e5000-w32",
+        "first_n-e5000-w32",
+        "weighted_random-e5000-w32"
+      ]
+    },
+    "stress_100001_pass": false,
+    "stress_fallback_pass": false,
+    "stage_2_verdict": "failed"
+  }
+}

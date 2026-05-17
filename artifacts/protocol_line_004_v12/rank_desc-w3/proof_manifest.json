@@ -1,0 +1,23 @@
+{
+  "version": "outcome_standard_proof_manifest_v1",
+  "standard_version": "1.2",
+  "standard_kind": "scale_snapshot",
+  "signature": "local-proof-only",
+  "program_id": "local-proof-only",
+  "snapshot_hash": "cd66ca019e097a7b490075f1206f8f6144dd68914cfcc56b9b306f56b1cac02b",
+  "snapshot_count": 104,
+  "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/rank_desc-w3/canonical_snapshot.jsonl",
+  "merkle_root": "57cfd159e5e4342c354ffd544df84f0f062ca628881f57ce777914f475e1ef1f",
+  "formula": "rank_desc",
+  "winners_count": 3,
+  "selected_ids": [
+    "row-0001",
+    "row-0002",
+    "row-0003"
+  ],
+  "proof_endpoint_template": "/api/partner/draw/:sig/proof?address=<id>",
+  "publication_status": "skipped_unconfigured",
+  "publication_url": null,
+  "snapshot_manifest_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/rank_desc-w3/manifest.json",
+  "proof_status": "ready"
+}

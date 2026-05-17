@@ -1,0 +1,100 @@
+{
+  "task_id": "PARTICIPANT-SCALE-002",
+  "status": "engineer_completed_ready_for_tester",
+  "validated_at": "2026-05-12",
+  "cluster": "solana-devnet",
+  "isolated_validation": {
+    "rpc_url": "https://api.devnet.solana.com",
+    "isolated_program_id": "5x5vNwYjaVVZdprcQnV7RFJju2jECrY7FG75ZVwnijTu",
+    "deploy_signature": "3AzzwjW5CU49k14HuY9TC9D7KqBRE54njv5Aqotcfw2Yg13vtPy3k5Z56siccLuoyiYXZQZfcNVX7mgbmpZaNd4j",
+    "upgrade_authority": "BQ4KefsqvSLG13PxZskgY1jGgFbZqfBhtt9VV7a42gvR",
+    "fee_payer": "ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT",
+    "program_data_address": "3B42q868z3F2gWRhhHjjdiJJiGcGdbCcEovuVbHdUQVo",
+    "last_deployed_slot": 461905012,
+    "local_control_plane": {
+      "base_url": "http://127.0.0.1:8789",
+      "partner_snapshot_allow_nonlocal": true,
+      "partner_snapshot_program_id": "5x5vNwYjaVVZdprcQnV7RFJju2jECrY7FG75ZVwnijTu"
+    }
+  },
+  "cases": [
+    {
+      "name": "representative_medium_1001_rank_desc",
+      "participant_count": 1001,
+      "chunk_size": 500,
+      "expected_path_classification": "medium",
+      "formula": "rank_desc",
+      "winners_count": 2,
+      "runtime_id": "56704004f99c63eb7ba17c6243d630e8",
+      "outcome_config_init_signatures": [
+        "5KamTvLLCvAMEK7hoWA1vvAgs2pvCQBNwAchemA1Ar8EwCRX3Sn5ggMZWyHtvG4CLNN8Pc8GhAihYeFG2PRwTaui",
+        "51z7esCL4Y4CX58W6a7wcn4kZPYZY6NxA3AEHeeKnfPWhWtRF8GDmD3ossYro8maHAvxzFZ43bF8JRg2KGdPE2Az"
+      ],
+      "finalize_signature": "2A7nNrCTkEfynqdNJh4rXZj8yX5LJgVC4wY8YT3Pmh1xUdaNqzckGsx9CszGjjZ89QRn2dkv7YmADKVx9R7j8uvz",
+      "artifact_format_version": 4,
+      "snapshot_hash": "a8582abed6fd052cac0c697d810b8f5cfba08e7030781fe460781c0b0fcf699d",
+      "snapshot_count": 1001,
+      "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/tmp/partner-snapshot/5426a0a7-209e-4364-8b3c-713b85c7246d/canonical_snapshot.jsonl",
+      "manifest_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/tmp/partner-snapshot/5426a0a7-209e-4364-8b3c-713b85c7246d/manifest.json",
+      "expected_winners": [
+        "trader-000001",
+        "trader-000002"
+      ],
+      "actual_winners": [
+        "trader-000001",
+        "trader-000002"
+      ],
+      "replay": {
+        "verification_result": "MATCH",
+        "verification_reason": "OK",
+        "rpc_url": "https://api.devnet.solana.com",
+        "program_id": "5x5vNwYjaVVZdprcQnV7RFJju2jECrY7FG75ZVwnijTu"
+      }
+    },
+    {
+      "name": "representative_streaming_100001_rank_desc",
+      "participant_count": 100001,
+      "chunk_size": 5000,
+      "expected_path_classification": "streaming",
+      "formula": "rank_desc",
+      "winners_count": 2,
+      "runtime_id": "772e0d45a7095e64637039da98c345de",
+      "outcome_config_init_signatures": [
+        "3YACqtB14QEgFCqTuet7b4tkRhJ4yWSqSuqNcrfe7kxNAR61pfLk7RvptLqh5beXKaLBEB3FGv6CvuWcK9eomgoz",
+        "4hTwi3kTADfePDW3pNwnw2daUqxKb86EWWet6G8RjdxXvReNWaTKg6NSmSs8CS2GcwHbSFMmoKLZc6gnckAHAiqM"
+      ],
+      "finalize_signature": "3gb92hgP8VHTpMouewLAnc6FekPqEQupxPLG69Kx37Tvd4Mq1bj1KEGF2wFom26H8p2HvPuzx7Haviztxz6wThPc",
+      "artifact_format_version": 4,
+      "snapshot_hash": "e7868cb3f72297667b8ea5e5a7dabe6a6ecc2270d4b2656ec11071813cab9a3f",
+      "snapshot_count": 100001,
+      "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/tmp/partner-snapshot/eaf2cd32-cbbb-494d-868a-d6beed9a60e9/canonical_snapshot.jsonl",
+      "manifest_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/tmp/partner-snapshot/eaf2cd32-cbbb-494d-868a-d6beed9a60e9/manifest.json",
+      "expected_winners": [
+        "trader-000001",
+        "trader-000002"
+      ],
+      "actual_winners": [
+        "trader-000001",
+        "trader-000002"
+      ],
+      "replay": {
+        "verification_result": "MATCH",
+        "verification_reason": "OK",
+        "rpc_url": "https://api.devnet.solana.com",
+        "program_id": "5x5vNwYjaVVZdprcQnV7RFJju2jECrY7FG75ZVwnijTu"
+      }
+    }
+  ],
+  "safety_boundary": {
+    "canonical_hackathon_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "canonical_program_used": false,
+    "canonical_program_upgraded": false,
+    "canonical_program_touched": false,
+    "proof": [
+      "All non-local replay commands used program_id 5x5vNwYjaVVZdprcQnV7RFJju2jECrY7FG75ZVwnijTu",
+      "All non-local replay commands used rpc_url https://api.devnet.solana.com",
+      "The only deploy signature in this task is 3AzzwjW5CU49k14HuY9TC9D7KqBRE54njv5Aqotcfw2Yg13vtPy3k5Z56siccLuoyiYXZQZfcNVX7mgbmpZaNd4j for program 5x5vNwYjaVVZdprcQnV7RFJju2jECrY7FG75ZVwnijTu",
+      "The canonical program id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F does not appear in any run or replay evidence for this task"
+    ]
+  }
+}

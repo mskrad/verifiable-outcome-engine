@@ -1,0 +1,22 @@
+{
+  "version": "outcome_standard_proof_manifest_v1",
+  "standard_version": "1.2",
+  "standard_kind": "scale_snapshot",
+  "signature": "jav6iMT5bGh67LaH4a2LcGvMbrwenghk1rAMDWhMxvhQ1hUUFYbkNk28oL2fDzqqreXS7fx89Y9pdAVL3cMzJCR",
+  "program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+  "snapshot_hash": "e8cd959f6e237bbfd5e87c6c561ebc31a301be987a4e9b475725076d273b8cef",
+  "snapshot_count": 104,
+  "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_008_v12_stage1_matrix/closest_to-e104-w1/canonical_snapshot.jsonl",
+  "merkle_root": "4d298efde47ae2bd25431ca2261fade4270d6315dfd8d04d876c475cf603ec67",
+  "formula": "closest_to",
+  "winners_count": 1,
+  "selected_ids": [
+    "stage1-0001"
+  ],
+  "proof_endpoint_template": "/api/partner/draw/:sig/proof?address=<id>",
+  "publication_status": "skipped_unconfigured",
+  "publication_url": null,
+  "snapshot_manifest_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_008_v12_stage1_matrix/closest_to-e104-w1/manifest.json",
+  "proof_status": "ready",
+  "target": "52"
+}
