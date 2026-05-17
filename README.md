@@ -72,6 +72,46 @@ Canonical devnet program id:
 - Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
 - Governance upgrade executed on-chain: proposal created → approved → executed via Squads at slot `459318657`. Execute tx: [`2AKZBt5…`](https://explorer.solana.com/tx/2AKZBt5BgnujHyErKNweksMoxew6bGfQzzQCdha2GhHu81VPu7xSkZyTWEmN2RFn3T5P3UtxRicZG3PZ76JTEXrr?cluster=devnet). Evidence: `artifacts/squads_upgrade_evidence.json`.
 
+## Experimental Clean Line
+
+Current reviewer-facing canonical flow is still the devnet program above.
+
+In parallel, the repository now carries a clean product-line experiment:
+
+- `Outcome Standard V1.1`
+  - compact named-entry base
+  - product-facing versioning only
+  - internal `artifact_format_version=5` remains audit/debug metadata
+  - measured compact boundary:
+    - pass at `103` entries / `8185` bytes
+    - first overflow at `104` entries / `8264` bytes
+- `Outcome Standard V1.2`
+  - large/public scale extension
+  - product-facing replay uses `standard_version:"1.2"`
+  - internal scale marker `6` is metadata only
+
+Current evidence status:
+
+- `V1.1` accepted on bounded local evidence
+- `V1.2` accepted on bounded local proof evidence
+- `V1.2` isolated devnet validation passed on isolated program
+  - `5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW`
+- `V1.2` Stage 1 expanded matrix passed `45/45`
+  - highest allowed conclusion: `strong isolated candidate: passed`
+
+Important boundary:
+
+- this does **not** mean the isolated `V1.2` program is the new canonical line
+- this does **not** open active product live claim
+- canonical promotion and Stage 2 remain separate explicit follow-up decisions
+
+Relevant evidence:
+
+- `artifacts/participant_scale_005_v5_boundary.json`
+- `artifacts/protocol_line_004_v12_local_proof.json`
+- `artifacts/protocol_line_006_v12_isolated_devnet.json`
+- `artifacts/protocol_line_008_v12_stage1_matrix.json`
+
 ## Live Examples
 
 Four active signatures on the canonical devnet program — click any to verify:

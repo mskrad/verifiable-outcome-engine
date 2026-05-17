@@ -49,6 +49,11 @@ const LIVE_RAFFLE_RATE_LIMIT_MS = 10_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
 const PARTNER_SNAPSHOT_ROOT_DIR = path.join(REF_ROOT, "tmp", "partner-snapshot");
+const PARTNER_SNAPSHOT_SIGNATURE_DIR = path.join(
+  PARTNER_SNAPSHOT_ROOT_DIR,
+  "by-signature"
+);
+const IRYS_GATEWAY_BASE_URL = "https://gateway.irys.xyz";
 const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
 const WORLD_VERIFY_URL_STAGING_V2 = "https://developer.worldcoin.org/api/v2/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -103,6 +108,7 @@ let tsSdkRegistered = false;
 let resolveInlinePromise;
 let verifyOutcomePromise;
 let snapshotHelpersPromise;
+let artifactBuilderPromise;
 let swigOperatorConfig;
 let vanishConfig;
 let partnerConfig;
@@ -135,6 +141,13 @@ function applyCorsHeaders(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
+}
+
+function isCorsApiPath(pathname) {
+  return (
+    CORS_API_PATHS.has(pathname) ||
+    /^\/api\/partner\/draw\/[^/]+\/proof$/.test(pathname)
+  );
 }
 
 function httpError(statusCode, message) {
@@ -426,7 +439,12 @@ async function loadSnapshotHelpers() {
       const required = [
         "buildSnapshotHash",
         "buildSnapshotManifest",
+        "buildOutcomeStandardV12SnapshotManifest",
+        "buildOutcomeStandardV12ProofManifest",
+        "buildSnapshotMerkleProofFromFile",
         "canonicalSnapshotLine",
+        "buildMerkleRoot",
+        "hashSnapshotLeafLine",
         "normalizeSnapshotParticipants",
         "inspectSnapshotFile",
       ];
@@ -439,6 +457,21 @@ async function loadSnapshotHelpers() {
     });
   }
   return snapshotHelpersPromise;
+}
+
+async function loadArtifactBuilder() {
+  ensureTsSdkRuntime();
+  if (!artifactBuilderPromise) {
+    artifactBuilderPromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "artifact.ts")).href
+    ).then((module) => {
+      if (typeof module.buildArtifact !== "function") {
+        throw new Error("artifact builder export not found");
+      }
+      return module.buildArtifact;
+    });
+  }
+  return artifactBuilderPromise;
 }
 
 async function fetchResolutions(limit, opts = {}) {
@@ -971,7 +1004,7 @@ function buildPartnerDrawConfig(participants, winnersCount, formula, target) {
     winnersCount * PARTNER_DRAW_PAYOUT_LAMPORTS
   );
   return {
-    type: "formula_draw",
+    type: "formula_draw_v5",
     formula,
     input_lamports: inputLamports,
     payout_lamports: PARTNER_DRAW_PAYOUT_LAMPORTS,
@@ -995,6 +1028,25 @@ function validatePartnerParticipantId(value, index) {
     throw httpError(
       400,
       `participants[${index}] must be printable ASCII <= ${MAX_PARTNER_PARTICIPANT_ID_BYTES} bytes`
+    );
+  }
+  return participantId;
+}
+
+function validateSnapshotProofAddress(value) {
+  const participantId = String(value ?? "").trim();
+  if (!participantId) {
+    throw httpError(400, "address is required");
+  }
+  const byteLength = Buffer.byteLength(participantId, "ascii");
+  if (
+    byteLength === 0 ||
+    byteLength > MAX_PARTNER_PARTICIPANT_ID_BYTES ||
+    !PRINTABLE_ASCII_RE.test(participantId)
+  ) {
+    throw httpError(
+      400,
+      `address must be printable ASCII <= ${MAX_PARTNER_PARTICIPANT_ID_BYTES} bytes`
     );
   }
   return participantId;
@@ -1068,6 +1120,45 @@ function snapshotSessionDir(sessionId) {
 
 function snapshotMetaPath(sessionId) {
   return path.join(snapshotSessionDir(sessionId), "meta.json");
+}
+
+function snapshotSignatureIndexPath(signature) {
+  return path.join(PARTNER_SNAPSHOT_SIGNATURE_DIR, `${signature}.json`);
+}
+
+function writeSnapshotSignatureIndex(meta) {
+  if (!meta?.signature) return;
+  ensureDir(PARTNER_SNAPSHOT_SIGNATURE_DIR);
+  writeJsonFile(snapshotSignatureIndexPath(meta.signature), {
+    session_id: meta.session_id,
+    signature: meta.signature,
+    updated_at_ms: Date.now(),
+  });
+}
+
+function loadSnapshotSessionBySignature(signature) {
+  const filePath = snapshotSignatureIndexPath(signature);
+  if (fs.existsSync(filePath)) {
+    const record = readJsonFile(filePath);
+    const metaPath = snapshotMetaPath(String(record.session_id || ""));
+    if (fs.existsSync(metaPath)) {
+      return readJsonFile(metaPath);
+    }
+  }
+
+  cleanupExpiredSnapshotSessions();
+  for (const entry of fs.readdirSync(PARTNER_SNAPSHOT_ROOT_DIR, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name === "by-signature") continue;
+    const metaPath = path.join(PARTNER_SNAPSHOT_ROOT_DIR, entry.name, "meta.json");
+    if (!fs.existsSync(metaPath)) continue;
+    const meta = readJsonFile(metaPath);
+    if (meta.signature === signature) {
+      writeSnapshotSignatureIndex(meta);
+      return meta;
+    }
+  }
+  throw httpError(404, "snapshot draw proof not found");
 }
 
 function cleanupExpiredSnapshotSessions() {
@@ -1207,7 +1298,7 @@ function resolveSnapshotRpcUrl() {
   if (!raw) {
     throw httpError(
       503,
-      "snapshot v4 finalize requires PARTNER_SNAPSHOT_RPC_URL pointing to a local validator or isolated runtime"
+      "scale snapshot finalize requires PARTNER_SNAPSHOT_RPC_URL pointing to a local validator or isolated runtime"
     );
   }
   let parsed;
@@ -1226,7 +1317,7 @@ function resolveSnapshotRpcUrl() {
   if (!isLocalRpcUrl(rpcUrl) && process.env.PARTNER_SNAPSHOT_ALLOW_NONLOCAL !== "1") {
     throw httpError(
       503,
-      "snapshot v4 finalize is local-only by default; set PARTNER_SNAPSHOT_RPC_URL to localhost or use PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1 with an isolated program id"
+      "scale snapshot finalize is local-only by default; set PARTNER_SNAPSHOT_RPC_URL to localhost or use PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1 with an isolated program id"
     );
   }
   return rpcUrl;
@@ -1242,7 +1333,7 @@ function resolveSnapshotProgramId(rpcUrl) {
   if (!isLocalRpcUrl(rpcUrl) && programId === defaultProgram) {
     throw httpError(
       503,
-      "snapshot v4 non-local validation requires a brand new isolated program id; canonical hackathon program is blocked for this path"
+      "scale snapshot non-local validation requires a brand new isolated program id; canonical hackathon program is blocked for this path"
     );
   }
   return programId;
@@ -1253,6 +1344,7 @@ function buildPartnerSnapshotConfig({
   snapshotHash,
   snapshotCount,
   snapshotUri,
+  merkleRoot,
   winnersCount,
   target,
 }) {
@@ -1261,7 +1353,7 @@ function buildPartnerSnapshotConfig({
     winnersCount * PARTNER_SNAPSHOT_PAYOUT_LAMPORTS
   );
   return {
-    type: "formula_draw_snapshot",
+    type: "outcome_standard_v1_2",
     formula,
     input_lamports: inputLamports,
     payout_lamports: PARTNER_SNAPSHOT_PAYOUT_LAMPORTS,
@@ -1269,6 +1361,7 @@ function buildPartnerSnapshotConfig({
     snapshot_hash: snapshotHash,
     snapshot_count: snapshotCount,
     snapshot_uri: snapshotUri,
+    ...(merkleRoot === undefined ? {} : { merkle_root: merkleRoot }),
     ...(target === undefined ? {} : { target }),
   };
 }
@@ -1322,16 +1415,20 @@ async function finalizeSnapshotSession({
       mode,
       snapshotHash: built.snapshotHash,
       snapshotCount: built.snapshotCount,
+      merkleRoot: built.merkleRoot,
       canonicalPath,
-      manifest: snapshotHelpers.buildSnapshotManifest({
+      manifest: snapshotHelpers.buildOutcomeStandardV12SnapshotManifest({
         snapshotHash: built.snapshotHash,
         snapshotCount: built.snapshotCount,
         formula,
         winnersCount,
         snapshotUri: canonicalPath,
+        merkleRoot: built.merkleRoot,
         payoutLamports: BigInt(PARTNER_SNAPSHOT_PAYOUT_LAMPORTS),
         ...(target === undefined ? {} : { targetScore: BigInt(target) }),
         thresholdMode: mode === "streaming" ? "streaming" : mode,
+        publicationStatus: "pending",
+        proofStatus: "pending",
       }),
     };
   }
@@ -1375,18 +1472,148 @@ async function finalizeSnapshotSession({
     mode,
     snapshotHash: inspected.snapshotHash,
     snapshotCount: inspected.snapshotCount,
+    merkleRoot: inspected.merkleRoot,
     canonicalPath,
-    manifest: snapshotHelpers.buildSnapshotManifest({
+    manifest: snapshotHelpers.buildOutcomeStandardV12SnapshotManifest({
       snapshotHash: inspected.snapshotHash,
       snapshotCount: inspected.snapshotCount,
       formula,
       winnersCount,
       snapshotUri: canonicalPath,
+      merkleRoot: inspected.merkleRoot,
       payoutLamports: BigInt(PARTNER_SNAPSHOT_PAYOUT_LAMPORTS),
       ...(target === undefined ? {} : { targetScore: BigInt(target) }),
       thresholdMode: mode === "streaming" ? "streaming" : mode,
+      publicationStatus: "pending",
+      proofStatus: "pending",
     }),
   };
+}
+
+function buildSnapshotProofManifest({
+  signature,
+  programId,
+  finalized,
+  outcomeIds,
+  formula,
+  target,
+  manifestPath,
+}) {
+  return {
+    version: "outcome_standard_proof_manifest_v1",
+    standard_version: "1.2",
+    standard_kind: "scale_snapshot",
+    signature,
+    program_id: programId,
+    snapshot_hash: finalized.snapshotHash,
+    snapshot_count: finalized.snapshotCount,
+    snapshot_uri: finalized.canonicalPath,
+    merkle_root: finalized.merkleRoot,
+    formula,
+    winners_count: outcomeIds.length,
+    selected_ids: outcomeIds,
+    entry_hash_scheme: "sha256d_canonical_named_entry_v1",
+    merkle_hash_scheme: "sha256_pair_v1",
+    snapshot_manifest_uri: manifestPath,
+    proof_endpoint_template:
+      "/api/partner/draw/:sig/proof?address=<wallet>",
+    publication_status: "pending",
+    publication_url: null,
+    proof_status: "pending",
+    ...(target === undefined ? {} : { target: String(target) }),
+  };
+}
+
+function resolveIrysPublicationConfig() {
+  return {
+    enabled: process.env.PARTNER_SNAPSHOT_IRYS_ENABLED !== "0",
+    privateKey: String(process.env.PARTNER_SNAPSHOT_IRYS_PRIVATE_KEY || "").trim(),
+    network: String(process.env.PARTNER_SNAPSHOT_IRYS_NETWORK || "devnet")
+      .trim()
+      .toLowerCase(),
+    providerUrl: String(
+      process.env.PARTNER_SNAPSHOT_IRYS_PROVIDER_URL ||
+        process.env.LIVE_RAFFLE_RPC_URL ||
+        process.env.ANCHOR_PROVIDER_URL ||
+        ""
+    ).trim(),
+  };
+}
+
+function buildIrysGatewayUrl(id, fileName = "") {
+  const base = `${IRYS_GATEWAY_BASE_URL}/${id}`;
+  return fileName ? `${base}/${fileName}` : base;
+}
+
+async function publishSnapshotBundleToIrys(bundleDir) {
+  const config = resolveIrysPublicationConfig();
+  if (!config.enabled) {
+    return { publicationStatus: "skipped_disabled", irysUrl: null, proofManifestUrl: null };
+  }
+  if (!config.privateKey) {
+    return {
+      publicationStatus: "skipped_unconfigured",
+      irysUrl: null,
+      proofManifestUrl: null,
+      publicationError: "PARTNER_SNAPSHOT_IRYS_PRIVATE_KEY is not configured",
+    };
+  }
+  if (config.network === "devnet" && !config.providerUrl) {
+    return {
+      publicationStatus: "skipped_unconfigured",
+      irysUrl: null,
+      proofManifestUrl: null,
+      publicationError: "PARTNER_SNAPSHOT_IRYS_PROVIDER_URL is required for Irys devnet uploads",
+    };
+  }
+
+  let Uploader;
+  let Solana;
+  try {
+    ({ Uploader } = await import("@irys/upload"));
+    ({ Solana } = await import("@irys/upload-solana"));
+  } catch (error) {
+    return {
+      publicationStatus: "failed_missing_sdk",
+      irysUrl: null,
+      proofManifestUrl: null,
+      publicationError: error?.message || String(error),
+    };
+  }
+
+  try {
+    let uploaderPromise = Uploader(Solana).withWallet(config.privateKey);
+    if (config.network === "devnet") {
+      uploaderPromise = uploaderPromise.withRpc(config.providerUrl).devnet();
+    } else if (config.providerUrl) {
+      uploaderPromise = uploaderPromise.withRpc(config.providerUrl);
+    }
+    const uploader = await uploaderPromise;
+    const receipt = await uploader.uploadFolder(bundleDir, {
+      indexFile: "manifest.json",
+      batchSize: 10,
+      keepDeleted: false,
+    });
+    const manifestId = receipt?.manifestId || receipt?.id;
+    if (!manifestId) {
+      throw new Error("Irys upload did not return manifestId");
+    }
+    return {
+      publicationStatus: "published",
+      irysUrl: buildIrysGatewayUrl(manifestId, "canonical_snapshot.jsonl"),
+      proofManifestUrl: buildIrysGatewayUrl(manifestId, "proof_manifest.json"),
+      manifestUrl: buildIrysGatewayUrl(manifestId),
+      irys_manifest_id: manifestId,
+      irys_receipt_id: receipt?.id || null,
+    };
+  } catch (error) {
+    return {
+      publicationStatus: "failed",
+      irysUrl: null,
+      proofManifestUrl: null,
+      publicationError: error?.message || String(error),
+    };
+  }
 }
 
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
@@ -1585,8 +1812,8 @@ async function handlePartnerDraw(req, res) {
 
   if (!Array.isArray(body.participants))
     throw httpError(400, "participants must be an array");
-  if (body.participants.length < 2 || body.participants.length > 100)
-    throw httpError(400, "participants must contain 2–100 entries");
+  if (body.participants.length < 2)
+    throw httpError(400, "participants must contain at least 2 entries");
 
   const participants = body.participants.map((value, index) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -1654,6 +1881,27 @@ async function handlePartnerDraw(req, res) {
   if (body.use_case !== undefined && !VALID_USE_CASES.has(body.use_case))
     throw httpError(400, "use_case must be raffle, airdrop, or competition");
 
+  const wantsScale =
+    body.mode === "scale" ||
+    body.scale === true ||
+    body.public_proof === true ||
+    body.standard_version === "1.2";
+  if (wantsScale) {
+    json(res, 409, {
+      ok: false,
+      standard_version: "1.2",
+      route: "scale_snapshot",
+      error:
+        "This draw requires the Outcome Standard V1.2 snapshot flow. Use /api/partner/snapshot/init, /api/partner/snapshot/chunk, and /api/partner/snapshot/finalize.",
+      endpoints: [
+        "/api/partner/snapshot/init",
+        "/api/partner/snapshot/chunk",
+        "/api/partner/snapshot/finalize",
+      ],
+    });
+    return;
+  }
+
   const rateCheck = checkPartnerDrawRateLimit(partner.key);
   if (!rateCheck.ok) {
     json(res, 429, { ok: false, error: "rate limit exceeded; retry in 60s", retry_after_ms: rateCheck.retryAfterMs });
@@ -1661,6 +1909,29 @@ async function handlePartnerDraw(req, res) {
   }
 
   const config = buildPartnerDrawConfig(participants, winnersCount, formula, target);
+  const buildArtifact = await loadArtifactBuilder();
+  try {
+    buildArtifact(config);
+  } catch (error) {
+    const message = error?.message || String(error);
+    if (message.includes("route larger draws")) {
+      json(res, 413, {
+        ok: false,
+        standard_version: "1.2",
+        route: "scale_snapshot",
+        error:
+          "Compact Outcome Standard V1.1 artifact exceeds byte limits. Use the Outcome Standard V1.2 snapshot flow.",
+        failure_reason: message,
+        endpoints: [
+          "/api/partner/snapshot/init",
+          "/api/partner/snapshot/chunk",
+          "/api/partner/snapshot/finalize",
+        ],
+      });
+      return;
+    }
+    throw error;
+  }
   const resolveInline = await loadResolveInline();
   const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
   const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
@@ -1820,12 +2091,14 @@ async function handlePartnerSnapshotFinalize(req, res) {
 
   const sessionDir = snapshotSessionDir(sessionId);
   const manifestPath = path.join(sessionDir, "manifest.json");
+  const proofManifestPath = path.join(sessionDir, "proof_manifest.json");
   writeJsonFile(manifestPath, finalized.manifest);
   const config = buildPartnerSnapshotConfig({
     formula,
     snapshotHash: finalized.snapshotHash,
     snapshotCount: finalized.snapshotCount,
     snapshotUri: finalized.canonicalPath,
+    merkleRoot: finalized.merkleRoot,
     winnersCount,
     target,
   });
@@ -1847,31 +2120,159 @@ async function handlePartnerSnapshotFinalize(req, res) {
     outputDir: sessionDir,
     label: meta.label || `partner-snapshot-${Date.now()}`,
   });
+  const outcomeIds = result.outcomeIds ?? [result.outcome];
+  let proofManifest = buildSnapshotProofManifest({
+    signature: result.signature,
+    programId,
+    finalized,
+    outcomeIds,
+    formula,
+    target,
+    manifestPath,
+  });
+  writeJsonFile(proofManifestPath, proofManifest);
+
+  const bundleDir = path.join(sessionDir, "publication_bundle");
+  ensureDir(bundleDir);
+  fs.copyFileSync(finalized.canonicalPath, path.join(bundleDir, "canonical_snapshot.jsonl"));
+  fs.copyFileSync(manifestPath, path.join(bundleDir, "manifest.json"));
+  fs.copyFileSync(proofManifestPath, path.join(bundleDir, "proof_manifest.json"));
+
+  const publication = await publishSnapshotBundleToIrys(bundleDir);
+  finalized.manifest = {
+    ...finalized.manifest,
+    proof_manifest_url: publication.proofManifestUrl || proofManifestPath,
+    publication_url: publication.irysUrl || null,
+    publication_status: publication.publicationStatus,
+    ...(publication.publicationError
+      ? { publication_error: publication.publicationError }
+      : {}),
+    proof_status: "ready",
+  };
+  writeJsonFile(manifestPath, finalized.manifest);
+  proofManifest = {
+    ...proofManifest,
+    publication_url: publication.irysUrl || null,
+    proof_manifest_url: publication.proofManifestUrl || proofManifestPath,
+    publication_status: publication.publicationStatus,
+    ...(publication.publicationError
+      ? { publication_error: publication.publicationError }
+      : {}),
+    proof_status: "ready",
+  };
+  writeJsonFile(proofManifestPath, proofManifest);
+  fs.copyFileSync(manifestPath, path.join(bundleDir, "manifest.json"));
+  fs.copyFileSync(proofManifestPath, path.join(bundleDir, "proof_manifest.json"));
+  writeJsonFile(path.join(sessionDir, "publication_result.json"), publication);
 
   meta.status = "finalized";
   meta.formula = formula;
   meta.winners_count = winnersCount;
+  meta.target = target ?? null;
   meta.snapshot_hash = finalized.snapshotHash;
   meta.snapshot_count = finalized.snapshotCount;
+  meta.merkle_root = finalized.merkleRoot;
   meta.snapshot_uri = finalized.canonicalPath;
   meta.manifest_path = manifestPath;
+  meta.proof_manifest_path = proofManifestPath;
+  meta.proof_manifest_url = publication.proofManifestUrl || proofManifestPath;
+  meta.irys_url = publication.irysUrl || null;
+  meta.publication_status = publication.publicationStatus;
+  meta.publication_error = publication.publicationError || null;
   meta.mode = finalized.mode;
   meta.signature = result.signature;
+  meta.program_id = result.programId;
+  meta.artifact_path = result.artifactPath;
+  meta.result_path = result.resultPath;
+  meta.compiled_artifact_hash = result.artifactHash;
+  meta.runtime_id = result.runtimeId;
+  meta.resolve_id = result.resolveId;
+  meta.outcome_id = result.outcome;
+  meta.outcome_ids = outcomeIds;
   saveSnapshotSession(meta);
+  writeSnapshotSignatureIndex(meta);
 
   json(res, 200, {
     ok: true,
+    standard_version: "1.2",
     session_id: sessionId,
     signature: result.signature,
     outcome_id: result.outcome,
-    outcome_ids: result.outcomeIds ?? [result.outcome],
+    outcome_ids: outcomeIds,
     replay_url: `https://verifiableoutcome.online/verify?sig=${result.signature}`,
     snapshot_hash: finalized.snapshotHash,
     snapshot_count: finalized.snapshotCount,
     snapshot_uri: finalized.canonicalPath,
     manifest_uri: manifestPath,
+    merkle_root: finalized.merkleRoot,
+    publication_url: publication.irysUrl,
+    proof_manifest_url: publication.proofManifestUrl || proofManifestPath,
+    publication_status: publication.publicationStatus,
+    ...(publication.publicationError
+      ? { publication_error: publication.publicationError }
+      : {}),
+    proof_status: "ready",
     mode: finalized.mode,
     thresholds: snapshotThresholds(),
+  });
+}
+
+async function handlePartnerDrawProof(req, res, signature) {
+  const reqUrl = new URL(req.url || "/", "http://localhost");
+  const address = validateSnapshotProofAddress(reqUrl.searchParams.get("address") || "");
+  const meta = loadSnapshotSessionBySignature(validateSignature(signature));
+  if (meta.status !== "finalized") {
+    throw httpError(409, "snapshot draw proof is not finalized");
+  }
+  const formula = validatePartnerFormula(meta.formula);
+  const snapshotHelpers = await loadSnapshotHelpers();
+  const proof = await snapshotHelpers.buildSnapshotMerkleProofFromFile({
+    snapshotPath: String(meta.snapshot_uri || ""),
+    formula,
+    participantId: address,
+    expectedHash: meta.snapshot_hash,
+    expectedCount: Number(meta.snapshot_count || 0),
+    ...(meta.merkle_root ? { expectedMerkleRoot: meta.merkle_root } : {}),
+  });
+  const outcomeIds = Array.isArray(meta.outcome_ids)
+    ? meta.outcome_ids.map((value) => String(value))
+    : meta.outcome_id
+      ? [String(meta.outcome_id)]
+      : [];
+  json(res, 200, {
+    ok: true,
+    standard_version: "1.2",
+    signature: String(meta.signature),
+    program_id: String(meta.program_id || defaultProgramId()),
+    snapshot_hash: proof.snapshotHash,
+    snapshot_count: proof.snapshotCount,
+    snapshot_uri: String(meta.snapshot_uri),
+    merkle_root: proof.merkleRoot,
+    publication_url: meta.irys_url || null,
+    proof_manifest_url: meta.proof_manifest_url || meta.proof_manifest_path || null,
+    publication_status: meta.publication_status || null,
+    proof_status: "ready",
+    address,
+    participant: proof.participant
+      ? {
+          id: proof.participant.id,
+          order: proof.participant.order,
+          ...(proof.participant.weight !== 1 ? { weight: proof.participant.weight } : {}),
+          ...(formula === "weighted_random"
+            ? {}
+            : { score: proof.participant.score.toString() }),
+        }
+      : null,
+    leaf_hash: proof.leafHash,
+    proof: proof.proof,
+    included: Boolean(proof.participant),
+    winner: Boolean(proof.participant && outcomeIds.includes(address)),
+    outcome_id: outcomeIds[0] || "",
+    outcome_ids: outcomeIds,
+    resolution_formula: formula,
+    ...(meta.target === undefined || meta.target === null
+      ? {}
+      : { target: Number(meta.target) }),
   });
 }
 
@@ -1955,7 +2356,7 @@ async function fetchTimeline({
 
 async function handleApi(req, res, pathname) {
   try {
-    const corsEnabled = CORS_API_PATHS.has(pathname);
+    const corsEnabled = isCorsApiPath(pathname);
     if (corsEnabled) applyCorsHeaders(res);
 
     if (req.method === "OPTIONS") {
@@ -2145,6 +2546,12 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/partner/snapshot/finalize") {
       await handlePartnerSnapshotFinalize(req, res);
+      return;
+    }
+
+    const proofMatch = pathname.match(/^\/api\/partner\/draw\/([^/]+)\/proof$/);
+    if (req.method === "GET" && proofMatch) {
+      await handlePartnerDrawProof(req, res, proofMatch[1]);
       return;
     }
 

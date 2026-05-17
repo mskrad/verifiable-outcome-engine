@@ -11,7 +11,13 @@ import {
   formulaNameFromArtifactV4,
   inspectSnapshotFile,
   parseArtifactV4,
+  parseArtifactV12,
   FORMAT_VERSION_V4,
+  FORMAT_VERSION_V5,
+  FORMAT_VERSION_V1_2_SCALE,
+  OUTCOME_STANDARD_V1_1,
+  OUTCOME_STANDARD_V1_2,
+  V5_ENTRY_BYTES,
 } from "./snapshot.js";
 import type {
   ResolutionFormula,
@@ -290,6 +296,9 @@ type ParsedArtifact = {
   maxInputLamports: bigint;
   formulaCode: number;
   targetScore: bigint;
+  payoutLamports: bigint;
+  entryCount?: number;
+  standardVersion?: "Outcome Standard V1.1";
   totalEffectCount: number;
   outcomes: ParsedOutcome[];
   effects: ParsedEffect[];
@@ -678,6 +687,99 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
 
   const offset = { value: 4 };
   const formatVersion = readU16LE(blob, offset);
+  if (formatVersion === FORMAT_VERSION_V5) {
+    const minInputLamports = readU64LE(blob, offset);
+    const maxInputLamports = readU64LE(blob, offset);
+    if (minInputLamports > maxInputLamports) {
+      throw new Error("v5 artifact bounds are invalid");
+    }
+    const winnersCount = readU16LE(blob, offset);
+    const formulaCode = readU8(blob, offset);
+    if (
+      formulaCode !== FORMULA_WEIGHTED_RANDOM &&
+      formulaCode !== FORMULA_RANK_DESC &&
+      formulaCode !== FORMULA_RANK_ASC &&
+      formulaCode !== FORMULA_FIRST_N &&
+      formulaCode !== FORMULA_CLOSEST_TO
+    ) {
+      throw new Error("Invalid formula code");
+    }
+    if (!readBytes(blob, offset, 5).equals(Buffer.alloc(5, 0))) {
+      throw new Error("Reserved v5 header bytes must be zero");
+    }
+    const targetScore = readI64LE(blob, offset);
+    const entryCount = readU16LE(blob, offset);
+    const payoutLamports = readU64LE(blob, offset);
+    if (entryCount < 1 || 48 + entryCount * V5_ENTRY_BYTES !== blob.length) {
+      throw new Error("Invalid v5 entry_count or artifact byte size");
+    }
+    if (winnersCount < 1 || winnersCount > entryCount || winnersCount > MAX_WINNERS) {
+      throw new Error("Invalid winners_count");
+    }
+    const outcomes: ParsedOutcome[] = [];
+    const seenOrders = new Array<boolean>(entryCount).fill(false);
+    let previousOutcomeId: Buffer | null = null;
+    let weightSum = 0n;
+    for (let index = 0; index < entryCount; index += 1) {
+      const outcomeIdLen = readU8(blob, offset);
+      if (outcomeIdLen < 1 || outcomeIdLen > MAX_OUTCOME_ID_BYTES) {
+        throw new Error("Invalid v5 id length");
+      }
+      const outcomeId = readBytes(blob, offset, MAX_OUTCOME_ID_BYTES);
+      const canonicalOutcomeId = outcomeId.subarray(0, outcomeIdLen);
+      if (!canonicalOutcomeId.every((byte) => byte >= 32 && byte <= 126)) {
+        throw new Error("v5 id must be printable ASCII");
+      }
+      if (!outcomeId.subarray(outcomeIdLen).equals(Buffer.alloc(MAX_OUTCOME_ID_BYTES - outcomeIdLen, 0))) {
+        throw new Error("v5 id padding must be zero");
+      }
+      if (previousOutcomeId && Buffer.compare(previousOutcomeId, canonicalOutcomeId) >= 0) {
+        throw new Error("v5 ids must be strictly sorted");
+      }
+      previousOutcomeId = Buffer.from(canonicalOutcomeId);
+      const weight = readU32LE(blob, offset);
+      if (weight <= 0) {
+        throw new Error("v5 weight must be positive");
+      }
+      weightSum += BigInt(weight);
+      const score = readI64LE(blob, offset);
+      const order = readU16LE(blob, offset);
+      if (order >= entryCount || seenOrders[order]) {
+        throw new Error("v5 order must be unique and in range");
+      }
+      seenOrders[order] = true;
+      outcomes.push({
+        outcomeIdLen,
+        outcomeId,
+        weight,
+        score,
+        order,
+        firstEffectIndex: 0,
+        effectCount: payoutLamports === 0n ? 0 : 1,
+      });
+    }
+    if (offset.value !== blob.length) {
+      throw new Error("Unknown trailing bytes in v5 artifact");
+    }
+    if (weightSum <= 0n || !seenOrders.every(Boolean)) {
+      throw new Error("Invalid v5 entry table");
+    }
+    return {
+      formatVersion,
+      winnersCount,
+      minInputLamports,
+      maxInputLamports,
+      formulaCode,
+      targetScore,
+      payoutLamports,
+      entryCount,
+      standardVersion: OUTCOME_STANDARD_V1_1,
+      totalEffectCount: 0,
+      outcomes,
+      effects: [],
+      effectsOffset: offset.value,
+    };
+  }
   if (
     formatVersion !== FORMAT_VERSION_V1 &&
     formatVersion !== FORMAT_VERSION_V2 &&
@@ -830,6 +932,7 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
     maxInputLamports,
     formulaCode,
     targetScore,
+    payoutLamports: 0n,
     totalEffectCount,
     outcomes,
     effects,
@@ -937,19 +1040,30 @@ function selectOutcomes(
 
   for (const selectedIndex of selectedIndices) {
     const selected = parsed.outcomes[selectedIndex];
-    const effectStart =
-      parsed.effectsOffset + selected.firstEffectIndex * EFFECT_ENTRY_BYTES;
-    const effectEnd = effectStart + selected.effectCount * EFFECT_ENTRY_BYTES;
-    effectChunks.push(blob.subarray(effectStart, effectEnd));
     outcomeIdLens.push(selected.outcomeIdLen);
     outcomeIds.push(selected.outcomeId);
-    effectCount += selected.effectCount;
-    for (
-      let index = selected.firstEffectIndex;
-      index < selected.firstEffectIndex + selected.effectCount;
-      index += 1
-    ) {
-      totalOutputLamports += parsed.effects[index].amountLamports;
+    if (parsed.formatVersion === FORMAT_VERSION_V5) {
+      if (parsed.payoutLamports > 0n) {
+        const syntheticEffect = Buffer.alloc(EFFECT_ENTRY_BYTES, 0);
+        syntheticEffect[0] = EFFECT_TYPE_TRANSFER_SOL;
+        syntheticEffect.writeBigUInt64LE(parsed.payoutLamports, 8);
+        effectChunks.push(syntheticEffect);
+        effectCount += 1;
+        totalOutputLamports += parsed.payoutLamports;
+      }
+    } else {
+      const effectStart =
+        parsed.effectsOffset + selected.firstEffectIndex * EFFECT_ENTRY_BYTES;
+      const effectEnd = effectStart + selected.effectCount * EFFECT_ENTRY_BYTES;
+      effectChunks.push(blob.subarray(effectStart, effectEnd));
+      effectCount += selected.effectCount;
+      for (
+        let index = selected.firstEffectIndex;
+        index < selected.firstEffectIndex + selected.effectCount;
+        index += 1
+      ) {
+        totalOutputLamports += parsed.effects[index].amountLamports;
+      }
     }
   }
 
@@ -1262,10 +1376,13 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   let parsed: ParsedArtifact | null = null;
   let parsedV4:
     | ReturnType<typeof parseArtifactV4>
+    | ReturnType<typeof parseArtifactV12>
     | null = null;
   try {
     if (blobFormatVersion === FORMAT_VERSION_V4) {
       parsedV4 = parseArtifactV4(blob);
+    } else if (blobFormatVersion === FORMAT_VERSION_V1_2_SCALE) {
+      parsedV4 = parseArtifactV12(blob);
     } else {
       parsed = parseCompiledArtifact(blob);
     }
@@ -1372,11 +1489,14 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
       const materialized = await materializeSnapshotUri(parsedV4.snapshotUri);
       const snapshotPath = materialized.snapshotPath;
       cleanupSnapshot = materialized.cleanup;
-      await inspectSnapshotFile({
+      const inspectedSnapshot = await inspectSnapshotFile({
         snapshotPath,
         formula,
         expectedHash: parsedV4.snapshotHash.toString("hex"),
         expectedCount: parsedV4.snapshotCount,
+        ...(parsedV4.merkleRoot
+          ? { expectedMerkleRoot: parsedV4.merkleRoot.toString("hex") }
+          : {}),
       });
       const selected = await buildSnapshotClaimFromFile({
         snapshotPath,
@@ -1475,7 +1595,9 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
         outcome_id: selected.outcomeIds[0],
         outcome_ids: selected.outcomeIds,
         winners_count: selected.winnersCount,
-        artifact_format_version: FORMAT_VERSION_V4,
+        ...(parsedV4.formatVersion === FORMAT_VERSION_V1_2_SCALE
+          ? { standard_version: OUTCOME_STANDARD_V1_2 }
+          : { artifact_format_version: FORMAT_VERSION_V4 }),
         resolution_formula: formula,
         ...(formula === "closest_to"
           ? {
@@ -1485,6 +1607,13 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
         snapshot_hash: parsedV4.snapshotHash.toString("hex"),
         snapshot_count: parsedV4.snapshotCount,
         snapshot_uri: parsedV4.snapshotUri,
+        ...(parsedV4.merkleRoot
+          ? {
+              merkle_root: parsedV4.merkleRoot.toString("hex"),
+            }
+          : {
+              merkle_root: inspectedSnapshot.merkleRoot,
+            }),
         outcomes: [],
         resolve_id: resolveId,
         compiled_artifact_hash: compiledArtifactHashHex,
@@ -1626,9 +1755,15 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     status: "MATCH",
     reason: "OK",
     outcome_id: outcomeIdString(event.outcomeId, event.outcomeIdLen),
-    ...((event.winnerCount > 1 || parsed!.formatVersion === FORMAT_VERSION_V3)
+    ...((event.winnerCount > 1 || parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5)
       ? {
           artifact_format_version: event.artifactFormatVersion,
+        }
+      : {}),
+    ...(parsed!.formatVersion === FORMAT_VERSION_V5
+      ? {
+          standard_version: parsed!.standardVersion,
+          entry_count: parsed!.entryCount,
         }
       : {}),
     ...(event.winnerCount > 1
@@ -1639,10 +1774,10 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           winners_count: event.winnerCount,
         }
       : {}),
-    resolution_formula: parsed!.formatVersion === FORMAT_VERSION_V3
+    resolution_formula: parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
       ? formulaCodeToName(parsed!.formulaCode)
       : "weighted_random",
-    ...(parsed!.formatVersion === FORMAT_VERSION_V3
+    ...(parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
       ? {
           target: signedBigIntToSafeNumber(parsed!.targetScore, "target"),
         }
@@ -1650,7 +1785,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     outcomes: parsed!.outcomes.map((outcome) => ({
       id: outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen),
       weight: outcome.weight,
-      ...(parsed!.formatVersion === FORMAT_VERSION_V3
+      ...(parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
         ? {
             score: signedBigIntToSafeNumber(outcome.score, `score:${outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen)}`),
             order: outcome.order,

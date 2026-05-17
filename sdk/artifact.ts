@@ -2,6 +2,9 @@ import { PublicKey } from "@solana/web3.js";
 
 import {
   buildArtifactV4,
+  buildArtifactV5,
+  buildArtifactV12,
+  buildArtifactV121,
   buildSnapshotHash,
   buildSnapshotManifest,
   validateWinnersCount as validateSnapshotWinnersCount,
@@ -529,7 +532,24 @@ export function buildArtifact(config: ArtifactConfig): Buffer {
   if (config.type === "formula_draw_snapshot") {
     return buildArtifactV4(config);
   }
+  if (config.type === "outcome_standard_v1_2") {
+    return buildArtifactV12(config);
+  }
+  if (config.type === "outcome_standard_v1_2_1") {
+    return buildArtifactV121(config);
+  }
+  if (config.type === "formula_draw_v5") {
+    return buildArtifactV5(config);
+  }
   return serializeW3O1(toW3O1Config(config));
 }
 
-export { buildArtifactV4, buildSnapshotHash, buildSnapshotManifest, validateSnapshotWinnersCount };
+export {
+  buildArtifactV4,
+  buildArtifactV5,
+  buildArtifactV12,
+  buildArtifactV121,
+  buildSnapshotHash,
+  buildSnapshotManifest,
+  validateSnapshotWinnersCount,
+};
