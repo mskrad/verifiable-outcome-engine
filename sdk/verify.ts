@@ -12,15 +12,24 @@ import {
   inspectSnapshotFile,
   parseArtifactV4,
   parseArtifactV12,
+  parseArtifactV121,
   FORMAT_VERSION_V4,
   FORMAT_VERSION_V5,
   FORMAT_VERSION_V1_2_SCALE,
+  FORMAT_VERSION_V1_2_1_SCALE,
   OUTCOME_STANDARD_V1_1,
   OUTCOME_STANDARD_V1_2,
+  OUTCOME_STANDARD_V1_2_1,
   V5_ENTRY_BYTES,
 } from "./snapshot.js";
+import {
+  FORMULA_CODE_COMPOSITE_RANK_DESC,
+  FORMAT_VERSION_COMPOSITE_RANK_DESC,
+  parseCompositeRankDescArtifact,
+  replayCompositeRankDescArtifact,
+} from "./composite_rank_desc.js";
 import type {
-  ResolutionFormula,
+  RuntimeResolutionFormula,
   VerifyOutcomeOptions,
   VerifyResult,
 } from "./types.js";
@@ -60,6 +69,7 @@ const OUTCOME_ACCOUNT_IDL = {
     { name: "OutcomeConfig", discriminator: [140, 119, 82, 148, 43, 47, 24, 122] },
     { name: "OutcomeResolution", discriminator: [117, 184, 192, 23, 132, 189, 98, 178] },
     { name: "OutcomeResolutionV2", discriminator: [255, 71, 158, 89, 88, 61, 199, 217] },
+    { name: "OutcomeResolutionV3", discriminator: [217, 147, 107, 210, 216, 116, 45, 97] },
     { name: "ProgramConfig", discriminator: [196, 210, 90, 231, 144, 149, 140, 63] },
   ],
   types: [
@@ -159,6 +169,31 @@ const OUTCOME_ACCOUNT_IDL = {
           { name: "outcome_id", type: { array: ["u8", 64] } },
           { name: "outcome_id_lens", type: { vec: "u8" } },
           { name: "outcome_ids", type: { vec: { array: ["u8", 64] } } },
+          { name: "effect_count", type: "u16" },
+          { name: "effects_digest", type: { array: ["u8", 32] } },
+          { name: "bump", type: "u8" },
+          { name: "reserved", type: { array: ["u8", 29] } },
+        ],
+      },
+    },
+    {
+      name: "OutcomeResolutionV3",
+      type: {
+        kind: "struct",
+        fields: [
+          { name: "runtime_id", type: { array: ["u8", 16] } },
+          { name: "resolve_id", type: "u64" },
+          { name: "actor", type: "pubkey" },
+          { name: "input_lamports", type: "u64" },
+          { name: "status", type: "u8" },
+          { name: "artifact_format_version", type: "u16" },
+          { name: "winner_count", type: "u16" },
+          { name: "winner_claim_hash", type: { array: ["u8", 32] } },
+          { name: "total_output_lamports", type: "u64" },
+          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
+          { name: "randomness", type: { array: ["u8", 32] } },
+          { name: "outcome_id_len", type: "u8" },
+          { name: "outcome_id", type: { array: ["u8", 64] } },
           { name: "effect_count", type: "u16" },
           { name: "effects_digest", type: { array: ["u8", 32] } },
           { name: "bump", type: "u8" },
@@ -271,6 +306,7 @@ type OutcomeResolvedEvent = {
   outcomeId: Buffer;
   outcomeIdLens: number[];
   outcomeIds: Buffer[];
+  winnerClaimHash?: Buffer;
   effectCount: number;
   effectsDigest: Buffer;
 };
@@ -295,6 +331,7 @@ type ParsedArtifact = {
   minInputLamports: bigint;
   maxInputLamports: bigint;
   formulaCode: number;
+  formulaName?: RuntimeResolutionFormula;
   targetScore: bigint;
   payoutLamports: bigint;
   entryCount?: number;
@@ -410,7 +447,7 @@ function asBigInt(value: any): bigint {
   throw new Error(`Cannot coerce to bigint: ${String(value)}`);
 }
 
-function formulaCodeToName(code: number): ResolutionFormula {
+function formulaCodeToName(code: number): RuntimeResolutionFormula {
   switch (code) {
     case FORMULA_WEIGHTED_RANDOM:
       return "weighted_random";
@@ -422,6 +459,8 @@ function formulaCodeToName(code: number): ResolutionFormula {
       return "first_n";
     case FORMULA_CLOSEST_TO:
       return "closest_to";
+    case FORMULA_CODE_COMPOSITE_RANK_DESC:
+      return "composite_rank_desc";
     default:
       throw new Error(`Unsupported formula code: ${code}`);
   }
@@ -531,6 +570,51 @@ function decodeOutcomeResolvedV2(line: string): OutcomeResolvedEvent | null {
   };
 }
 
+function decodeOutcomeResolvedV3(line: string): OutcomeResolvedEvent | null {
+  if (!line.startsWith("Program data: ")) return null;
+  const encoded = line.slice("Program data: ".length).trim();
+  const buf = Buffer.from(encoded, "base64");
+  const discriminator = anchorEventDiscriminator("OutcomeResolvedV3");
+  if (buf.length < 8 || !buf.subarray(0, 8).equals(discriminator)) return null;
+
+  const offset = { value: 8 };
+  const runtimeId = readBytes(buf, offset, 16);
+  const resolveId = readU64LE(buf, offset);
+  const actor = new PublicKey(readBytes(buf, offset, 32));
+  const inputLamports = readU64LE(buf, offset);
+  const totalOutputLamports = readU64LE(buf, offset);
+  const masterSeed = readBytes(buf, offset, 32);
+  const randomness = readBytes(buf, offset, 32);
+  const compiledArtifactHash = readBytes(buf, offset, 32);
+  const artifactFormatVersion = readU16LE(buf, offset);
+  const winnerCount = readU16LE(buf, offset);
+  const winnerClaimHash = readBytes(buf, offset, 32);
+  const outcomeIdLen = readU8(buf, offset);
+  const outcomeId = readBytes(buf, offset, MAX_OUTCOME_ID_BYTES);
+  const effectCount = readU16LE(buf, offset);
+  const effectsDigest = readBytes(buf, offset, 32);
+
+  return {
+    runtimeId,
+    resolveId,
+    actor,
+    inputLamports,
+    totalOutputLamports,
+    masterSeed,
+    randomness,
+    compiledArtifactHash,
+    artifactFormatVersion,
+    winnerCount,
+    outcomeIdLen,
+    outcomeId,
+    outcomeIdLens: [outcomeIdLen],
+    outcomeIds: [outcomeId],
+    winnerClaimHash,
+    effectCount,
+    effectsDigest,
+  };
+}
+
 function findOutcomeResolvedEvent(
   logs: string[],
   expectedProgramId: string
@@ -562,7 +646,7 @@ function findOutcomeResolvedEvent(
     if (!line.startsWith("Program data: ")) continue;
     if (stack.length === 0) continue;
     const currentProgramId = stack[stack.length - 1];
-    const event = decodeOutcomeResolvedV2(line) ?? decodeOutcomeResolvedV1(line);
+    const event = decodeOutcomeResolvedV3(line) ?? decodeOutcomeResolvedV2(line) ?? decodeOutcomeResolvedV1(line);
     if (currentProgramId === expectedProgramId) {
       sawProgramDataForExpected = true;
       if (event) return event;
@@ -642,7 +726,7 @@ async function fetchDecodedOutcomeResolution(
   connection: anchor.web3.Connection,
   coder: any,
   pubkey: PublicKey
-): Promise<{ accountName: "OutcomeResolution" | "OutcomeResolutionV2"; decoded: any }> {
+): Promise<{ accountName: "OutcomeResolution" | "OutcomeResolutionV2" | "OutcomeResolutionV3"; decoded: any }> {
   const info = await connection.getAccountInfo(pubkey, "confirmed");
   if (!info) {
     mismatch(
@@ -652,22 +736,29 @@ async function fetchDecodedOutcomeResolution(
   }
   try {
     return {
-      accountName: "OutcomeResolutionV2",
-      decoded: coder.accounts.decode("OutcomeResolutionV2", info.data),
+      accountName: "OutcomeResolutionV3",
+      decoded: coder.accounts.decode("OutcomeResolutionV3", info.data),
     };
   } catch (_) {
     try {
       return {
-        accountName: "OutcomeResolution",
-        decoded: coder.accounts.decode("OutcomeResolution", info.data),
+        accountName: "OutcomeResolutionV2",
+        decoded: coder.accounts.decode("OutcomeResolutionV2", info.data),
       };
-    } catch (error) {
-      mismatch(
-        "ERR_RESOLUTION_ACCOUNT_NOT_FOUND",
-        `Failed to decode OutcomeResolution account: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+    } catch (_) {
+      try {
+        return {
+          accountName: "OutcomeResolution",
+          decoded: coder.accounts.decode("OutcomeResolution", info.data),
+        };
+      } catch (error) {
+        mismatch(
+          "ERR_RESOLUTION_ACCOUNT_NOT_FOUND",
+          `Failed to decode OutcomeResolution account: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
     }
   }
 }
@@ -687,6 +778,40 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
 
   const offset = { value: 4 };
   const formatVersion = readU16LE(blob, offset);
+  if (formatVersion === FORMAT_VERSION_COMPOSITE_RANK_DESC) {
+    const parsedComposite = parseCompositeRankDescArtifact(blob);
+    const replay = replayCompositeRankDescArtifact(blob);
+    const replayById = new Map(
+      replay.participant_replay.map((entry): [string, bigint] => [entry.id, BigInt(entry.composite_score)])
+    );
+    const outcomes: ParsedOutcome[] = parsedComposite.participants.map((participant) => ({
+      outcomeIdLen: Buffer.byteLength(participant.id, "ascii"),
+      outcomeId: Buffer.concat([
+        Buffer.from(participant.id, "ascii"),
+        Buffer.alloc(MAX_OUTCOME_ID_BYTES - Buffer.byteLength(participant.id, "ascii"), 0),
+      ]),
+      weight: 1,
+      score: replayById.get(participant.id) ?? 0n,
+      order: participant.order,
+      firstEffectIndex: 0,
+      effectCount: parsedComposite.payoutLamports === 0n ? 0 : 1,
+    }));
+    return {
+      formatVersion,
+      winnersCount: parsedComposite.winnersCount,
+      minInputLamports: parsedComposite.minInputLamports,
+      maxInputLamports: parsedComposite.maxInputLamports,
+      formulaCode: FORMULA_CODE_COMPOSITE_RANK_DESC,
+      formulaName: "composite_rank_desc",
+      targetScore: 0n,
+      payoutLamports: parsedComposite.payoutLamports,
+      entryCount: parsedComposite.participantCount,
+      totalEffectCount: 0,
+      outcomes,
+      effects: [],
+      effectsOffset: blob.length,
+    };
+  }
   if (formatVersion === FORMAT_VERSION_V5) {
     const minInputLamports = readU64LE(blob, offset);
     const maxInputLamports = readU64LE(blob, offset);
@@ -770,6 +895,7 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
       minInputLamports,
       maxInputLamports,
       formulaCode,
+      formulaName: formulaCodeToName(formulaCode),
       targetScore,
       payoutLamports,
       entryCount,
@@ -931,6 +1057,7 @@ function parseCompiledArtifact(blob: Buffer): ParsedArtifact {
     minInputLamports,
     maxInputLamports,
     formulaCode,
+    formulaName: formulaCodeToName(formulaCode),
     targetScore,
     payoutLamports: 0n,
     totalEffectCount,
@@ -978,6 +1105,7 @@ function compareFormulaOutcomes(
 ): number {
   switch (parsed.formulaCode) {
     case FORMULA_RANK_DESC:
+    case FORMULA_CODE_COMPOSITE_RANK_DESC:
       if (left.score !== right.score) return left.score > right.score ? -1 : 1;
       return left.order - right.order;
     case FORMULA_RANK_ASC:
@@ -1042,7 +1170,10 @@ function selectOutcomes(
     const selected = parsed.outcomes[selectedIndex];
     outcomeIdLens.push(selected.outcomeIdLen);
     outcomeIds.push(selected.outcomeId);
-    if (parsed.formatVersion === FORMAT_VERSION_V5) {
+    if (
+      parsed.formatVersion === FORMAT_VERSION_V5 ||
+      parsed.formatVersion === FORMAT_VERSION_COMPOSITE_RANK_DESC
+    ) {
       if (parsed.payoutLamports > 0n) {
         const syntheticEffect = Buffer.alloc(EFFECT_ENTRY_BYTES, 0);
         syntheticEffect[0] = EFFECT_TYPE_TRANSFER_SOL;
@@ -1377,12 +1508,15 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   let parsedV4:
     | ReturnType<typeof parseArtifactV4>
     | ReturnType<typeof parseArtifactV12>
+    | ReturnType<typeof parseArtifactV121>
     | null = null;
   try {
     if (blobFormatVersion === FORMAT_VERSION_V4) {
       parsedV4 = parseArtifactV4(blob);
     } else if (blobFormatVersion === FORMAT_VERSION_V1_2_SCALE) {
       parsedV4 = parseArtifactV12(blob);
+    } else if (blobFormatVersion === FORMAT_VERSION_V1_2_1_SCALE) {
+      parsedV4 = parseArtifactV121(blob);
     } else {
       parsed = parseCompiledArtifact(blob);
     }
@@ -1431,7 +1565,8 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   }
 
   const resolutionArtifactFormatVersion =
-    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2" ||
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV3"
       ? Number(
           pick(
             outcomeResolution,
@@ -1441,7 +1576,8 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
         )
       : FORMAT_VERSION_V1;
   const resolutionWinnerCount =
-    outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV2" ||
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV3"
       ? Number(pick(outcomeResolution, "winner_count", "winnerCount"))
       : 1;
 
@@ -1525,6 +1661,78 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           "ERR_OUTPUT_MISMATCH",
           "Output lamports differ between event, resolution, and snapshot replay"
         );
+      }
+      if (parsedV4.formatVersion === FORMAT_VERSION_V1_2_1_SCALE) {
+        const eventWinnerClaimHash = event.winnerClaimHash;
+        const resolutionWinnerClaimHash = Buffer.from(
+          pick<number[]>(outcomeResolution, "winner_claim_hash", "winnerClaimHash")
+        );
+        if (
+          !eventWinnerClaimHash ||
+          !eventWinnerClaimHash.equals(selected.winnerClaimHash) ||
+          !resolutionWinnerClaimHash.equals(selected.winnerClaimHash)
+        ) {
+          mismatch(
+            "ERR_WINNER_CLAIM_HASH_MISMATCH",
+            "Winner claim hash differs between event, resolution, and snapshot replay"
+          );
+        }
+        expectZeroPadding(event.outcomeId, event.outcomeIdLen, "ERR_OUTCOME_ID_MISMATCH");
+        expectZeroPadding(
+          resolutionOutcomeId,
+          resolutionOutcomeIdLen,
+          "ERR_OUTCOME_ID_MISMATCH"
+        );
+        if (
+          outcomeIdString(event.outcomeId, event.outcomeIdLen) !== selected.outcomeIds[0] ||
+          outcomeIdString(resolutionOutcomeId, resolutionOutcomeIdLen) !== selected.outcomeIds[0]
+        ) {
+          mismatch(
+            "ERR_OUTCOME_ID_MISMATCH",
+            "Primary outcome id differs between event, resolution, and snapshot replay"
+          );
+        }
+        if (
+          event.effectCount !== resolutionEffectCount ||
+          event.effectCount !== selected.effectCount ||
+          !event.effectsDigest.equals(resolutionEffectsDigest) ||
+          !event.effectsDigest.equals(selected.effectsDigest)
+        ) {
+          mismatch(
+            "ERR_EFFECTS_DIGEST_MISMATCH",
+            "Effects digest differs between event, resolution, and snapshot replay"
+          );
+        }
+
+        return {
+          status: "MATCH",
+          reason: "OK",
+          outcome_id: selected.outcomeIds[0],
+          outcome_ids: selected.outcomeIds,
+          winners_count: selected.winnersCount,
+          standard_version: OUTCOME_STANDARD_V1_2_1,
+          resolution_formula: formula,
+          ...(formula === "closest_to"
+            ? {
+                target: signedBigIntToSafeNumber(expectedTarget, "target"),
+              }
+            : {}),
+          snapshot_hash: parsedV4.snapshotHash.toString("hex"),
+          snapshot_count: parsedV4.snapshotCount,
+          snapshot_uri: parsedV4.snapshotUri,
+          ...(parsedV4.merkleRoot
+            ? {
+                merkle_root: parsedV4.merkleRoot.toString("hex"),
+              }
+            : {
+                merkle_root: inspectedSnapshot.merkleRoot,
+              }),
+          outcomes: [],
+          resolve_id: resolveId,
+          compiled_artifact_hash: compiledArtifactHashHex,
+          runtime_id: runtimeIdHex,
+          program_id: programId.toBase58(),
+        };
       }
       if (
         event.outcomeIdLens.length !== event.winnerCount ||
@@ -1755,7 +1963,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     status: "MATCH",
     reason: "OK",
     outcome_id: outcomeIdString(event.outcomeId, event.outcomeIdLen),
-    ...((event.winnerCount > 1 || parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5)
+    ...((event.winnerCount > 1 || parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5 || parsed!.formatVersion === FORMAT_VERSION_COMPOSITE_RANK_DESC)
       ? {
           artifact_format_version: event.artifactFormatVersion,
         }
@@ -1774,8 +1982,10 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           winners_count: event.winnerCount,
         }
       : {}),
-    resolution_formula: parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
-      ? formulaCodeToName(parsed!.formulaCode)
+    resolution_formula: parsed!.formatVersion === FORMAT_VERSION_V3 ||
+      parsed!.formatVersion === FORMAT_VERSION_V5 ||
+      parsed!.formatVersion === FORMAT_VERSION_COMPOSITE_RANK_DESC
+      ? (parsed!.formulaName ?? formulaCodeToName(parsed!.formulaCode))
       : "weighted_random",
     ...(parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
       ? {
@@ -1785,7 +1995,9 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     outcomes: parsed!.outcomes.map((outcome) => ({
       id: outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen),
       weight: outcome.weight,
-      ...(parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
+      ...(parsed!.formatVersion === FORMAT_VERSION_V3 ||
+      parsed!.formatVersion === FORMAT_VERSION_V5 ||
+      parsed!.formatVersion === FORMAT_VERSION_COMPOSITE_RANK_DESC
         ? {
             score: signedBigIntToSafeNumber(outcome.score, `score:${outcomeIdString(outcome.outcomeId, outcome.outcomeIdLen)}`),
             order: outcome.order,

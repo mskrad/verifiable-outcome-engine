@@ -23,6 +23,7 @@ use instructions::recover_program_config_admin::{
 };
 use instructions::refresh_master_seed::{RefreshMasterSeed, RefreshMasterSeedArgs};
 use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
+use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121Args};
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
@@ -115,6 +116,13 @@ pub mod outcome {
         instructions::resolve_outcome_v4::handler(ctx, args)
     }
 
+    pub fn resolve_outcome_v121(
+        ctx: Context<ResolveOutcomeV121>,
+        args: ResolveOutcomeV121Args,
+    ) -> Result<()> {
+        instructions::resolve_outcome_v121::handler(ctx, args)
+    }
+
     pub fn admin_pause(ctx: Context<AdminPause>, paused: bool) -> Result<()> {
         instructions::admin_pause::handler(ctx, paused)
     }
@@ -159,6 +167,9 @@ mod __client_accounts_resolve_outcome {
 }
 mod __client_accounts_resolve_outcome_v4 {
     pub use crate::instructions::resolve_outcome_v4::__client_accounts_resolve_outcome_v4::*;
+}
+mod __client_accounts_resolve_outcome_v121 {
+    pub use crate::instructions::resolve_outcome_v121::__client_accounts_resolve_outcome_v121::*;
 }
 mod __client_accounts_admin_pause {
     pub use crate::instructions::admin_pause::__client_accounts_admin_pause::*;
