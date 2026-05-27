@@ -30,10 +30,30 @@ export {
   OUTCOME_STANDARD_V1_2_1,
   WINNER_CLAIM_HASH_DOMAIN,
 } from "./snapshot.js";
+export {
+  buildCompositeRankDescArtifact,
+  parseCompositeRankDescArtifact,
+  replayCompositeRankDescArtifact,
+  canonicalCompositeParticipantJsonLine,
+  FORMAT_VERSION_COMPOSITE_RANK_DESC,
+  FORMULA_CODE_COMPOSITE_RANK_DESC,
+  COMPOSITE_SCORING_VERSION,
+  COMPOSITE_WEIGHT_SCALE,
+  COMPOSITE_NORMALIZATION_SCALE,
+  MAX_COMPOSITE_FIELDS,
+} from "./composite_rank_desc.js";
 export { verifyOutcome } from "./verify.js";
 export type {
   AirdropConfig,
   ArtifactConfig,
+  BuildArtifactConfig,
+  CompositeFieldIntegerInput,
+  CompositeNormalizationMode,
+  CompositeRankDescConfig,
+  CompositeRankDescParticipant,
+  CompositeRankDescReplayEntry,
+  CompositeRankDescReplayResult,
+  CompositeScoringField,
   CompactNamedEntry,
   CompactNamedEntryDrawConfig,
   LootConfig,
@@ -51,6 +71,7 @@ export type {
   SnapshotFormulaDrawConfig,
   SnapshotManifest,
   SnapshotParticipant,
+  ParsedCompositeRankDescArtifact,
   VerifyOutcomeOptions,
   VerifyResult,
 } from "./types.js";

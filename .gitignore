@@ -35,6 +35,12 @@ programs/outcome/*
 !programs/outcome/src/
 programs/outcome/src/*
 !programs/outcome/src/lib.rs
+!programs/outcome/tests/
+programs/outcome/tests/*
+!programs/outcome/tests/fixtures/
+programs/outcome/tests/fixtures/*
+!programs/outcome/tests/fixtures/composite_rank_desc/
+!programs/outcome/tests/fixtures/composite_rank_desc/*.bin
 !programs/outcome/src/instructions/
 programs/outcome/src/instructions/*
 !programs/outcome/src/instructions/mod.rs
@@ -43,3 +49,7 @@ programs/outcome/src/instructions/*
 !programs/outcome/src/math/
 programs/outcome/src/math/*
 !programs/outcome/src/math/compiled_outcome_v1.rs
+!programs/outcome/src/math/composite_rank_desc.rs
+!programs/outcome/src/math/mod.rs
+!programs/outcome/src/math/rng_v1.rs
+!programs/outcome/src/instructions/resolve_outcome_v121.rs

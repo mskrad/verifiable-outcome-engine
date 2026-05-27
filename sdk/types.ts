@@ -8,6 +8,81 @@ export type ResolutionFormula =
   | "first_n"
   | "closest_to";
 
+export type RuntimeResolutionFormula =
+  | ResolutionFormula
+  | "composite_rank_desc";
+
+export type CompositeNormalizationMode = "none" | "min_max";
+
+export type CompositeFieldIntegerInput = SignedIntegerValue | string;
+
+export type CompositeScoringField = {
+  key: string;
+  weight_ppm: number;
+};
+
+export type CompositeRankDescParticipant = {
+  id: string;
+  order: number;
+  fields: Record<string, CompositeFieldIntegerInput>;
+};
+
+export type CompositeRankDescConfig = {
+  formula: "composite_rank_desc";
+  scoring_version?: "vre_composite_rank_v1";
+  normalization_mode: CompositeNormalizationMode;
+  input_lamports: LamportsValue;
+  payout_lamports?: LamportsValue;
+  winners_count?: number;
+  scoring_fields: CompositeScoringField[];
+  participants: CompositeRankDescParticipant[];
+};
+
+export type CompositeRankDescFieldReplay = {
+  field: string;
+  raw_value: string;
+  min_value: string;
+  max_value: string;
+  effective_value: string;
+  contribution: string;
+  zero_ordering_power: boolean;
+};
+
+export type CompositeRankDescReplayEntry = {
+  id: string;
+  order: number;
+  composite_score: string;
+  field_replay: CompositeRankDescFieldReplay[];
+};
+
+export type ParsedCompositeRankDescArtifact = {
+  formatVersion: number;
+  formula: "composite_rank_desc";
+  scoringVersion: "vre_composite_rank_v1";
+  normalizationMode: CompositeNormalizationMode;
+  minInputLamports: bigint;
+  maxInputLamports: bigint;
+  winnersCount: number;
+  participantCount: number;
+  payoutLamports: bigint;
+  weightScale: number;
+  normalizationScale: number;
+  scoringFields: Array<{ key: string; weightPpm: number }>;
+  participants: Array<{
+    id: string;
+    order: number;
+    fieldValues: bigint[];
+  }>;
+};
+
+export type CompositeRankDescReplayResult = {
+  ordered_ids: string[];
+  winner_ids: string[];
+  winners_count: number;
+  total_output_lamports: string;
+  participant_replay: CompositeRankDescReplayEntry[];
+};
+
 export type RaffleConfig = {
   type: "raffle";
   input_lamports: LamportsValue;
@@ -242,6 +317,8 @@ export type ArtifactConfig =
   | OutcomeStandardV121ScaleDrawConfig
   | CompactNamedEntryDrawConfig;
 
+export type BuildArtifactConfig = ArtifactConfig | CompositeRankDescConfig;
+
 export type VerifyOutcomeOptions = {
   signature: string;
   rpcUrl: string;
@@ -256,7 +333,7 @@ export type VerifyResult = {
   outcome_ids?: string[];
   winners_count?: number;
   artifact_format_version?: number;
-  resolution_formula?: ResolutionFormula;
+  resolution_formula?: RuntimeResolutionFormula;
   target?: number;
   snapshot_hash?: string;
   snapshot_count?: number;

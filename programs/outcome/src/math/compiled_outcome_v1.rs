@@ -4,6 +4,9 @@ use anchor_lang::prelude::*;
 use sha2::{Digest, Sha256};
 
 use crate::errors::OutcomeError;
+use crate::math::composite_rank_desc::{
+    self, FORMULA_CODE_COMPOSITE_RANK_DESC, FORMAT_VERSION_COMPOSITE_RANK_DESC,
+};
 
 pub const MAGIC: &[u8; 4] = b"W3O1";
 pub const FORMAT_VERSION_V1: u16 = 1;
@@ -12,6 +15,8 @@ pub const FORMAT_VERSION_V3: u16 = 3;
 pub const FORMAT_VERSION_V4: u16 = 4;
 pub const FORMAT_VERSION_V5: u16 = 5;
 pub const FORMAT_VERSION_V1_2_SCALE: u16 = 6;
+pub const FORMAT_VERSION_V1_2_1_SCALE: u16 = 7;
+pub const FORMAT_VERSION_V8_COMPOSITE_RANK_DESC: u16 = FORMAT_VERSION_COMPOSITE_RANK_DESC;
 pub const MAX_COMPILED_ARTIFACT_BYTES: usize = 8192;
 pub const MAX_OUTCOME_ID_BYTES: usize = 64;
 pub const MAX_WINNERS: usize = 32;
@@ -24,6 +29,7 @@ pub const FORMULA_RANK_DESC: u8 = 2;
 pub const FORMULA_RANK_ASC: u8 = 3;
 pub const FORMULA_FIRST_N: u8 = 4;
 pub const FORMULA_CLOSEST_TO: u8 = 5;
+pub const FORMULA_COMPOSITE_RANK_DESC: u8 = FORMULA_CODE_COMPOSITE_RANK_DESC;
 const MULTI_WINNER_DOMAIN: &[u8] = b"VRE_MULTI_WINNER_V1";
 const HEADER_BYTES_V1_V2: usize = 34;
 const HEADER_BYTES_V3: usize = 42;
@@ -71,6 +77,7 @@ pub struct ParsedArtifact {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ParsedSnapshotArtifactV4 {
+    pub format_version: u16,
     pub min_input_lamports: u64,
     pub max_input_lamports: u64,
     pub winners_count: u16,
@@ -248,6 +255,10 @@ fn compare_formula_outcomes(
     header: &ParsedHeader,
 ) -> Ordering {
     match header.formula_code {
+        FORMULA_COMPOSITE_RANK_DESC => right
+            .score
+            .cmp(&left.score)
+            .then(left.order.cmp(&right.order)),
         FORMULA_RANK_DESC => right
             .score
             .cmp(&left.score)
@@ -312,6 +323,55 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
 
     let mut off = 4usize;
     let format_version = read_u16_le(blob, &mut off)?;
+    if format_version == FORMAT_VERSION_V8_COMPOSITE_RANK_DESC {
+        let parsed_composite = composite_rank_desc::parse(blob)?;
+        let replay = composite_rank_desc::replay(blob)?;
+        let mut outcomes = Vec::with_capacity(parsed_composite.participant_count as usize);
+        for participant in &parsed_composite.participants {
+            let replay_entry = replay
+                .participant_replay
+                .iter()
+                .find(|entry| entry.id == participant.id)
+                .ok_or(OutcomeError::InvalidCompiledArtifactFormat)?;
+            let outcome_id_len = participant.id.len() as u8;
+            require!(
+                (1..=MAX_OUTCOME_ID_BYTES as u8).contains(&outcome_id_len),
+                OutcomeError::InvalidOutcomeId
+            );
+            let mut outcome_id = [0u8; MAX_OUTCOME_ID_BYTES];
+            outcome_id[..participant.id.len()].copy_from_slice(participant.id.as_bytes());
+            outcomes.push(ParsedOutcome {
+                outcome_id_len,
+                outcome_id,
+                weight: 1,
+                score: i64::try_from(replay_entry.composite_score)
+                    .map_err(|_| error!(OutcomeError::MathOverflow))?,
+                order: participant.order,
+                first_effect_index: 0,
+                effect_count: if parsed_composite.payout_lamports == 0 {
+                    0
+                } else {
+                    1
+                },
+            });
+        }
+        return Ok(ParsedArtifact {
+            header: ParsedHeader {
+                format_version,
+                min_input_lamports: parsed_composite.min_input_lamports,
+                max_input_lamports: parsed_composite.max_input_lamports,
+                outcome_count: parsed_composite.participant_count,
+                total_effect_count: 0,
+                winners_count: parsed_composite.winners_count,
+                formula_code: FORMULA_COMPOSITE_RANK_DESC,
+                target_score: 0,
+                payout_lamports: parsed_composite.payout_lamports,
+            },
+            outcomes,
+            effects: Vec::new(),
+            effects_offset: blob.len(),
+        });
+    }
     if format_version == FORMAT_VERSION_V5 {
         require!(
             blob.len() >= HEADER_BYTES_V5,
@@ -623,7 +683,9 @@ pub fn parse_snapshot_v4(blob: &[u8]) -> Result<ParsedSnapshotArtifactV4> {
     let mut off = 4usize;
     let format_version = read_u16_le(blob, &mut off)?;
     require!(
-        format_version == FORMAT_VERSION_V4 || format_version == FORMAT_VERSION_V1_2_SCALE,
+        format_version == FORMAT_VERSION_V4
+            || format_version == FORMAT_VERSION_V1_2_SCALE
+            || format_version == FORMAT_VERSION_V1_2_1_SCALE,
         OutcomeError::InvalidCompiledArtifactFormat
     );
     let min_input_lamports = read_u64_le(blob, &mut off)?;
@@ -697,6 +759,7 @@ pub fn parse_snapshot_v4(blob: &[u8]) -> Result<ParsedSnapshotArtifactV4> {
     );
 
     Ok(ParsedSnapshotArtifactV4 {
+        format_version,
         min_input_lamports,
         max_input_lamports,
         winners_count,
@@ -752,7 +815,9 @@ pub fn select_outcomes(
         let selected = parsed.outcomes[selected_index];
         outcome_id_lens.push(selected.outcome_id_len);
         outcome_ids.push(selected.outcome_id);
-        if parsed.header.format_version == FORMAT_VERSION_V5 {
+        if parsed.header.format_version == FORMAT_VERSION_V5
+            || parsed.header.format_version == FORMAT_VERSION_V8_COMPOSITE_RANK_DESC
+        {
             if parsed.header.payout_lamports > 0 {
                 effects_hasher.update([EFFECT_TYPE_TRANSFER_SOL]);
                 effects_hasher.update([0u8; 7]);
@@ -965,6 +1030,15 @@ mod tests {
         blob
     }
 
+    fn load_composite_case(case_id: &str) -> Vec<u8> {
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/composite_rank_desc")
+                .join(format!("{case_id}.bin")),
+        )
+        .expect("composite runtime fixture must exist")
+    }
+
     #[test]
     fn parses_and_selects_deterministically() {
         let blob = demo_blob();
@@ -1133,6 +1207,27 @@ mod tests {
         assert_eq!(
             &selected.outcome_ids[1][..selected.outcome_id_lens[1] as usize],
             b"team-alpha"
+        );
+        assert_eq!(selected.total_output_lamports, 6);
+        assert_eq!(selected.effect_count, 2);
+    }
+
+    #[test]
+    fn parses_and_selects_v8_composite_rank_desc() {
+        let blob = load_composite_case("normalized_composite_ranking");
+        let parsed = parse(&blob).unwrap();
+        assert_eq!(parsed.header.format_version, FORMAT_VERSION_V8_COMPOSITE_RANK_DESC);
+        assert_eq!(parsed.header.formula_code, FORMULA_COMPOSITE_RANK_DESC);
+        assert_eq!(parsed.header.outcome_count, 3);
+        let selected = select_outcomes(&blob, &parsed, &[9u8; 32], 10).unwrap();
+        assert_eq!(selected.outcome_id_lens, vec![10, 10]);
+        assert_eq!(
+            &selected.outcome_ids[0][..selected.outcome_id_lens[0] as usize],
+            b"desk_gamma"
+        );
+        assert_eq!(
+            &selected.outcome_ids[1][..selected.outcome_id_lens[1] as usize],
+            b"desk_alpha"
         );
         assert_eq!(selected.total_output_lamports, 6);
         assert_eq!(selected.effect_count, 2);

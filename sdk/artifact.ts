@@ -9,9 +9,12 @@ import {
   buildSnapshotManifest,
   validateWinnersCount as validateSnapshotWinnersCount,
 } from "./snapshot.js";
+import { buildCompositeRankDescArtifact } from "./composite_rank_desc.js";
 import type {
   AirdropConfig,
   ArtifactConfig,
+  BuildArtifactConfig,
+  CompositeRankDescConfig,
   FormulaDrawConfig,
   LamportsValue,
   LootConfig,
@@ -465,6 +468,15 @@ function toW3O1Config(config: ArtifactConfig): W3O1Config {
   );
 }
 
+function isCompositeRankDescConfig(config: BuildArtifactConfig): config is CompositeRankDescConfig {
+  return (
+    typeof config === "object" &&
+    config !== null &&
+    "formula" in config &&
+    (config as { formula?: unknown }).formula === "composite_rank_desc"
+  );
+}
+
 function serializeW3O1(config: W3O1Config): Buffer {
   validateOutcomeCount(config.outcomes.length, "outcomes");
   validateOutcomeCount(config.effects.length, "effects");
@@ -528,7 +540,10 @@ function serializeW3O1(config: W3O1Config): Buffer {
   return Buffer.concat(parts);
 }
 
-export function buildArtifact(config: ArtifactConfig): Buffer {
+export function buildArtifact(config: BuildArtifactConfig): Buffer {
+  if (isCompositeRankDescConfig(config)) {
+    return buildCompositeRankDescArtifact(config);
+  }
   if (config.type === "formula_draw_snapshot") {
     return buildArtifactV4(config);
   }

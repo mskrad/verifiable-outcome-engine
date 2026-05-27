@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 import { buildArtifact } from "../sdk/artifact.ts";
-import type { ArtifactConfig } from "../sdk/types.ts";
+import type { BuildArtifactConfig } from "../sdk/types.ts";
 
 type CliArgs = Record<string, string | boolean>;
 
@@ -35,8 +35,8 @@ function sha256Hex(bytes: Buffer): string {
   return crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
-function loadConfig(configPath: string): ArtifactConfig {
-  return JSON.parse(fs.readFileSync(resolvePath(configPath), "utf8")) as ArtifactConfig;
+function loadConfig(configPath: string): BuildArtifactConfig {
+  return JSON.parse(fs.readFileSync(resolvePath(configPath), "utf8")) as BuildArtifactConfig;
 }
 
 async function main(): Promise<void> {
