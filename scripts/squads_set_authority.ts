@@ -26,7 +26,6 @@ import {
   TransactionMessage,
   VersionedTransaction,
   TransactionInstruction,
-  SystemProgram,
 } from "@solana/web3.js";
 import fs from "fs";
 import path from "path";
@@ -101,26 +100,36 @@ async function main() {
   console.log("Transaction index:", transactionIndex);
 
   // Create vault transaction
-  const createIx = await multisig.instructions.vaultTransactionCreate({
+  const [transactionPda] = multisig.getTransactionPda({
     multisigPda: MULTISIG_KEY,
-    transactionIndex: BigInt(transactionIndex),
-    creator: keypair.publicKey,
-    vaultIndex: VAULT_INDEX,
-    ephemeralSigners: 0,
-    transactionMessage: new TransactionMessage({
-      payerKey: vaultPda,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-      instructions: [setAuthIx],
-    }),
-    memo: direction === "squads" ? "Return upgrade authority to Squads" : "Temp: move upgrade authority to esjx for extend",
+    index: BigInt(transactionIndex),
   });
+  const transactionMessage = new TransactionMessage({
+    payerKey: vaultPda,
+    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+    instructions: [setAuthIx],
+  });
+  const createIx = multisig.generated.createVaultTransactionCreateInstruction(
+    { multisig: MULTISIG_KEY, transaction: transactionPda, creator: keypair.publicKey },
+    {
+      args: {
+        vaultIndex: VAULT_INDEX,
+        ephemeralSigners: 0,
+        transactionMessage: multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+          message: transactionMessage,
+          vaultPda,
+        }),
+        memo: direction === "squads" ? "Return upgrade authority to Squads" : "Temp: move upgrade authority to esjx for extend",
+      },
+    }
+  );
   const createSig = await sendAndConfirm(connection, keypair, [createIx]);
   console.log("✅ Vault tx created:", createSig);
 
   // Propose
   const proposalSig = await sendAndConfirm(connection, keypair, [
     multisig.instructions.proposalCreate({
-      multisigPda: MULTISIG_KEY, transactionIndex: BigInt(transactionIndex), creator: keypair.publicKey,
+      multisigPda: MULTISIG_KEY, transactionIndex: BigInt(transactionIndex), rentPayer: keypair.publicKey,
     })
   ]);
   console.log("✅ Proposal created:", proposalSig);

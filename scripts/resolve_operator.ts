@@ -78,6 +78,12 @@ type ProgramConfigState = {
   treasury: PublicKey;
 };
 
+type ArtifactReviewOptions = {
+  auditHash?: Buffer;
+  artifactUri?: string;
+  artifactPath: string;
+};
+
 function parseArgs(argv: string[]): CliArgs {
   const out: CliArgs = {};
   for (let i = 0; i < argv.length; i += 1) {
@@ -118,6 +124,46 @@ function ensureDirectory(dirPath: string): void {
 function outputDirFromArg(raw?: string): string {
   if (!raw) return resolveOperatorOutputDir();
   return path.isAbsolute(raw) ? raw : path.resolve(process.cwd(), raw);
+}
+
+async function finalizeCompiledArtifact(
+  client: OutcomeClient,
+  artifactPda: PublicKey,
+  chunkPdas: PublicKey[]
+): Promise<void> {
+  await (client.program.methods as any)
+    .finalizeCompiledArtifact()
+    .accounts({
+      publisher: client.authority.publicKey,
+      approvedOutcomeArtifact: artifactPda,
+    })
+    .remainingAccounts(
+      chunkPdas.map((pubkey) => ({
+        pubkey,
+        isSigner: false,
+        isWritable: false,
+      }))
+    )
+    .rpc();
+}
+
+async function reviewCompiledArtifact(
+  client: OutcomeClient,
+  artifactPda: PublicKey,
+  opts: ArtifactReviewOptions
+): Promise<void> {
+  await (client.program.methods as any)
+    .reviewCompiledArtifact({
+      status: STATUS_APPROVED,
+      auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
+      artifactUri: Buffer.from(opts.artifactUri ?? path.basename(opts.artifactPath), "utf8"),
+    })
+    .accounts({
+      programConfig: deriveProgramConfigPda(client.programId),
+      admin: client.authority.publicKey,
+      approvedOutcomeArtifact: artifactPda,
+    })
+    .rpc();
 }
 
 function loadKeypair(walletPath: string): Keypair {
@@ -302,7 +348,7 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
     );
   }
 
-  if (Boolean(programConfig.allowUnreviewedBinding)) {
+  if (programConfig.allowUnreviewedBinding) {
     await (client.program.methods as any)
       .setProgramConfig({
         newAdmin: client.authority.publicKey,
@@ -392,39 +438,12 @@ async function submitApprovedArtifact(
 
     if (!artifactAccount.isFinalized) {
       console.log(`[info] artifact found but not finalized — finalizing: ${artifactPda.toBase58()}`);
-      await (client.program.methods as any)
-        .finalizeCompiledArtifact()
-        .accounts({
-          publisher: client.authority.publicKey,
-          approvedOutcomeArtifact: artifactPda,
-        })
-        .remainingAccounts(
-          chunkPdas.map((pubkey) => ({
-            pubkey,
-            isSigner: false,
-            isWritable: false,
-          }))
-        )
-        .rpc();
+      await finalizeCompiledArtifact(client, artifactPda, chunkPdas);
     }
 
     if (artifactAccount.status !== STATUS_APPROVED) {
       console.log(`[info] artifact not yet reviewed — reviewing: ${artifactPda.toBase58()}`);
-      await (client.program.methods as any)
-        .reviewCompiledArtifact({
-          status: STATUS_APPROVED,
-          auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
-          artifactUri: Buffer.from(
-            opts.artifactUri ?? path.basename(artifactPath),
-            "utf8"
-          ),
-        })
-        .accounts({
-          programConfig: deriveProgramConfigPda(client.programId),
-          admin: client.authority.publicKey,
-          approvedOutcomeArtifact: artifactPda,
-        })
-        .rpc();
+      await reviewCompiledArtifact(client, artifactPda, { ...opts, artifactPath });
     } else {
       console.log(`[info] artifact already approved on-chain: ${artifactPda.toBase58()} — skipping upload`);
     }
@@ -505,36 +524,8 @@ async function submitApprovedArtifact(
     }
   }
 
-  await (client.program.methods as any)
-    .finalizeCompiledArtifact()
-    .accounts({
-      publisher: client.authority.publicKey,
-      approvedOutcomeArtifact: artifactPda,
-    })
-    .remainingAccounts(
-      chunkPdas.map((pubkey) => ({
-        pubkey,
-        isSigner: false,
-        isWritable: false,
-      }))
-    )
-    .rpc();
-
-  await (client.program.methods as any)
-    .reviewCompiledArtifact({
-      status: STATUS_APPROVED,
-      auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
-      artifactUri: Buffer.from(
-        opts.artifactUri ?? path.basename(artifactPath),
-        "utf8"
-      ),
-    })
-    .accounts({
-      programConfig: deriveProgramConfigPda(client.programId),
-      admin: client.authority.publicKey,
-      approvedOutcomeArtifact: artifactPda,
-    })
-    .rpc();
+  await finalizeCompiledArtifact(client, artifactPda, chunkPdas);
+  await reviewCompiledArtifact(client, artifactPda, { ...opts, artifactPath });
 
   return {
     blob: opts.blob,

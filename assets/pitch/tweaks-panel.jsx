@@ -1,51 +1,4 @@
 
-// tweaks-panel.jsx
-// Reusable Tweaks shell + form-control helpers.
-//
-// Owns the host protocol (listens for __activate_edit_mode / __deactivate_edit_mode,
-// posts __edit_mode_available / __edit_mode_set_keys / __edit_mode_dismissed) so
-// individual prototypes don't re-roll it. Ships a consistent set of controls so you
-// don't hand-draw <input type="range">, segmented radios, steppers, etc.
-//
-// Usage (in an HTML file that loads React + Babel):
-//
-//   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-//     "primaryColor": "#D97757",
-//     "palette": ["#D97757", "#29261b", "#f6f4ef"],
-//     "fontSize": 16,
-//     "density": "regular",
-//     "dark": false
-//   }/*EDITMODE-END*/;
-//
-//   function App() {
-//     const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-//     return (
-//       <div style={{ fontSize: t.fontSize, color: t.primaryColor }}>
-//         Hello
-//         <TweaksPanel>
-//           <TweakSection label="Typography" />
-//           <TweakSlider label="Font size" value={t.fontSize} min={10} max={32} unit="px"
-//                        onChange={(v) => setTweak('fontSize', v)} />
-//           <TweakRadio  label="Density" value={t.density}
-//                        options={['compact', 'regular', 'comfy']}
-//                        onChange={(v) => setTweak('density', v)} />
-//           <TweakSection label="Theme" />
-//           <TweakColor  label="Primary" value={t.primaryColor}
-//                        options={['#D97757', '#2A6FDB', '#1F8A5B', '#7A5AE0']}
-//                        onChange={(v) => setTweak('primaryColor', v)} />
-//           <TweakColor  label="Palette" value={t.palette}
-//                        options={[['#D97757', '#29261b', '#f6f4ef'],
-//                                  ['#475569', '#0f172a', '#f1f5f9']]}
-//                        onChange={(v) => setTweak('palette', v)} />
-//           <TweakToggle label="Dark mode" value={t.dark}
-//                        onChange={(v) => setTweak('dark', v)} />
-//         </TweaksPanel>
-//       </div>
-//     );
-//   }
-//
-// ─────────────────────────────────────────────────────────────────────────────
-
 const __TWEAKS_STYLE = `
   .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
     max-height:calc(100vh - 32px);display:flex;flex-direction:column;
@@ -86,8 +39,10 @@ const __TWEAKS_STYLE = `
     background:rgba(255,255,255,.6);color:inherit;font:inherit;outline:none}
   .twk-field:focus{border-color:rgba(0,0,0,.25);background:rgba(255,255,255,.85)}
   select.twk-field{padding-right:22px;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='rgba(0,0,0,.5)' d='M0 0h10L5 6z'/></svg>");
-    background-repeat:no-repeat;background-position:right 8px center}
+    background-image:linear-gradient(45deg,transparent 50%,rgba(0,0,0,.5) 50%),
+      linear-gradient(135deg,rgba(0,0,0,.5) 50%,transparent 50%);
+    background-repeat:no-repeat;background-size:5px 5px,5px 5px;
+    background-position:calc(100% - 13px) 11px,calc(100% - 8px) 11px}
 
   .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
     border-radius:999px;background:rgba(0,0,0,.12);outline:none}
@@ -336,7 +291,8 @@ function TweakRow({ label, value, children, inline = false }) {
 
 // ── Controls ────────────────────────────────────────────────────────────────
 
-function TweakSlider({ label, value, min = 0, max = 100, step = 1, unit = '', onChange }) {
+function TweakSlider(props) {
+  const { label, value, min = 0, max = 100, step = 1, unit = '', onChange } = props;
   return (
     <TweakRow label={label} value={`${value}${unit}`}>
       <input type="range" className="twk-slider" min={min} max={max} step={step}
@@ -451,7 +407,8 @@ function TweakText({ label, value, placeholder, onChange }) {
   );
 }
 
-function TweakNumber({ label, value, min, max, step = 1, unit = '', onChange }) {
+function TweakNumber(props) {
+  const { label, value, min, max, step = 1, unit = '', onChange } = props;
   const clamp = (n) => {
     if (min != null && n < min) return min;
     if (max != null && n > max) return max;

@@ -55,7 +55,7 @@ async function main() {
   const evidence = fs.existsSync(evidencePath)
     ? JSON.parse(fs.readFileSync(evidencePath, "utf-8"))
     : { task: "HACKATHON-SQUADS-PROGRAM-UPGRADE-001" };
-  evidence.transactions = { ...(evidence.transactions ?? {}), vault_transaction_execute: sig };
+  evidence.transactions = { ...evidence.transactions, vault_transaction_execute: sig };
   evidence.timestamp = new Date().toISOString();
   fs.writeFileSync(evidencePath, JSON.stringify(evidence, null, 2));
   console.log("✅ Evidence written to artifacts/squads_upgrade_evidence.json");

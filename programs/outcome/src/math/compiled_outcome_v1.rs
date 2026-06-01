@@ -9,6 +9,10 @@ pub const MAGIC: &[u8; 4] = b"W3O1";
 pub const FORMAT_VERSION_V1: u16 = 1;
 pub const FORMAT_VERSION_V2: u16 = 2;
 pub const FORMAT_VERSION_V3: u16 = 3;
+pub const FORMAT_VERSION_V4: u16 = 4;
+pub const FORMAT_VERSION_V5: u16 = 5;
+pub const FORMAT_VERSION_V1_2_SCALE: u16 = 6;
+pub const FORMAT_VERSION_V1_2_1_SCALE: u16 = 7;
 pub const MAX_COMPILED_ARTIFACT_BYTES: usize = 8192;
 pub const MAX_OUTCOME_ID_BYTES: usize = 64;
 pub const MAX_WINNERS: usize = 32;
@@ -76,6 +80,14 @@ pub struct SelectedOutcomes {
     pub outcome_ids: Vec<[u8; MAX_OUTCOME_ID_BYTES]>,
     pub effect_count: u16,
     pub effects_digest: [u8; 32],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ParsedSnapshotV4 {
+    pub format_version: u16,
+    pub min_input_lamports: u64,
+    pub max_input_lamports: u64,
+    pub winners_count: u16,
 }
 
 fn read_u8(input: &[u8], off: &mut usize) -> Result<u8> {
@@ -208,7 +220,9 @@ pub fn choose_weighted_index(weights: &[u32], random_u64: u64) -> Result<usize> 
 
 fn roll_for_round(randomness: &[u8; 32], round: u16) -> u64 {
     if round == 0 {
-        return u64::from_le_bytes(randomness[..8].try_into().unwrap());
+        let mut bytes = [0u8; 8];
+        bytes.copy_from_slice(&randomness[..8]);
+        return u64::from_le_bytes(bytes);
     }
 
     let mut hasher = Sha256::new();
@@ -216,7 +230,9 @@ fn roll_for_round(randomness: &[u8; 32], round: u16) -> u64 {
     hasher.update(randomness);
     hasher.update(round.to_le_bytes());
     let digest: [u8; 32] = hasher.finalize().into();
-    u64::from_le_bytes(digest[..8].try_into().unwrap())
+    let mut bytes = [0u8; 8];
+    bytes.copy_from_slice(&digest[..8]);
+    u64::from_le_bytes(bytes)
 }
 
 fn compare_formula_outcomes(
@@ -398,14 +414,18 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
             end_effect_index <= total_effect_count,
             OutcomeError::InvalidCompiledArtifactFormat
         );
-        for effect_index in first_effect_index as usize..end_effect_index as usize {
+        for is_referenced in referenced_effects
+            .iter_mut()
+            .take(end_effect_index as usize)
+            .skip(first_effect_index as usize)
+        {
             if format_version != FORMAT_VERSION_V1 {
                 require!(
-                    !referenced_effects[effect_index],
+                    !*is_referenced,
                     OutcomeError::InvalidCompiledArtifactFormat
                 );
             }
-            referenced_effects[effect_index] = true;
+            *is_referenced = true;
         }
 
         outcomes.push(ParsedOutcome {
@@ -471,6 +491,47 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
         outcomes,
         effects,
         effects_offset,
+    })
+}
+
+pub fn parse_snapshot_v4(blob: &[u8]) -> Result<ParsedSnapshotV4> {
+    require!(
+        !blob.is_empty() && blob.len() <= MAX_COMPILED_ARTIFACT_BYTES,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        blob.len() >= HEADER_BYTES_V1_V2,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        &blob[..4] == MAGIC,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+
+    let mut off = 4usize;
+    let format_version = read_u16_le(blob, &mut off)?;
+    require!(
+        format_version == FORMAT_VERSION_V4
+            || format_version == FORMAT_VERSION_V1_2_SCALE
+            || format_version == FORMAT_VERSION_V1_2_1_SCALE,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let min_input_lamports = read_u64_le(blob, &mut off)?;
+    let max_input_lamports = read_u64_le(blob, &mut off)?;
+    require!(
+        min_input_lamports <= max_input_lamports,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let _outcome_count = read_u16_le(blob, &mut off)?;
+    let _total_effect_count = read_u16_le(blob, &mut off)?;
+    let winners_count = read_u16_le(blob, &mut off)?;
+    require!(winners_count > 0, OutcomeError::InvalidCompiledArtifactFormat);
+
+    Ok(ParsedSnapshotV4 {
+        format_version,
+        min_input_lamports,
+        max_input_lamports,
+        winners_count,
     })
 }
 

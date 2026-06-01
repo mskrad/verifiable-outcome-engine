@@ -116,26 +116,36 @@ async function main() {
   console.log("New treasury:", newTreasury.toBase58());
   console.log("Transaction index:", transactionIndex);
 
-  const createIx = await multisig.instructions.vaultTransactionCreate({
+  const [transactionPda] = multisig.getTransactionPda({
     multisigPda: MULTISIG_KEY,
-    transactionIndex: BigInt(transactionIndex),
-    creator: signer.publicKey,
-    vaultIndex: VAULT_INDEX,
-    ephemeralSigners: 0,
-    transactionMessage: new TransactionMessage({
-      payerKey: vaultPda,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-      instructions: [ix],
-    }),
-    memo: "Recover ProgramConfig admin to fresh Swig actor",
+    index: BigInt(transactionIndex),
   });
+  const transactionMessage = new TransactionMessage({
+    payerKey: vaultPda,
+    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+    instructions: [ix],
+  });
+  const createIx = multisig.generated.createVaultTransactionCreateInstruction(
+    { multisig: MULTISIG_KEY, transaction: transactionPda, creator: signer.publicKey },
+    {
+      args: {
+        vaultIndex: VAULT_INDEX,
+        ephemeralSigners: 0,
+        transactionMessage: multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+          message: transactionMessage,
+          vaultPda,
+        }),
+        memo: "Recover ProgramConfig admin to fresh Swig actor",
+      },
+    }
+  );
   const createSig = await sendAndConfirm(connection, signer, [createIx]);
   console.log("✅ Vault tx created:", createSig);
 
   const proposalIx = multisig.instructions.proposalCreate({
     multisigPda: MULTISIG_KEY,
     transactionIndex: BigInt(transactionIndex),
-    creator: signer.publicKey,
+    rentPayer: signer.publicKey,
   });
   const proposalSig = await sendAndConfirm(connection, signer, [proposalIx]);
   console.log("✅ Proposal created:", proposalSig);

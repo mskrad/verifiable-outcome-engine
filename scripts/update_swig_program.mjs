@@ -11,7 +11,6 @@ import {
   Connection,
   Keypair,
   PublicKey,
-  SystemProgram,
   TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
