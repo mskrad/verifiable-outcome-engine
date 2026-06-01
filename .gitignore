@@ -5,6 +5,12 @@ tmp/
 dist/
 Assets /
 artifacts/*.bin
+artifacts/**/canonical_snapshot.jsonl
+artifacts/**/snapshot.jsonl
+artifacts/**/proof_manifest.json
+artifacts/**/snapshot_manifest.json
+artifacts/**/merkle_proof*.json
+artifacts/**/merkle_root*.json
 sdk/*.js
 sdk/*.d.ts
 config/partners.json
