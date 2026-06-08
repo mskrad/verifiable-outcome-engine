@@ -1,8 +1,20 @@
 import { PublicKey } from "@solana/web3.js";
 
+import {
+  buildArtifactV4,
+  buildArtifactV5,
+  buildArtifactV12,
+  buildArtifactV121,
+  buildSnapshotHash,
+  buildSnapshotManifest,
+  validateWinnersCount as validateSnapshotWinnersCount,
+} from "./snapshot.js";
+import { buildCompositeRankDescArtifact } from "./composite_rank_desc.js";
 import type {
   AirdropConfig,
   ArtifactConfig,
+  BuildArtifactConfig,
+  CompositeRankDescConfig,
   FormulaDrawConfig,
   LamportsValue,
   LootConfig,
@@ -456,6 +468,15 @@ function toW3O1Config(config: ArtifactConfig): W3O1Config {
   );
 }
 
+function isCompositeRankDescConfig(config: BuildArtifactConfig): config is CompositeRankDescConfig {
+  return (
+    typeof config === "object" &&
+    config !== null &&
+    "formula" in config &&
+    (config as { formula?: unknown }).formula === "composite_rank_desc"
+  );
+}
+
 function serializeW3O1(config: W3O1Config): Buffer {
   validateOutcomeCount(config.outcomes.length, "outcomes");
   validateOutcomeCount(config.effects.length, "effects");
@@ -519,6 +540,31 @@ function serializeW3O1(config: W3O1Config): Buffer {
   return Buffer.concat(parts);
 }
 
-export function buildArtifact(config: ArtifactConfig): Buffer {
+export function buildArtifact(config: BuildArtifactConfig): Buffer {
+  if (isCompositeRankDescConfig(config)) {
+    return buildCompositeRankDescArtifact(config);
+  }
+  if (config.type === "formula_draw_snapshot") {
+    return buildArtifactV4(config);
+  }
+  if (config.type === "outcome_standard_v1_2") {
+    return buildArtifactV12(config);
+  }
+  if (config.type === "outcome_standard_v1_2_1") {
+    return buildArtifactV121(config);
+  }
+  if (config.type === "formula_draw_v5") {
+    return buildArtifactV5(config);
+  }
   return serializeW3O1(toW3O1Config(config));
 }
+
+export {
+  buildArtifactV4,
+  buildArtifactV5,
+  buildArtifactV12,
+  buildArtifactV121,
+  buildSnapshotHash,
+  buildSnapshotManifest,
+  validateSnapshotWinnersCount,
+};

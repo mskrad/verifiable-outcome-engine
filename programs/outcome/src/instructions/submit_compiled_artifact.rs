@@ -3,7 +3,9 @@ use anchor_lang::prelude::*;
 use crate::{
     errors::OutcomeError,
     math::compiled_outcome_v1::{
-        FORMAT_VERSION_V1, FORMAT_VERSION_V2, FORMAT_VERSION_V3, MAX_COMPILED_ARTIFACT_BYTES,
+        FORMAT_VERSION_V1, FORMAT_VERSION_V1_2_1_SCALE, FORMAT_VERSION_V1_2_SCALE,
+        FORMAT_VERSION_V2, FORMAT_VERSION_V3, FORMAT_VERSION_V4, FORMAT_VERSION_V5,
+        FORMAT_VERSION_V8_COMPOSITE_RANK_DESC, MAX_COMPILED_ARTIFACT_BYTES,
     },
     state::approved_outcome_artifact::{
         ApprovedOutcomeArtifact, MAX_ARTIFACT_URI_BYTES, STATUS_PENDING,
@@ -40,7 +42,12 @@ pub fn handler(
     require!(
         args.format_version == FORMAT_VERSION_V1
             || args.format_version == FORMAT_VERSION_V2
-            || args.format_version == FORMAT_VERSION_V3,
+            || args.format_version == FORMAT_VERSION_V3
+            || args.format_version == FORMAT_VERSION_V4
+            || args.format_version == FORMAT_VERSION_V5
+            || args.format_version == FORMAT_VERSION_V8_COMPOSITE_RANK_DESC
+            || args.format_version == FORMAT_VERSION_V1_2_SCALE
+            || args.format_version == FORMAT_VERSION_V1_2_1_SCALE,
         OutcomeError::InvalidCompiledArtifactFormat
     );
     require!(

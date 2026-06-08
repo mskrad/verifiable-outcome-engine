@@ -1,0 +1,22 @@
+{
+  "version": "outcome_standard_snapshot_manifest_v1",
+  "standard_version": "1.2",
+  "standard_kind": "scale_snapshot",
+  "entry_model": "named_entry",
+  "entry_hash_scheme": "sha256d_canonical_named_entry_v1",
+  "merkle_hash_scheme": "sha256_pair_v1",
+  "snapshot_hash": "9e286a241ab2732718dd33cb769dfe33d2d240ebfbf8ce8498ddb37d707971ed",
+  "snapshot_count": 250,
+  "formula": "closest_to",
+  "winners_count": 3,
+  "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_008_v12_stage1_matrix/closest_to-e250-w3/canonical_snapshot.jsonl",
+  "created_at": "2026-05-16T15:08:20.552Z",
+  "merkle_root": "d515f22b33691975ec6bd6ad1dfc40b00704ba52bc5e52fde93ce9c53d3686a6",
+  "publication_status": "skipped_unconfigured",
+  "publication_url": null,
+  "proof_manifest_url": null,
+  "proof_status": "ready",
+  "payout_lamports": "3",
+  "target": "125",
+  "threshold_mode": "medium"
+}

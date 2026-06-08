@@ -368,6 +368,12 @@ The committed ID is what gets verified on-chain; the display name is your concer
 
 For full leaderboards of any size, VRE supports a chunked snapshot commit flow (`W3O1 v4`):
 
+- Commit `sha256(participant_id)` instead of the raw string
+- Keep the full ID → hash mapping off-chain
+- Verification: hash the claimed winner ID and confirm it matches on-chain
+
+This allows base58 wallet addresses or longer IDs without expanding transaction size.
+
 1. Submit participant snapshot in chunks via `/api/partner/snapshot/init` → `/chunk` → `/finalize`
 2. Finalize snapshot hash on-chain (single anchor point)
 3. Resolve winners from the committed snapshot hash

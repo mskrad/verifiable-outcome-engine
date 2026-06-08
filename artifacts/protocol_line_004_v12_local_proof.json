@@ -1,0 +1,156 @@
+{
+  "task_id": "PROTOCOL-LINE-004",
+  "standard_version": "1.2",
+  "internal_artifact_format_version": 6,
+  "v11_compact_intact": {
+    "near_threshold_entries": 103,
+    "near_threshold_artifact_byte_size": 8185,
+    "max_compiled_artifact_bytes": 8192,
+    "v5_entry_bytes": 79,
+    "overflow_entries": 104,
+    "overflow_route": true,
+    "overflow_reason": "Outcome Standard V1.1 compact artifact is 8264 bytes; route larger draws to Outcome Standard V1.2"
+  },
+  "explicit_scale_route": {
+    "route": "scale_snapshot",
+    "endpoints": [
+      "/api/partner/snapshot/init",
+      "/api/partner/snapshot/chunk",
+      "/api/partner/snapshot/finalize"
+    ]
+  },
+  "v12_cases": [
+    {
+      "formula": "weighted_random",
+      "standard_version": "1.2",
+      "internal_artifact_format_version": 6,
+      "entry_count": 104,
+      "winners_count": 3,
+      "artifact_byte_size": 242,
+      "snapshot_hash_verified": true,
+      "snapshot_count_verified": true,
+      "merkle_root_verified": true,
+      "winner_recomputation_verified": true,
+      "claimed_winners_verified": true,
+      "merkle_proof_surface_verified": true,
+      "publication_status": "skipped_unconfigured",
+      "publication_url": null,
+      "snapshot_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/weighted_random-w3/manifest.json",
+      "snapshot_manifest_hash": "848186f53044fd23703300bc19c2b69abe139e3e37d8ab32b40b267098084ab2",
+      "proof_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/weighted_random-w3/proof_manifest.json",
+      "proof_manifest_hash": "7b7a77b85ac61066db70e3a30f7dc1b181e019bedf9d046c9605b8b307c78868",
+      "selected_ids": [
+        "row-0032",
+        "row-0071",
+        "row-0061"
+      ]
+    },
+    {
+      "formula": "rank_desc",
+      "standard_version": "1.2",
+      "internal_artifact_format_version": 6,
+      "entry_count": 104,
+      "winners_count": 3,
+      "artifact_byte_size": 236,
+      "snapshot_hash_verified": true,
+      "snapshot_count_verified": true,
+      "merkle_root_verified": true,
+      "winner_recomputation_verified": true,
+      "claimed_winners_verified": true,
+      "merkle_proof_surface_verified": true,
+      "publication_status": "skipped_unconfigured",
+      "publication_url": null,
+      "snapshot_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/rank_desc-w3/manifest.json",
+      "snapshot_manifest_hash": "e24dfe3ca73cd55640f18853dffe923a7d8b39815dc92712772cc551ea0f4ce0",
+      "proof_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/rank_desc-w3/proof_manifest.json",
+      "proof_manifest_hash": "753a787c5a245e9d2860f0280d7db472823dd2d5b1bf6a767caad638e7582688",
+      "selected_ids": [
+        "row-0001",
+        "row-0002",
+        "row-0003"
+      ]
+    },
+    {
+      "formula": "rank_asc",
+      "standard_version": "1.2",
+      "internal_artifact_format_version": 6,
+      "entry_count": 104,
+      "winners_count": 3,
+      "artifact_byte_size": 235,
+      "snapshot_hash_verified": true,
+      "snapshot_count_verified": true,
+      "merkle_root_verified": true,
+      "winner_recomputation_verified": true,
+      "claimed_winners_verified": true,
+      "merkle_proof_surface_verified": true,
+      "publication_status": "skipped_unconfigured",
+      "publication_url": null,
+      "snapshot_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/rank_asc-w3/manifest.json",
+      "snapshot_manifest_hash": "5c0c9bceb98528302d39d1ec1f358e56ac713908ed99d99c991cee217ec74a09",
+      "proof_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/rank_asc-w3/proof_manifest.json",
+      "proof_manifest_hash": "e750f957a186072d6605a2f4c15df3efc74897bc9c44f5b1e9275d327516cbab",
+      "selected_ids": [
+        "row-0001",
+        "row-0002",
+        "row-0003"
+      ]
+    },
+    {
+      "formula": "first_n",
+      "standard_version": "1.2",
+      "internal_artifact_format_version": 6,
+      "entry_count": 104,
+      "winners_count": 3,
+      "artifact_byte_size": 234,
+      "snapshot_hash_verified": true,
+      "snapshot_count_verified": true,
+      "merkle_root_verified": true,
+      "winner_recomputation_verified": true,
+      "claimed_winners_verified": true,
+      "merkle_proof_surface_verified": true,
+      "publication_status": "skipped_unconfigured",
+      "publication_url": null,
+      "snapshot_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/first_n-w3/manifest.json",
+      "snapshot_manifest_hash": "7929d0f9f10a6a158e1cc4029d58c36390f8bca8116b2755bd03484843d0ac23",
+      "proof_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/first_n-w3/proof_manifest.json",
+      "proof_manifest_hash": "c4bf93172e2f51fe83e4a198aa3c09df9a3795f24afd83d604780a4a2e2cf972",
+      "selected_ids": [
+        "row-0001",
+        "row-0002",
+        "row-0003"
+      ]
+    },
+    {
+      "formula": "closest_to",
+      "standard_version": "1.2",
+      "internal_artifact_format_version": 6,
+      "entry_count": 104,
+      "winners_count": 3,
+      "artifact_byte_size": 237,
+      "snapshot_hash_verified": true,
+      "snapshot_count_verified": true,
+      "merkle_root_verified": true,
+      "winner_recomputation_verified": true,
+      "claimed_winners_verified": true,
+      "merkle_proof_surface_verified": true,
+      "publication_status": "skipped_unconfigured",
+      "publication_url": null,
+      "snapshot_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/closest_to-w3/manifest.json",
+      "snapshot_manifest_hash": "2bee2326f676697b3050d43cd1e937b4a7f07812cfafe2d5b14e6d407a48a37c",
+      "proof_manifest_path": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_004_v12/closest_to-w3/proof_manifest.json",
+      "proof_manifest_hash": "3bfee61dd883cc65c799884f6fe4a29a05cebca91ac6f9528054e67abbebba6e",
+      "selected_ids": [
+        "row-0001",
+        "row-0002",
+        "row-0003"
+      ]
+    }
+  ],
+  "negative_replay_mismatch": {
+    "formula": "rank_desc",
+    "expected": "row-0001,row-0002,row-0003",
+    "claimed": "wrong-row,row-0002,row-0003",
+    "result": "fail_as_expected",
+    "failure_reason": "claimed winners differ from recomputed Outcome Standard V1.2 winners"
+  }
+}

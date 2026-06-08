@@ -4,24 +4,38 @@ use anchor_lang::prelude::*;
 use sha2::{Digest, Sha256};
 
 use crate::errors::OutcomeError;
+use crate::math::composite_rank_desc::{
+    self, FORMULA_CODE_COMPOSITE_RANK_DESC, FORMAT_VERSION_COMPOSITE_RANK_DESC,
+};
 
 pub const MAGIC: &[u8; 4] = b"W3O1";
 pub const FORMAT_VERSION_V1: u16 = 1;
 pub const FORMAT_VERSION_V2: u16 = 2;
 pub const FORMAT_VERSION_V3: u16 = 3;
+pub const FORMAT_VERSION_V4: u16 = 4;
+pub const FORMAT_VERSION_V5: u16 = 5;
+pub const FORMAT_VERSION_V1_2_SCALE: u16 = 6;
+pub const FORMAT_VERSION_V1_2_1_SCALE: u16 = 7;
+pub const FORMAT_VERSION_V8_COMPOSITE_RANK_DESC: u16 = FORMAT_VERSION_COMPOSITE_RANK_DESC;
 pub const MAX_COMPILED_ARTIFACT_BYTES: usize = 8192;
 pub const MAX_OUTCOME_ID_BYTES: usize = 64;
 pub const MAX_WINNERS: usize = 32;
+pub const MAX_SNAPSHOT_URI_BYTES: usize = 512;
 pub const EFFECT_ENTRY_BYTES: usize = 16;
 pub const EFFECT_TYPE_TRANSFER_SOL: u8 = 1;
+pub const V4_FLAG_HAS_MERKLE_ROOT: u8 = 0x01;
 pub const FORMULA_WEIGHTED_RANDOM: u8 = 1;
 pub const FORMULA_RANK_DESC: u8 = 2;
 pub const FORMULA_RANK_ASC: u8 = 3;
 pub const FORMULA_FIRST_N: u8 = 4;
 pub const FORMULA_CLOSEST_TO: u8 = 5;
+pub const FORMULA_COMPOSITE_RANK_DESC: u8 = FORMULA_CODE_COMPOSITE_RANK_DESC;
 const MULTI_WINNER_DOMAIN: &[u8] = b"VRE_MULTI_WINNER_V1";
 const HEADER_BYTES_V1_V2: usize = 34;
 const HEADER_BYTES_V3: usize = 42;
+const HEADER_BYTES_V4_MIN: usize = 84;
+const HEADER_BYTES_V5: usize = 48;
+const V5_ENTRY_BYTES: usize = 1 + MAX_OUTCOME_ID_BYTES + 4 + 8 + 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ParsedHeader {
@@ -33,6 +47,7 @@ pub struct ParsedHeader {
     pub winners_count: u16,
     pub formula_code: u8,
     pub target_score: i64,
+    pub payout_lamports: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -58,6 +73,21 @@ pub struct ParsedArtifact {
     pub outcomes: Vec<ParsedOutcome>,
     pub effects: Vec<ParsedEffect>,
     pub effects_offset: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParsedSnapshotArtifactV4 {
+    pub format_version: u16,
+    pub min_input_lamports: u64,
+    pub max_input_lamports: u64,
+    pub winners_count: u16,
+    pub formula_code: u8,
+    pub target_score: i64,
+    pub snapshot_count: u32,
+    pub payout_lamports: u64,
+    pub snapshot_hash: [u8; 32],
+    pub merkle_root: Option<[u8; 32]>,
+    pub snapshot_uri: Vec<u8>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -225,6 +255,10 @@ fn compare_formula_outcomes(
     header: &ParsedHeader,
 ) -> Ordering {
     match header.formula_code {
+        FORMULA_COMPOSITE_RANK_DESC => right
+            .score
+            .cmp(&left.score)
+            .then(left.order.cmp(&right.order)),
         FORMULA_RANK_DESC => right
             .score
             .cmp(&left.score)
@@ -289,6 +323,163 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
 
     let mut off = 4usize;
     let format_version = read_u16_le(blob, &mut off)?;
+    if format_version == FORMAT_VERSION_V8_COMPOSITE_RANK_DESC {
+        let parsed_composite = composite_rank_desc::parse(blob)?;
+        let replay = composite_rank_desc::replay(blob)?;
+        let mut outcomes = Vec::with_capacity(parsed_composite.participant_count as usize);
+        for participant in &parsed_composite.participants {
+            let replay_entry = replay
+                .participant_replay
+                .iter()
+                .find(|entry| entry.id == participant.id)
+                .ok_or(OutcomeError::InvalidCompiledArtifactFormat)?;
+            let outcome_id_len = participant.id.len() as u8;
+            require!(
+                (1..=MAX_OUTCOME_ID_BYTES as u8).contains(&outcome_id_len),
+                OutcomeError::InvalidOutcomeId
+            );
+            let mut outcome_id = [0u8; MAX_OUTCOME_ID_BYTES];
+            outcome_id[..participant.id.len()].copy_from_slice(participant.id.as_bytes());
+            outcomes.push(ParsedOutcome {
+                outcome_id_len,
+                outcome_id,
+                weight: 1,
+                score: i64::try_from(replay_entry.composite_score)
+                    .map_err(|_| error!(OutcomeError::MathOverflow))?,
+                order: participant.order,
+                first_effect_index: 0,
+                effect_count: if parsed_composite.payout_lamports == 0 {
+                    0
+                } else {
+                    1
+                },
+            });
+        }
+        return Ok(ParsedArtifact {
+            header: ParsedHeader {
+                format_version,
+                min_input_lamports: parsed_composite.min_input_lamports,
+                max_input_lamports: parsed_composite.max_input_lamports,
+                outcome_count: parsed_composite.participant_count,
+                total_effect_count: 0,
+                winners_count: parsed_composite.winners_count,
+                formula_code: FORMULA_COMPOSITE_RANK_DESC,
+                target_score: 0,
+                payout_lamports: parsed_composite.payout_lamports,
+            },
+            outcomes,
+            effects: Vec::new(),
+            effects_offset: blob.len(),
+        });
+    }
+    if format_version == FORMAT_VERSION_V5 {
+        require!(
+            blob.len() >= HEADER_BYTES_V5,
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+        let min_input_lamports = read_u64_le(blob, &mut off)?;
+        let max_input_lamports = read_u64_le(blob, &mut off)?;
+        require!(
+            min_input_lamports <= max_input_lamports,
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+        let winners_count = read_u16_le(blob, &mut off)?;
+        let formula_code = read_u8(blob, &mut off)?;
+        ensure_valid_formula_code(formula_code)?;
+        ensure_zero(&blob[off..off + 5])?;
+        off += 5;
+        let target_score = read_i64_le(blob, &mut off)?;
+        let outcome_count = read_u16_le(blob, &mut off)?;
+        let payout_lamports = read_u64_le(blob, &mut off)?;
+        require!(
+            outcome_count > 0
+                && HEADER_BYTES_V5 + outcome_count as usize * V5_ENTRY_BYTES == blob.len(),
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+        require!(
+            winners_count > 0
+                && winners_count <= outcome_count
+                && winners_count as usize <= MAX_WINNERS,
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+
+        let mut outcomes = Vec::with_capacity(outcome_count as usize);
+        let mut previous_id: Option<Vec<u8>> = None;
+        let mut weight_sum = 0u64;
+        let mut seen_orders = vec![false; outcome_count as usize];
+        for _index in 0..outcome_count {
+            let outcome_id_len = read_u8(blob, &mut off)?;
+            require!(
+                (1..=MAX_OUTCOME_ID_BYTES as u8).contains(&outcome_id_len),
+                OutcomeError::InvalidOutcomeId
+            );
+            require!(
+                off + MAX_OUTCOME_ID_BYTES <= blob.len(),
+                OutcomeError::InvalidCompiledArtifactFormat
+            );
+            let mut outcome_id = [0u8; MAX_OUTCOME_ID_BYTES];
+            outcome_id.copy_from_slice(&blob[off..off + MAX_OUTCOME_ID_BYTES]);
+            ensure_ascii(outcome_id_bytes(&outcome_id, outcome_id_len))?;
+            ensure_zero(&outcome_id[outcome_id_len as usize..])?;
+            let current_id = outcome_id_bytes(&outcome_id, outcome_id_len).to_vec();
+            if let Some(previous) = &previous_id {
+                require!(previous < &current_id, OutcomeError::InvalidOutcomeId);
+            }
+            previous_id = Some(current_id);
+            off += MAX_OUTCOME_ID_BYTES;
+
+            let weight = read_u32_le(blob, &mut off)?;
+            require!(weight > 0, OutcomeError::InvalidCompiledArtifactFormat);
+            weight_sum = weight_sum
+                .checked_add(weight as u64)
+                .ok_or(OutcomeError::MathOverflow)?;
+            let score = read_i64_le(blob, &mut off)?;
+            let order = read_u16_le(blob, &mut off)?;
+            require!(
+                order < outcome_count,
+                OutcomeError::InvalidCompiledArtifactFormat
+            );
+            require!(
+                !seen_orders[order as usize],
+                OutcomeError::InvalidCompiledArtifactFormat
+            );
+            seen_orders[order as usize] = true;
+            outcomes.push(ParsedOutcome {
+                outcome_id_len,
+                outcome_id,
+                weight,
+                score,
+                order,
+                first_effect_index: 0,
+                effect_count: if payout_lamports == 0 { 0 } else { 1 },
+            });
+        }
+        require!(
+            off == blob.len(),
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+        require!(weight_sum > 0, OutcomeError::InvalidCompiledArtifactFormat);
+        require!(
+            seen_orders.iter().all(|seen| *seen),
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+        return Ok(ParsedArtifact {
+            header: ParsedHeader {
+                format_version,
+                min_input_lamports,
+                max_input_lamports,
+                outcome_count,
+                total_effect_count: 0,
+                winners_count,
+                formula_code,
+                target_score,
+                payout_lamports,
+            },
+            outcomes,
+            effects: Vec::new(),
+            effects_offset: off,
+        });
+    }
     require!(
         format_version == FORMAT_VERSION_V1
             || format_version == FORMAT_VERSION_V2
@@ -467,11 +658,138 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
             winners_count,
             formula_code,
             target_score,
+            payout_lamports: 0,
         },
         outcomes,
         effects,
         effects_offset,
     })
+}
+
+pub fn parse_snapshot_v4(blob: &[u8]) -> Result<ParsedSnapshotArtifactV4> {
+    require!(
+        !blob.is_empty() && blob.len() <= MAX_COMPILED_ARTIFACT_BYTES,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        blob.len() >= HEADER_BYTES_V4_MIN,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        &blob[..4] == MAGIC,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+
+    let mut off = 4usize;
+    let format_version = read_u16_le(blob, &mut off)?;
+    require!(
+        format_version == FORMAT_VERSION_V4
+            || format_version == FORMAT_VERSION_V1_2_SCALE
+            || format_version == FORMAT_VERSION_V1_2_1_SCALE,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let min_input_lamports = read_u64_le(blob, &mut off)?;
+    let max_input_lamports = read_u64_le(blob, &mut off)?;
+    require!(
+        min_input_lamports <= max_input_lamports,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let winners_count = read_u16_le(blob, &mut off)?;
+    let formula_code = read_u8(blob, &mut off)?;
+    ensure_valid_formula_code(formula_code)?;
+    let flags = read_u8(blob, &mut off)?;
+    require!(
+        flags & !V4_FLAG_HAS_MERKLE_ROOT == 0,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        off + 4 <= blob.len(),
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    ensure_zero(&blob[off..off + 4])?;
+    off += 4;
+    let target_score = read_i64_le(blob, &mut off)?;
+    let snapshot_count = read_u32_le(blob, &mut off)?;
+    let payout_lamports = read_u64_le(blob, &mut off)?;
+    require!(
+        snapshot_count > 0,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        winners_count > 0
+            && winners_count as u32 <= snapshot_count
+            && winners_count as usize <= MAX_WINNERS,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+
+    require!(
+        off + 32 <= blob.len(),
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let mut snapshot_hash = [0u8; 32];
+    snapshot_hash.copy_from_slice(&blob[off..off + 32]);
+    off += 32;
+
+    let merkle_root = if flags & V4_FLAG_HAS_MERKLE_ROOT != 0 {
+        require!(
+            off + 32 <= blob.len(),
+            OutcomeError::InvalidCompiledArtifactFormat
+        );
+        let mut root = [0u8; 32];
+        root.copy_from_slice(&blob[off..off + 32]);
+        off += 32;
+        Some(root)
+    } else {
+        None
+    };
+
+    let snapshot_uri_len = read_u16_le(blob, &mut off)? as usize;
+    require!(
+        snapshot_uri_len > 0 && snapshot_uri_len <= MAX_SNAPSHOT_URI_BYTES,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    require!(
+        off + snapshot_uri_len == blob.len(),
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let snapshot_uri = blob[off..off + snapshot_uri_len].to_vec();
+    require!(
+        snapshot_uri.iter().all(|byte| !byte.is_ascii_control()),
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+
+    Ok(ParsedSnapshotArtifactV4 {
+        format_version,
+        min_input_lamports,
+        max_input_lamports,
+        winners_count,
+        formula_code,
+        target_score,
+        snapshot_count,
+        payout_lamports,
+        snapshot_hash,
+        merkle_root,
+        snapshot_uri,
+    })
+}
+
+pub fn synthetic_effects_digest_v4(
+    payout_lamports: u64,
+    winners_count: u16,
+) -> Result<(u64, u16, [u8; 32])> {
+    let effect_count = if payout_lamports == 0 { 0 } else { winners_count };
+    let total_output_lamports = payout_lamports
+        .checked_mul(winners_count as u64)
+        .ok_or(OutcomeError::MathOverflow)?;
+    let mut hasher = Sha256::new();
+    if payout_lamports > 0 {
+        for _ in 0..winners_count {
+            hasher.update([EFFECT_TYPE_TRANSFER_SOL]);
+            hasher.update([0u8; 7]);
+            hasher.update(payout_lamports.to_le_bytes());
+        }
+    }
+    Ok((total_output_lamports, effect_count, hasher.finalize().into()))
 }
 
 pub fn select_outcomes(
@@ -495,26 +813,40 @@ pub fn select_outcomes(
 
     for selected_index in selected_indices {
         let selected = parsed.outcomes[selected_index];
-        let start =
-            parsed.effects_offset + selected.first_effect_index as usize * EFFECT_ENTRY_BYTES;
-        let end = start + selected.effect_count as usize * EFFECT_ENTRY_BYTES;
-        effects_hasher.update(&blob[start..end]);
-
         outcome_id_lens.push(selected.outcome_id_len);
         outcome_ids.push(selected.outcome_id);
-        effect_count = effect_count
-            .checked_add(selected.effect_count)
-            .ok_or(OutcomeError::MathOverflow)?;
-
-        for effect in parsed
-            .effects
-            .iter()
-            .skip(selected.first_effect_index as usize)
-            .take(selected.effect_count as usize)
+        if parsed.header.format_version == FORMAT_VERSION_V5
+            || parsed.header.format_version == FORMAT_VERSION_V8_COMPOSITE_RANK_DESC
         {
-            total_output_lamports = total_output_lamports
-                .checked_add(effect.amount_lamports)
+            if parsed.header.payout_lamports > 0 {
+                effects_hasher.update([EFFECT_TYPE_TRANSFER_SOL]);
+                effects_hasher.update([0u8; 7]);
+                effects_hasher.update(parsed.header.payout_lamports.to_le_bytes());
+                effect_count = effect_count
+                    .checked_add(1)
+                    .ok_or(OutcomeError::MathOverflow)?;
+                total_output_lamports = total_output_lamports
+                    .checked_add(parsed.header.payout_lamports)
+                    .ok_or(OutcomeError::MathOverflow)?;
+            }
+        } else {
+            let start =
+                parsed.effects_offset + selected.first_effect_index as usize * EFFECT_ENTRY_BYTES;
+            let end = start + selected.effect_count as usize * EFFECT_ENTRY_BYTES;
+            effects_hasher.update(&blob[start..end]);
+            effect_count = effect_count
+                .checked_add(selected.effect_count)
                 .ok_or(OutcomeError::MathOverflow)?;
+            for effect in parsed
+                .effects
+                .iter()
+                .skip(selected.first_effect_index as usize)
+                .take(selected.effect_count as usize)
+            {
+                total_output_lamports = total_output_lamports
+                    .checked_add(effect.amount_lamports)
+                    .ok_or(OutcomeError::MathOverflow)?;
+            }
         }
     }
 
@@ -624,6 +956,87 @@ mod tests {
         }
 
         blob
+    }
+
+    fn demo_v4_blob() -> Vec<u8> {
+        let mut blob = Vec::new();
+        blob.extend_from_slice(MAGIC);
+        blob.extend_from_slice(&FORMAT_VERSION_V4.to_le_bytes());
+        blob.extend_from_slice(&10u64.to_le_bytes());
+        blob.extend_from_slice(&10u64.to_le_bytes());
+        blob.extend_from_slice(&2u16.to_le_bytes());
+        blob.push(FORMULA_RANK_DESC);
+        blob.extend_from_slice(&[0u8; 5]);
+        blob.extend_from_slice(&0i64.to_le_bytes());
+        blob.extend_from_slice(&3u32.to_le_bytes());
+        blob.extend_from_slice(&3u64.to_le_bytes());
+        blob.extend_from_slice(&[7u8; 32]);
+        let uri = b"/tmp/vre-test-snapshot.jsonl";
+        blob.extend_from_slice(&(uri.len() as u16).to_le_bytes());
+        blob.extend_from_slice(uri);
+        blob
+    }
+
+    fn demo_v4_merkle_blob() -> Vec<u8> {
+        let mut blob = Vec::new();
+        blob.extend_from_slice(MAGIC);
+        blob.extend_from_slice(&FORMAT_VERSION_V4.to_le_bytes());
+        blob.extend_from_slice(&10u64.to_le_bytes());
+        blob.extend_from_slice(&10u64.to_le_bytes());
+        blob.extend_from_slice(&2u16.to_le_bytes());
+        blob.push(FORMULA_RANK_DESC);
+        blob.push(V4_FLAG_HAS_MERKLE_ROOT);
+        blob.extend_from_slice(&[0u8; 4]);
+        blob.extend_from_slice(&0i64.to_le_bytes());
+        blob.extend_from_slice(&3u32.to_le_bytes());
+        blob.extend_from_slice(&3u64.to_le_bytes());
+        blob.extend_from_slice(&[7u8; 32]);
+        blob.extend_from_slice(&[9u8; 32]);
+        let uri = b"/tmp/vre-test-snapshot.jsonl";
+        blob.extend_from_slice(&(uri.len() as u16).to_le_bytes());
+        blob.extend_from_slice(uri);
+        blob
+    }
+
+    fn demo_v5_blob(formula_code: u8, winners_count: u16, target_score: i64) -> Vec<u8> {
+        let mut blob = Vec::new();
+        blob.extend_from_slice(MAGIC);
+        blob.extend_from_slice(&FORMAT_VERSION_V5.to_le_bytes());
+        blob.extend_from_slice(&10u64.to_le_bytes());
+        blob.extend_from_slice(&10u64.to_le_bytes());
+        blob.extend_from_slice(&winners_count.to_le_bytes());
+        blob.push(formula_code);
+        blob.extend_from_slice(&[0u8; 5]);
+        blob.extend_from_slice(&target_score.to_le_bytes());
+        blob.extend_from_slice(&3u16.to_le_bytes());
+        blob.extend_from_slice(&3u64.to_le_bytes());
+
+        let entries = [
+            (b"alice".as_slice(), 1u32, 100i64, 1u16),
+            (b"bob".as_slice(), 1u32, 300i64, 0u16),
+            (b"team-alpha".as_slice(), 1u32, 200i64, 2u16),
+        ];
+
+        for (id, weight, score, order) in entries {
+            blob.push(id.len() as u8);
+            let mut padded = [0u8; MAX_OUTCOME_ID_BYTES];
+            padded[..id.len()].copy_from_slice(id);
+            blob.extend_from_slice(&padded);
+            blob.extend_from_slice(&weight.to_le_bytes());
+            blob.extend_from_slice(&score.to_le_bytes());
+            blob.extend_from_slice(&order.to_le_bytes());
+        }
+
+        blob
+    }
+
+    fn load_composite_case(case_id: &str) -> Vec<u8> {
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/composite_rank_desc")
+                .join(format!("{case_id}.bin")),
+        )
+        .expect("composite runtime fixture must exist")
     }
 
     #[test]
@@ -758,5 +1171,81 @@ mod tests {
 
         assert!(result.is_ok());
         assert!(result.unwrap().is_err());
+    }
+
+    #[test]
+    fn parses_v4_snapshot_binding() {
+        let parsed = parse_snapshot_v4(&demo_v4_blob()).unwrap();
+        assert_eq!(parsed.snapshot_count, 3);
+        assert_eq!(parsed.winners_count, 2);
+        assert_eq!(parsed.payout_lamports, 3);
+        assert_eq!(parsed.formula_code, FORMULA_RANK_DESC);
+        assert_eq!(parsed.snapshot_hash, [7u8; 32]);
+        assert_eq!(parsed.merkle_root, None);
+        assert_eq!(parsed.snapshot_uri, b"/tmp/vre-test-snapshot.jsonl".to_vec());
+    }
+
+    #[test]
+    fn parses_v4_snapshot_binding_with_merkle_root() {
+        let parsed = parse_snapshot_v4(&demo_v4_merkle_blob()).unwrap();
+        assert_eq!(parsed.merkle_root, Some([9u8; 32]));
+    }
+
+    #[test]
+    fn parses_and_selects_v5_named_entries() {
+        let blob = demo_v5_blob(FORMULA_RANK_DESC, 2, 0);
+        let parsed = parse(&blob).unwrap();
+        assert_eq!(parsed.header.format_version, FORMAT_VERSION_V5);
+        assert_eq!(parsed.header.outcome_count, 3);
+        assert_eq!(parsed.header.payout_lamports, 3);
+        let selected = select_outcomes(&blob, &parsed, &[1u8; 32], 10).unwrap();
+        assert_eq!(selected.outcome_id_lens, vec![3, 10]);
+        assert_eq!(
+            &selected.outcome_ids[0][..selected.outcome_id_lens[0] as usize],
+            b"bob"
+        );
+        assert_eq!(
+            &selected.outcome_ids[1][..selected.outcome_id_lens[1] as usize],
+            b"team-alpha"
+        );
+        assert_eq!(selected.total_output_lamports, 6);
+        assert_eq!(selected.effect_count, 2);
+    }
+
+    #[test]
+    fn parses_and_selects_v8_composite_rank_desc() {
+        let blob = load_composite_case("normalized_composite_ranking");
+        let parsed = parse(&blob).unwrap();
+        assert_eq!(parsed.header.format_version, FORMAT_VERSION_V8_COMPOSITE_RANK_DESC);
+        assert_eq!(parsed.header.formula_code, FORMULA_COMPOSITE_RANK_DESC);
+        assert_eq!(parsed.header.outcome_count, 3);
+        let selected = select_outcomes(&blob, &parsed, &[9u8; 32], 10).unwrap();
+        assert_eq!(selected.outcome_id_lens, vec![10, 10]);
+        assert_eq!(
+            &selected.outcome_ids[0][..selected.outcome_id_lens[0] as usize],
+            b"desk_gamma"
+        );
+        assert_eq!(
+            &selected.outcome_ids[1][..selected.outcome_id_lens[1] as usize],
+            b"desk_alpha"
+        );
+        assert_eq!(selected.total_output_lamports, 6);
+        assert_eq!(selected.effect_count, 2);
+    }
+
+    #[test]
+    fn rejects_v5_inconsistent_entry_count_and_size() {
+        let mut blob = demo_v5_blob(FORMULA_FIRST_N, 1, 0);
+        blob[38..40].copy_from_slice(&101u16.to_le_bytes());
+        assert!(parse(&blob).is_err());
+    }
+
+    #[test]
+    fn builds_v4_synthetic_effect_digest() {
+        let (total_output_lamports, effect_count, effects_digest) =
+            synthetic_effects_digest_v4(3, 2).unwrap();
+        assert_eq!(total_output_lamports, 6);
+        assert_eq!(effect_count, 2);
+        assert_ne!(effects_digest, [0u8; 32]);
     }
 }

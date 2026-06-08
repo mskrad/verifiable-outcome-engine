@@ -1,0 +1,31 @@
+{
+  "version": "outcome_standard_proof_manifest_v1",
+  "standard_version": "1.2",
+  "standard_kind": "scale_snapshot",
+  "signature": "rWgnfdHduTCxBaJe5kfhSuaayRTPW52K1HHPUscWNcYNwKXsoGkrmKDjtf63MTEFgj32bkyJ9FVx7mGGA38e4nq",
+  "program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+  "snapshot_hash": "958ac6c69133bbecb2a5adc9b16eac2d0aeb67d9a7ced2248c5dcbebf9093b76",
+  "snapshot_count": 1001,
+  "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_008_v12_stage1_matrix/closest_to-e1001-w10/canonical_snapshot.jsonl",
+  "merkle_root": "bec430f1e5627b8f78de1f8828a946a2a968d08ad5d965ad95c19e4ac959522b",
+  "formula": "closest_to",
+  "winners_count": 10,
+  "selected_ids": [
+    "stage1-0001",
+    "stage1-0002",
+    "stage1-0003",
+    "stage1-0004",
+    "stage1-0005",
+    "stage1-0006",
+    "stage1-0007",
+    "stage1-0008",
+    "stage1-0009",
+    "stage1-0010"
+  ],
+  "proof_endpoint_template": "/api/partner/draw/:sig/proof?address=<id>",
+  "publication_status": "skipped_unconfigured",
+  "publication_url": null,
+  "snapshot_manifest_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_008_v12_stage1_matrix/closest_to-e1001-w10/manifest.json",
+  "proof_status": "ready",
+  "target": "500"
+}

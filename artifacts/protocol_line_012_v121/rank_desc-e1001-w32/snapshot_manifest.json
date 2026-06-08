@@ -1,0 +1,22 @@
+{
+  "version": "outcome_standard_snapshot_manifest_v1",
+  "standard_version": "1.2.1",
+  "standard_kind": "scale_snapshot",
+  "entry_model": "named_entry",
+  "entry_hash_scheme": "sha256d_canonical_named_entry_v1",
+  "merkle_hash_scheme": "sha256_pair_v1",
+  "snapshot_hash": "0eddbe8753b07eee0b88ee3e65256b5211a4b38a33dff320e21d54eeeb226087",
+  "snapshot_count": 1001,
+  "formula": "rank_desc",
+  "winners_count": 32,
+  "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_012_v121/rank_desc-e1001-w32/snapshot.jsonl",
+  "created_at": "2026-05-16T23:45:30.342Z",
+  "merkle_root": "7553761ebf58f688646cfe5a0728dcf668002f43b614500d3aee4e71f2c3e59a",
+  "publication_status": "skipped_disabled",
+  "publication_url": null,
+  "proof_manifest_url": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_012_v121/rank_desc-e1001-w32/proof_manifest.json",
+  "proof_status": "ready",
+  "payout_lamports": "3",
+  "threshold_mode": "bulk",
+  "winner_claim_hash": "49edf831ba75583b9d11bd9fa6c73971aa53b0cab6b72af62939228ca3063464"
+}

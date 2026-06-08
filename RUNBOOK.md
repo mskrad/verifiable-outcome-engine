@@ -291,9 +291,51 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 - `vanish_withdraw_tx` — Vanish → winner transfer
 - `mock: true` if run in mock mode
 
+## 9b) Experimental clean-line status
+
+This repo now has two parallel tracks:
+
+- reviewer-facing canonical devnet flow
+  - canonical program: `9tEram...`
+  - current public reviewer/demo path
+- experimental clean product line
+  - `Outcome Standard V1.1`
+  - `Outcome Standard V1.2`
+
+Current clean-line status:
+
+- `Outcome Standard V1.1`
+  - compact named-entry base
+  - internal `artifact_format_version=5` is metadata only
+  - accepted boundary:
+    - pass at `103` entries / `8185` bytes
+    - first overflow at `104` entries / `8264` bytes
+- `Outcome Standard V1.2`
+  - large/public scale extension
+  - product-facing replay uses `standard_version:"1.2"`
+  - internal scale marker `6` is metadata only
+  - bounded isolated devnet validation passed on:
+    - isolated program `5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW`
+  - Stage 1 expanded matrix passed `45/45`
+  - highest allowed conclusion so far:
+    - `strong isolated candidate: passed`
+
+Important boundary:
+
+- clean-line `V1.1 / V1.2` evidence does not automatically promote `5xQ8...` to canonical
+- canonical promotion remains a separate explicit task
+- Stage 2 broader non-local validation remains a separate explicit task
+- active product live claim is not opened by the current clean-line evidence
+
 ## 10) Partner Draw API
 
 `POST /api/partner/draw` lets B2B partners submit a formula-driven participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet (same as `/api/live-raffle`).
+
+Boundary note:
+
+- this section describes the current reviewer-facing canonical partner path
+- it is not the same thing as the experimental `Outcome Standard V1.1 / V1.2` clean line
+- clean-line canonical promotion is not yet accepted
 
 **Requirements:**
 
@@ -381,6 +423,12 @@ Native W3O1 v3 layout:
 ## 11) Large Snapshot Partner Flow (local-only first pass)
 
 Small lists stay on `POST /api/partner/draw`. The additive snapshot flow is for very large participant sets and keeps the committed on-chain payload compact (`W3O1 v4`).
+
+Boundary note:
+
+- this section documents the accepted snapshot/publication evidence track used in the current repo
+- the experimental clean large/public line is `Outcome Standard V1.2`
+- `V1.2` reuses the scale/public evidence model conceptually, but is not yet the public canonical reviewer flow
 
 Threshold model:
 

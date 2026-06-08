@@ -1,0 +1,23 @@
+{
+  "version": "outcome_standard_proof_manifest_v1",
+  "standard_version": "1.2",
+  "standard_kind": "scale_snapshot",
+  "signature": "5ibJGNyacszJnbAjYLQrQ8uQNZGqUvz2hTfiggWoyDiS3gTCcTduYnj6cniP2YarR6BPR6gk7kxmJsK1PgHov4S8",
+  "program_id": "5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW",
+  "snapshot_hash": "d62e737bc4f1d93cab8713cb573627176bd740d4b0c2313d7aef4ac8a3df0460",
+  "snapshot_count": 104,
+  "snapshot_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/canonical_snapshot.jsonl",
+  "merkle_root": "59daced4617d4a6d82f5eb4c9de9d40ff1121e95fb9b9ce9ca86e118ac6e929a",
+  "formula": "rank_desc",
+  "winners_count": 3,
+  "selected_ids": [
+    "isolated-row-0001",
+    "isolated-row-0002",
+    "isolated-row-0003"
+  ],
+  "proof_endpoint_template": "/api/partner/draw/:sig/proof?address=<id>",
+  "publication_status": "skipped_unconfigured",
+  "publication_url": null,
+  "snapshot_manifest_uri": "/Users/timurkurmangaliev/verifiable-outcome-engine/artifacts/protocol_line_006_v12_isolated_devnet/manifest.json",
+  "proof_status": "ready"
+}
