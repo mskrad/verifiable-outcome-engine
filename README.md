@@ -105,12 +105,11 @@ Important boundary:
 - this does **not** open active product live claim
 - canonical promotion and Stage 2 remain separate explicit follow-up decisions
 
-Relevant evidence:
+Reviewer-facing evidence remains the canonical public bundle:
 
-- `artifacts/participant_scale_005_v5_boundary.json`
-- `artifacts/protocol_line_004_v12_local_proof.json`
-- `artifacts/protocol_line_006_v12_isolated_devnet.json`
-- `artifacts/protocol_line_008_v12_stage1_matrix.json`
+- `artifacts/public_evidence_summary.json`
+- `artifacts/outcome_devnet_blessed_signatures.json`
+- `artifacts/EXPECTED_TX_EXAMPLES.md`
 
 ## Live Examples
 

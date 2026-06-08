@@ -1,4 +1,5 @@
 .DS_Store
+.aislop/
 .env
 node_modules/
 tmp/
