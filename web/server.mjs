@@ -54,7 +54,8 @@ const PARTNER_SNAPSHOT_SIGNATURE_DIR = path.join(
   "by-signature"
 );
 const IRYS_GATEWAY_BASE_URL = "https://gateway.irys.xyz";
-const WORLD_VERIFY_URL = "https://developer.world.org/api/v4/verify";
+const WORLD_VERIFY_URL =
+  process.env.WORLD_VERIFY_URL || "https://developer.world.org/api/v4/verify";
 const WORLD_VERIFY_URL_STAGING_V2 = "https://developer.worldcoin.org/api/v2/verify";
 const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 const SOLANA_SIGNATURE_RE = /^[1-9A-HJ-NP-Za-km-z]{87,88}$/;
@@ -246,13 +247,6 @@ function parseReplayJson(stdout) {
   return null;
 }
 
-function findTsNodeBin() {
-  const fromEnv = process.env.TS_NODE_BIN;
-  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
-  const localBin = path.join(REF_ROOT, "node_modules", ".bin", "ts-node");
-  if (fs.existsSync(localBin)) return localBin;
-  throw new Error("ts-node not found. Run `yarn install` in the repository root or set TS_NODE_BIN.");
-}
 
 function loadBlessedSignatures() {
   return JSON.parse(fs.readFileSync(DEFAULT_BLESSED_PATH, "utf8"));
@@ -484,7 +478,6 @@ async function fetchResolutions(limit, opts = {}) {
   const programId = defaultProgramId();
   const verifyOutcome = await loadVerifyOutcome();
 
-  // Fetch recent sigs from program
   const fetchLimit = Math.min(limit * 4, 100);
   const rawSigs = await rpcCall(rpcUrl, {
     jsonrpc: "2.0",
@@ -588,7 +581,9 @@ async function fetchResolutions(limit, opts = {}) {
             ],
           });
           resolveSlot = txInfo?.slot ?? null;
-        } catch (_) {}
+        } catch (err) {
+          console.warn(`[resolutions] unable to fetch slot for ${sigEntry.signature}:`, err);
+        }
       }
 
       return {
@@ -717,7 +712,6 @@ function requirePartnerApiKey(req, pathname) {
     console.warn(`[partner] rejected unknown key ${redactApiKeyPrefix(key)}`);
     throw httpError(401, "Invalid or missing API key");
   }
-  console.log(`[partner] ${partner.name} called ${pathname}`);
   return partner;
 }
 
@@ -799,7 +793,6 @@ function buildWorldIdRpContext() {
 
 function normalizeWorldIdProof(worldId, address) {
   const config = worldIdConfig();
-  console.log("[WorldID] normalizing proof", JSON.stringify({ worldId, address, configAction: config.action, configEnv: config.environment }));
   if (!worldId || typeof worldId !== "object" || Array.isArray(worldId)) {
     console.error("[WorldID] fail: not object");
     throw httpError(400, "World ID verification failed");
@@ -857,12 +850,13 @@ async function verifyWorldIdOrThrow(worldId, address) {
       console.error("[WorldID] staging: no nullifier in proof");
       throw httpError(400, "World ID verification failed");
     }
-    console.log("[WorldID] staging: local proof accepted, nullifier", nullifier);
     return { nullifier: String(nullifier), verification: { success: true, environment: "staging" } };
   }
 
+  if (!WORLD_VERIFY_URL) {
+    throw httpError(500, "World ID verifier URL is not configured");
+  }
   const verifyUrl = `${WORLD_VERIFY_URL}/${encodeURIComponent(config.rpId)}`;
-  console.log("[WorldID] posting to verifier", verifyUrl);
   let response;
   try {
     response = await fetch(verifyUrl, {
@@ -2610,5 +2604,4 @@ const server = http.createServer(async (req, res) => {
 
 const port = Number(process.env.PORT || 8787);
 server.listen(port, () => {
-  console.log(`verifiable-outcome-engine web listening on http://127.0.0.1:${port}`);
 });

@@ -8,7 +8,7 @@ import {
 } from "@solana/web3.js";
 
 const SOL_MINT = "11111111111111111111111111111111";
-const DEFAULT_BASE_URL = "https://core-api-dev.vanish.trade";
+const DEFAULT_BASE_URL = process.env.VANISH_BASE_URL;
 
 export type VanishPayoutParams = {
   apiKey: string;
@@ -65,9 +65,11 @@ export async function vanishPayoutRoute(
   params: VanishPayoutParams
 ): Promise<VanishPayoutResult> {
   const base = params.baseUrl ?? DEFAULT_BASE_URL;
+  if (!base) {
+    throw new Error("Vanish base URL is required. Set VANISH_BASE_URL or pass baseUrl.");
+  }
   const connection = new Connection(params.rpcUrl, "confirmed");
 
-  // Step 1 — get deposit address
   const depositData = await vanishGet(
     base,
     params.apiKey,
@@ -76,7 +78,6 @@ export async function vanishPayoutRoute(
   const depositAddress = depositData.address;
   if (!depositAddress) throw new Error("Vanish: no deposit address returned");
 
-  // Step 2 — on-chain transfer operator → deposit address
   const tx = new Transaction().add(
     SystemProgram.transfer({
       fromPubkey: params.operatorKeypair.publicKey,
@@ -91,13 +92,11 @@ export async function vanishPayoutRoute(
     { commitment: "confirmed" }
   );
 
-  // Step 3 — commit deposit
   await vanishPost(base, params.apiKey, "/commit", {
     mint: SOL_MINT,
     signature: depositTx,
   });
 
-  // Step 4 — create withdraw (Vanish routes from internal pool to winner)
   const withdrawData = await vanishPost(
     base,
     params.apiKey,
@@ -115,7 +114,6 @@ export async function vanishPayoutRoute(
     throw new Error("Vanish: withdraw/create returned no transaction");
   }
 
-  // Step 5 — sign and broadcast the withdraw transaction
   const unsignedTxBuf = Buffer.from(unsignedTxBase64, "base64");
   const withdrawTxObj = Transaction.from(unsignedTxBuf);
   withdrawTxObj.partialSign(params.operatorKeypair);
@@ -125,7 +123,6 @@ export async function vanishPayoutRoute(
   });
   await connection.confirmTransaction(withdrawTx, "confirmed");
 
-  // Step 6 — commit withdraw
   await vanishPost(base, params.apiKey, "/commit", { signature: withdrawTx });
 
   return { depositTx, withdrawTx };

@@ -89,19 +89,29 @@ async function main() {
 
   // Step 1: Create vault transaction
   console.log("\n[1/4] Creating vault transaction...");
-  const createIx = await multisig.instructions.vaultTransactionCreate({
+  const [transactionPda] = multisig.getTransactionPda({
     multisigPda: MULTISIG_KEY,
-    transactionIndex: BigInt(transactionIndex),
-    creator: keypair.publicKey,
-    vaultIndex: VAULT_INDEX,
-    ephemeralSigners: 0,
-    transactionMessage: new TransactionMessage({
-      payerKey: vaultPda,
-      recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-      instructions: [upgradeIx],
-    }),
-    memo: "VRE W3O1 v3 formula upgrade",
+    index: BigInt(transactionIndex),
   });
+  const transactionMessage = new TransactionMessage({
+    payerKey: vaultPda,
+    recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
+    instructions: [upgradeIx],
+  });
+  const createIx = multisig.generated.createVaultTransactionCreateInstruction(
+    { multisig: MULTISIG_KEY, transaction: transactionPda, creator: keypair.publicKey },
+    {
+      args: {
+        vaultIndex: VAULT_INDEX,
+        ephemeralSigners: 0,
+        transactionMessage: multisig.utils.transactionMessageToMultisigTransactionMessageBytes({
+          message: transactionMessage,
+          vaultPda,
+        }),
+        memo: "VRE W3O1 v3 formula upgrade",
+      },
+    }
+  );
   const createSig = await sendAndConfirm(connection, keypair, [createIx]);
   console.log("✅ Vault tx created:", createSig);
 
@@ -110,7 +120,7 @@ async function main() {
   const proposalIx = multisig.instructions.proposalCreate({
     multisigPda: MULTISIG_KEY,
     transactionIndex: BigInt(transactionIndex),
-    creator: keypair.publicKey,
+    rentPayer: keypair.publicKey,
   });
   const proposalSig = await sendAndConfirm(connection, keypair, [proposalIx]);
   console.log("✅ Proposal created:", proposalSig);

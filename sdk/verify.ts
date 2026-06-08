@@ -33,9 +33,9 @@ import type {
   VerifyOutcomeOptions,
   VerifyResult,
 } from "./types.js";
+import { OUTCOME_IDL } from "./idl.js";
 
 const DEFAULT_PROGRAM_ID = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
-const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 const CHUNK_SIZE = 1024;
 const MAX_OUTCOME_ID_BYTES = 64;
 const EFFECT_ENTRY_BYTES = 16;
@@ -54,170 +54,6 @@ const FORMULA_RANK_DESC = 2;
 const FORMULA_RANK_ASC = 3;
 const FORMULA_FIRST_N = 4;
 const FORMULA_CLOSEST_TO = 5;
-
-const OUTCOME_ACCOUNT_IDL = {
-  address: DEFAULT_PROGRAM_ID,
-  metadata: {
-    name: "outcome",
-    version: "0.1.0",
-    spec: "0.1.0",
-  },
-  instructions: [],
-  accounts: [
-    { name: "ApprovedOutcomeArtifact", discriminator: [110, 158, 83, 35, 113, 203, 146, 35] },
-    { name: "ApprovedOutcomeArtifactChunk", discriminator: [172, 72, 71, 77, 233, 238, 194, 12] },
-    { name: "OutcomeConfig", discriminator: [140, 119, 82, 148, 43, 47, 24, 122] },
-    { name: "OutcomeResolution", discriminator: [117, 184, 192, 23, 132, 189, 98, 178] },
-    { name: "OutcomeResolutionV2", discriminator: [255, 71, 158, 89, 88, 61, 199, 217] },
-    { name: "OutcomeResolutionV3", discriminator: [217, 147, 107, 210, 216, 116, 45, 97] },
-    { name: "ProgramConfig", discriminator: [196, 210, 90, 231, 144, 149, 140, 63] },
-  ],
-  types: [
-    {
-      name: "ApprovedOutcomeArtifact",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
-          { name: "publisher", type: "pubkey" },
-          { name: "status", type: "u8" },
-          { name: "is_finalized", type: "bool" },
-          { name: "format_version", type: "u16" },
-          { name: "blob_len", type: "u32" },
-          { name: "chunk_count", type: "u16" },
-          { name: "artifact_uri_len", type: "u16" },
-          { name: "artifact_uri", type: { array: ["u8", 200] } },
-          { name: "audit_hash", type: { array: ["u8", 32] } },
-          { name: "created_at", type: "i64" },
-          { name: "updated_at", type: "i64" },
-          { name: "bump", type: "u8" },
-          { name: "reserved", type: { array: ["u8", 31] } },
-        ],
-      },
-    },
-    {
-      name: "ApprovedOutcomeArtifactChunk",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
-          { name: "chunk_index", type: "u32" },
-          { name: "written_len", type: "u16" },
-          { name: "data", type: { array: ["u8", 1024] } },
-        ],
-      },
-    },
-    {
-      name: "OutcomeConfig",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "runtime_id", type: { array: ["u8", 16] } },
-          { name: "authority", type: "pubkey" },
-          { name: "treasury", type: "pubkey" },
-          { name: "min_input_lamports", type: "u64" },
-          { name: "max_input_lamports", type: "u64" },
-          { name: "next_resolve_id", type: "u64" },
-          { name: "is_paused", type: "bool" },
-          { name: "bump", type: "u8" },
-          { name: "vault_bump", type: "u8" },
-          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
-          { name: "master_seed", type: { array: ["u8", 32] } },
-          { name: "last_seed_slot", type: "u64" },
-          { name: "reserved", type: { array: ["u8", 63] } },
-        ],
-      },
-    },
-    {
-      name: "OutcomeResolution",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "runtime_id", type: { array: ["u8", 16] } },
-          { name: "resolve_id", type: "u64" },
-          { name: "actor", type: "pubkey" },
-          { name: "input_lamports", type: "u64" },
-          { name: "status", type: "u8" },
-          { name: "total_output_lamports", type: "u64" },
-          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
-          { name: "randomness", type: { array: ["u8", 32] } },
-          { name: "outcome_id_len", type: "u8" },
-          { name: "outcome_id", type: { array: ["u8", 64] } },
-          { name: "effect_count", type: "u16" },
-          { name: "effects_digest", type: { array: ["u8", 32] } },
-          { name: "bump", type: "u8" },
-          { name: "reserved", type: { array: ["u8", 31] } },
-        ],
-      },
-    },
-    {
-      name: "OutcomeResolutionV2",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "runtime_id", type: { array: ["u8", 16] } },
-          { name: "resolve_id", type: "u64" },
-          { name: "actor", type: "pubkey" },
-          { name: "input_lamports", type: "u64" },
-          { name: "status", type: "u8" },
-          { name: "artifact_format_version", type: "u16" },
-          { name: "winner_count", type: "u16" },
-          { name: "total_output_lamports", type: "u64" },
-          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
-          { name: "randomness", type: { array: ["u8", 32] } },
-          { name: "outcome_id_len", type: "u8" },
-          { name: "outcome_id", type: { array: ["u8", 64] } },
-          { name: "outcome_id_lens", type: { vec: "u8" } },
-          { name: "outcome_ids", type: { vec: { array: ["u8", 64] } } },
-          { name: "effect_count", type: "u16" },
-          { name: "effects_digest", type: { array: ["u8", 32] } },
-          { name: "bump", type: "u8" },
-          { name: "reserved", type: { array: ["u8", 29] } },
-        ],
-      },
-    },
-    {
-      name: "OutcomeResolutionV3",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "runtime_id", type: { array: ["u8", 16] } },
-          { name: "resolve_id", type: "u64" },
-          { name: "actor", type: "pubkey" },
-          { name: "input_lamports", type: "u64" },
-          { name: "status", type: "u8" },
-          { name: "artifact_format_version", type: "u16" },
-          { name: "winner_count", type: "u16" },
-          { name: "winner_claim_hash", type: { array: ["u8", 32] } },
-          { name: "total_output_lamports", type: "u64" },
-          { name: "compiled_artifact_hash", type: { array: ["u8", 32] } },
-          { name: "randomness", type: { array: ["u8", 32] } },
-          { name: "outcome_id_len", type: "u8" },
-          { name: "outcome_id", type: { array: ["u8", 64] } },
-          { name: "effect_count", type: "u16" },
-          { name: "effects_digest", type: { array: ["u8", 32] } },
-          { name: "bump", type: "u8" },
-          { name: "reserved", type: { array: ["u8", 29] } },
-        ],
-      },
-    },
-    {
-      name: "ProgramConfig",
-      type: {
-        kind: "struct",
-        fields: [
-          { name: "admin", type: "pubkey" },
-          { name: "allow_unreviewed_binding", type: "bool" },
-          { name: "bump", type: "u8" },
-          { name: "fee_lamports", type: "u64" },
-          { name: "treasury", type: "pubkey" },
-          { name: "reserved", type: { array: ["u8", 22] } },
-        ],
-      },
-    },
-  ],
-};
-
 function u32le(value: number): Buffer {
   const out = Buffer.alloc(4);
   out.writeUInt32LE(value, 0);
@@ -366,7 +202,7 @@ function mismatch(code: string, message: string): never {
 }
 
 function loadIdl(): any {
-  return OUTCOME_ACCOUNT_IDL;
+  return JSON.parse(JSON.stringify(OUTCOME_IDL));
 }
 
 function anchorEventDiscriminator(name: string): Buffer {
@@ -1339,7 +1175,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   const programId = new PublicKey(opts.programId);
   const connection = new anchor.web3.Connection(opts.rpcUrl, { commitment: "confirmed" });
   const rawIdl = loadIdl();
-  const coder = new (anchor as any).BorshCoder(rawIdl as anchor.Idl);
+  const coder = new anchor.BorshCoder(rawIdl as anchor.Idl);
 
   const logs = await fetchTransactionLogs(connection, opts.signature);
   const event = findOutcomeResolvedEvent(logs, programId.toBase58());

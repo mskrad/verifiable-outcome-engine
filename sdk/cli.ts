@@ -28,10 +28,6 @@ function parseArgs(argv: string[]): { command?: string; args: CliArgs } {
 }
 
 function printHelp(): void {
-  console.log(`Usage:
-  vre verify --sig <TX_SIG> [--rpc <RPC_URL>] [--program-id <PUBKEY>] [--json]
-  vre resolve --config <PATH> --wallet <PATH> [--rpc <RPC_URL>] [--program-id <PUBKEY>] [--out-dir <DIR>] [--json]
-`);
 }
 
 function printVerifyResult(result: Awaited<ReturnType<typeof verifyOutcome>>, asJson: boolean): void {
@@ -39,13 +35,6 @@ function printVerifyResult(result: Awaited<ReturnType<typeof verifyOutcome>>, as
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  console.log("verification_result :", result.status);
-  console.log("verification_reason :", result.reason);
-  console.log("program_id          :", result.program_id);
-  console.log("runtime_id          :", result.runtime_id);
-  console.log("resolve_id          :", result.resolve_id);
-  console.log("compiled_artifact_hash :", result.compiled_artifact_hash);
-  console.log("outcome_id          :", result.outcome_id);
 }
 
 function printResolveResult(result: Awaited<ReturnType<typeof resolveOperator>>, asJson: boolean): void {
@@ -53,7 +42,6 @@ function printResolveResult(result: Awaited<ReturnType<typeof resolveOperator>>,
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-  console.log("signature :", result.signature);
 }
 
 async function runVerify(args: CliArgs): Promise<void> {

@@ -225,6 +225,50 @@ function fixedAscii(text: string, len: number): Buffer {
   return out;
 }
 
+function sortByAsciiId<T extends { id: string }>(entries: T[]): T[] {
+  return [...entries].sort((left, right) =>
+    Buffer.compare(Buffer.from(left.id, "ascii"), Buffer.from(right.id, "ascii"))
+  );
+}
+
+function pushOutcomeWithTransferEffect(
+  entry: { id: string; weight: number; payoutLamports: bigint; score?: bigint; order?: number },
+  outcomes: W3O1Outcome[],
+  effects: W3O1Effect[]
+): void {
+  const effectIndex = effects.length;
+  effects.push({ type: "transfer_sol", amount_lamports: entry.payoutLamports });
+  outcomes.push({
+    id: entry.id,
+    weight: entry.weight,
+    ...(entry.score === undefined ? {} : { score: entry.score }),
+    ...(entry.order === undefined ? {} : { order: entry.order }),
+    first_effect_index: effectIndex,
+    effect_count: 1,
+  });
+}
+
+function buildOutcomesAndEffects<T extends { id: string; weight: number; payoutLamports: bigint }>(
+  entries: T[]
+): { outcomes: W3O1Outcome[]; effects: W3O1Effect[] } {
+  const outcomes: W3O1Outcome[] = [];
+  const effects: W3O1Effect[] = [];
+  let previousId: string | null = null;
+  for (const entry of sortByAsciiId(entries)) {
+    if (previousId === entry.id) {
+      throw new Error(`duplicate outcome id: ${entry.id}`);
+    }
+    previousId = entry.id;
+    pushOutcomeWithTransferEffect(entry, outcomes, effects);
+  }
+
+  if (effects.length > MAX_U16) {
+    throw new RangeError("effects exceeds u16 limit");
+  }
+
+  return { outcomes, effects };
+}
+
 function normalizeEntries(
   idsAndWeights: Array<{ id: string; weight: number; payoutLamports: bigint }>,
   inputLamports: bigint,
@@ -232,31 +276,7 @@ function normalizeEntries(
 ): W3O1Config {
   validateOutcomeCount(idsAndWeights.length, "outcomes");
   validateWinnersCount(winnersCount, idsAndWeights.length);
-  const sorted = [...idsAndWeights].sort((left, right) =>
-    Buffer.compare(Buffer.from(left.id, "ascii"), Buffer.from(right.id, "ascii"))
-  );
-
-  const outcomes: W3O1Outcome[] = [];
-  const effects: W3O1Effect[] = [];
-  let previousId: string | null = null;
-  for (const entry of sorted) {
-    if (previousId === entry.id) {
-      throw new Error(`duplicate outcome id: ${entry.id}`);
-    }
-    previousId = entry.id;
-    const effectIndex = effects.length;
-    effects.push({ type: "transfer_sol", amount_lamports: entry.payoutLamports });
-    outcomes.push({
-      id: entry.id,
-      weight: entry.weight,
-      first_effect_index: effectIndex,
-      effect_count: 1,
-    });
-  }
-
-  if (effects.length > MAX_U16) {
-    throw new RangeError("effects exceeds u16 limit");
-  }
+  const { outcomes, effects } = buildOutcomesAndEffects(idsAndWeights);
 
   return {
     format_version: winnersCount > 1 ? FORMAT_VERSION_V2 : FORMAT_VERSION_V1,
@@ -283,33 +303,7 @@ function normalizeFormulaEntries(
 ): W3O1Config {
   validateOutcomeCount(entries.length, "participants");
   validateWinnersCount(winnersCount, entries.length);
-  const sorted = [...entries].sort((left, right) =>
-    Buffer.compare(Buffer.from(left.id, "ascii"), Buffer.from(right.id, "ascii"))
-  );
-
-  const outcomes: W3O1Outcome[] = [];
-  const effects: W3O1Effect[] = [];
-  let previousId: string | null = null;
-  for (const entry of sorted) {
-    if (previousId === entry.id) {
-      throw new Error(`duplicate outcome id: ${entry.id}`);
-    }
-    previousId = entry.id;
-    const effectIndex = effects.length;
-    effects.push({ type: "transfer_sol", amount_lamports: entry.payoutLamports });
-    outcomes.push({
-      id: entry.id,
-      weight: entry.weight,
-      score: entry.score,
-      order: entry.order,
-      first_effect_index: effectIndex,
-      effect_count: 1,
-    });
-  }
-
-  if (effects.length > MAX_U16) {
-    throw new RangeError("effects exceeds u16 limit");
-  }
+  const { outcomes, effects } = buildOutcomesAndEffects(entries);
 
   return {
     format_version: FORMAT_VERSION_V3,
@@ -328,19 +322,27 @@ function buildRaffleConfig(config: RaffleConfig): W3O1Config {
   validateOutcomeCount(config.participants.length, "participants");
   const inputLamports = parseLamports(config.input_lamports, "input_lamports");
   const payoutLamports = parseOptionalLamports(config.payout_lamports, "payout_lamports");
-  const entries = config.participants.map((raw, index) => {
-    assertObject(raw, `participants[${index}]`);
-    return {
-      id: validateAddress(raw.address, `participants[${index}].address`),
-      weight: validateWeight(raw.weight, `participants[${index}].weight`),
-      payoutLamports,
-    };
-  });
+  const entries = buildAddressWeightedEntries(config.participants, "participants", payoutLamports);
   return normalizeEntries(
     entries,
     inputLamports,
     validateWinnersCount(config.winners_count, entries.length)
   );
+}
+
+function buildAddressWeightedEntries(
+  rawEntries: unknown[],
+  label: string,
+  payoutLamports: bigint
+): Array<{ id: string; weight: number; payoutLamports: bigint }> {
+  return rawEntries.map((raw, index) => {
+    assertObject(raw, `${label}[${index}]`);
+    return {
+      id: validateAddress(raw.address, `${label}[${index}].address`),
+      weight: validateWeight(raw.weight, `${label}[${index}].weight`),
+      payoutLamports,
+    };
+  });
 }
 
 function buildLootConfig(config: LootConfig): W3O1Config {
@@ -372,14 +374,7 @@ function buildAirdropConfig(config: AirdropConfig): W3O1Config {
   validateOutcomeCount(config.eligible.length, "eligible");
   const inputLamports = parseLamports(config.input_lamports, "input_lamports");
   const payoutLamports = parseOptionalLamports(config.payout_lamports, "payout_lamports");
-  const entries = config.eligible.map((raw, index) => {
-    assertObject(raw, `eligible[${index}]`);
-    return {
-      id: validateAddress(raw.address, `eligible[${index}].address`),
-      weight: validateWeight(raw.weight, `eligible[${index}].weight`),
-      payoutLamports,
-    };
-  });
+  const entries = buildAddressWeightedEntries(config.eligible, "eligible", payoutLamports);
   return normalizeEntries(
     entries,
     inputLamports,

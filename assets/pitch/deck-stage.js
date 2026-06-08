@@ -71,6 +71,75 @@
   const VALIDATE_ATTR = 'no_overflowing_text,no_overlapping_text,slide_sized_text';
 
   const pad2 = (n) => String(n).padStart(2, '0');
+  const logNonCriticalError = (context, err) => {
+    console.warn(`[deck-stage] ${context}:`, err);
+  };
+  const el = (tag, attrs = {}, children = []) => {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs)) {
+      if (key === 'className') node.className = value;
+      else if (key === 'textContent') node.textContent = value;
+      else node.setAttribute(key, value);
+    }
+    node.append(...children);
+    return node;
+  };
+  const iconButton = ({ className, label, title, path }) => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    pathEl.setAttribute('d', path);
+    svg.append(pathEl);
+    return el('button', {
+      className: `btn ${className}`,
+      type: 'button',
+      'aria-label': label,
+      title,
+    }, [svg]);
+  };
+  const buildOverlay = () => {
+    const current = el('span', { className: 'current', textContent: '1' });
+    const count = el('span', { className: 'count', 'aria-live': 'polite' }, [
+      current,
+      el('span', { className: 'sep', textContent: '/' }),
+      el('span', { className: 'total', textContent: '1' }),
+    ]);
+    return [
+      iconButton({ className: 'prev', label: 'Previous slide', title: 'Previous (←)', path: 'M10 3L5 8l5 5' }),
+      count,
+      iconButton({ className: 'next', label: 'Next slide', title: 'Next (→)', path: 'M6 3l5 5-5 5' }),
+      el('span', { className: 'divider' }),
+      el('button', { className: 'btn reset', type: 'button', 'aria-label': 'Reset to first slide', title: 'Reset (R)' }, [
+        document.createTextNode('Reset'),
+        el('span', { className: 'kbd', textContent: 'R' }),
+      ]),
+    ];
+  };
+  const buildContextMenu = () => [
+    el('button', { type: 'button', 'data-act': 'skip', textContent: 'Skip slide' }),
+    el('button', { type: 'button', 'data-act': 'up', textContent: 'Move up' }),
+    el('button', { type: 'button', 'data-act': 'down', textContent: 'Move down' }),
+    el('hr'),
+    el('button', { type: 'button', 'data-act': 'delete', textContent: 'Delete slide' }),
+  ];
+  const buildConfirmDialog = () => [
+    el('div', { className: 'confirm', role: 'dialog', 'aria-modal': 'true' }, [
+      el('div', { className: 'body' }, [
+        el('div', { className: 'title', textContent: 'Delete slide?' }),
+        el('div', { className: 'msg', textContent: 'This slide will be removed from the deck.' }),
+      ]),
+      el('div', { className: 'footer' }, [
+        el('button', { type: 'button', className: 'cancel', textContent: 'Cancel' }),
+        el('button', { type: 'button', className: 'danger', textContent: 'Delete' }),
+      ]),
+    ]),
+  ];
 
   const stylesheet = `
     :host {
@@ -588,12 +657,9 @@
       this._railVisible = true;
       try {
         if (localStorage.getItem('deck-stage.railVisible') === '0') this._railVisible = false;
-      } catch (e) {}
-      // Live thumbnail updates: watch the light-DOM slides for content
-      // edits and re-clone just the affected thumb(s), debounced. Ignore
-      // the data-deck-* / data-screen-label / data-om-validate attributes
-      // this component itself writes so nav and skip don't trigger
-      // spurious refreshes.
+      } catch (err) {
+        logNonCriticalError('Unable to read rail visibility preference', err);
+      }
       const OWN_ATTRS = /^data-(deck-|screen-label$|om-validate$)/;
       this._liveDirty = new Set();
       this._liveObserver = new MutationObserver((records) => {
@@ -811,17 +877,7 @@
       overlay.setAttribute('role', 'toolbar');
       overlay.setAttribute('aria-label', 'Deck controls');
       overlay.setAttribute('data-noncommentable', '');
-      overlay.innerHTML = `
-        <button class="btn prev" type="button" aria-label="Previous slide" title="Previous (←)">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>
-        </button>
-        <span class="count" aria-live="polite"><span class="current">1</span><span class="sep">/</span><span class="total">1</span></span>
-        <button class="btn next" type="button" aria-label="Next slide" title="Next (→)">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3l5 5-5 5"/></svg>
-        </button>
-        <span class="divider"></span>
-        <button class="btn reset" type="button" aria-label="Reset to first slide" title="Reset (R)">Reset<span class="kbd">R</span></button>
-      `;
+      overlay.append(...buildOverlay());
 
       overlay.querySelector('.prev').addEventListener('click', () => this._advance(-1, 'click'));
       overlay.querySelector('.next').addEventListener('click', () => this._advance(1, 'click'));
@@ -850,13 +906,7 @@
       const menu = document.createElement('div');
       menu.className = 'ctxmenu export-hidden';
       menu.setAttribute('data-noncommentable', '');
-      menu.innerHTML = `
-        <button type="button" data-act="skip">Skip slide</button>
-        <button type="button" data-act="up">Move up</button>
-        <button type="button" data-act="down">Move down</button>
-        <hr>
-        <button type="button" data-act="delete">Delete slide</button>
-      `;
+      menu.append(...buildContextMenu());
       menu.addEventListener('click', (e) => {
         const act = e.target && e.target.getAttribute && e.target.getAttribute('data-act');
         if (!act) return;
@@ -884,7 +934,11 @@
           resize.removeEventListener('pointerup', up);
           resize.removeEventListener('pointercancel', up);
           resize.removeAttribute('data-dragging');
-          try { localStorage.setItem('deck-stage.railWidth', String(this._railPx)); } catch (err) {}
+          try {
+            localStorage.setItem('deck-stage.railWidth', String(this._railPx));
+          } catch (err) {
+            logNonCriticalError('Unable to persist rail width', err);
+          }
         };
         resize.addEventListener('pointermove', move);
         resize.addEventListener('pointerup', up);
@@ -895,18 +949,7 @@
       const confirm = document.createElement('div');
       confirm.className = 'confirm-backdrop export-hidden';
       confirm.setAttribute('data-noncommentable', '');
-      confirm.innerHTML = `
-        <div class="confirm" role="dialog" aria-modal="true">
-          <div class="body">
-            <div class="title">Delete slide?</div>
-            <div class="msg">This slide will be removed from the deck.</div>
-          </div>
-          <div class="footer">
-            <button type="button" class="cancel">Cancel</button>
-            <button type="button" class="danger">Delete</button>
-          </div>
-        </div>
-      `;
+      confirm.append(...buildConfirmDialog());
       confirm.addEventListener('click', (e) => {
         if (e.target === confirm) this._closeConfirm();
       });
@@ -934,7 +977,9 @@
       try {
         const s = localStorage.getItem('deck-stage.railWidth');
         if (s) rw = parseInt(s, 10) || rw;
-      } catch (err) {}
+      } catch (err) {
+        logNonCriticalError('Unable to read rail width preference', err);
+      }
       this._setRailWidth(rw);
       this._syncRailHidden();
     }
@@ -1068,7 +1113,11 @@
       // Keep the iframe's own hash in sync so an in-iframe location.reload()
       // (reload banner path in viewer-handle.ts) lands on the current slide,
       // not the stale deep-link hash from initial load.
-      try { history.replaceState(null, '', '#' + (curr + 1)); } catch (e) {}
+      try {
+        history.replaceState(null, '', '#' + (curr + 1));
+      } catch (err) {
+        logNonCriticalError('Unable to replace slide hash', err);
+      }
       this._slides.forEach((s, i) => {
         if (i === curr) s.setAttribute('data-deck-active', '');
         else s.removeAttribute('data-deck-active');
@@ -1083,7 +1132,11 @@
 
       if (broadcast) {
         // (1) Legacy: host-window postMessage for speaker-notes renderers.
-        try { window.postMessage({ slideIndexChanged: curr, deckTotal: this._slides.length, deckSkipped: this._skippedIndices() }, '*'); } catch (e) {}
+        try {
+          window.postMessage({ slideIndexChanged: curr, deckTotal: this._slides.length, deckSkipped: this._skippedIndices() }, '*');
+        } catch (err) {
+          logNonCriticalError('Unable to post slide index change', err);
+        }
 
         // (2) In-page CustomEvent on the <deck-stage> element itself.
         //     Bubbles and composes out of shadow DOM so slide code can listen:
@@ -1185,7 +1238,11 @@
       if (d && d.type === '__deck_rail_visible' && typeof d.on === 'boolean') {
         if (d.on === this._railVisible) return;
         this._railVisible = d.on;
-        try { localStorage.setItem('deck-stage.railVisible', d.on ? '1' : '0'); } catch (e) {}
+        try {
+          localStorage.setItem('deck-stage.railVisible', d.on ? '1' : '0');
+        } catch (err) {
+          logNonCriticalError('Unable to persist rail visibility preference', err);
+        }
         // Arm the transition, commit it, then flip state — otherwise the
         // browser coalesces both writes and nothing animates on show.
         this.setAttribute('data-rail-anim', '');
@@ -1416,7 +1473,11 @@
         this._dragFrom = idx();
         thumb.setAttribute('data-dragging', '');
         e.dataTransfer.effectAllowed = 'move';
-        try { e.dataTransfer.setData('text/plain', String(this._dragFrom)); } catch (err) {}
+        try {
+          e.dataTransfer.setData('text/plain', String(this._dragFrom));
+        } catch (err) {
+          logNonCriticalError('Unable to set drag payload', err);
+        }
       });
       thumb.addEventListener('dragend', () => {
         thumb.removeAttribute('data-dragging');
@@ -1462,10 +1523,10 @@
         el.removeAttribute('src');
         el.removeAttribute('srcdoc');
         el.removeAttribute('data');
-        el.innerHTML = '';
+        el.replaceChildren();
       });
       clone.querySelectorAll('video').forEach((el) => {
-        if (!el.poster) { el.removeAttribute('src'); el.innerHTML = ''; return; }
+        if (!el.poster) { el.removeAttribute('src'); el.replaceChildren(); return; }
         const img = document.createElement('img');
         img.src = el.poster;
         img.alt = '';
@@ -1662,7 +1723,11 @@
       this._emitDeckChange({ action: on ? 'skip' : 'unskip', from: i, slide });
       // Re-broadcast so the presenter popup's prev/next thumbnails re-pick
       // the nearest non-skipped slide without waiting for a nav event.
-      try { window.postMessage({ slideIndexChanged: this._index, deckTotal: this._slides.length, deckSkipped: this._skippedIndices() }, '*'); } catch (e) {}
+      try {
+        window.postMessage({ slideIndexChanged: this._index, deckTotal: this._slides.length, deckSkipped: this._skippedIndices() }, '*');
+      } catch (err) {
+        logNonCriticalError('Unable to post skipped-slide update', err);
+      }
     }
 
     _skippedIndices() {

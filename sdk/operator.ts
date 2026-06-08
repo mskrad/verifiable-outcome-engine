@@ -94,6 +94,49 @@ type ProgramConfigState = {
   treasury: PublicKey;
 };
 
+type InstructionBuilder = {
+  accounts(accounts: Record<string, unknown>): InstructionBuilder;
+  remainingAccounts(accounts: Array<{
+    pubkey: PublicKey;
+    isSigner: boolean;
+    isWritable: boolean;
+  }>): InstructionBuilder;
+  instruction(): Promise<TransactionInstruction>;
+};
+
+type OutcomeMethods = Record<string, (...args: unknown[]) => InstructionBuilder>;
+
+type AccountFetcher = {
+  fetch(address: PublicKey, commitment?: anchor.web3.Commitment): Promise<unknown>;
+};
+
+type OutcomeProgram = anchor.Program & {
+  methods: OutcomeMethods;
+  account: {
+    approvedOutcomeArtifact: AccountFetcher;
+    outcomeConfig: AccountFetcher;
+    programConfig: AccountFetcher;
+  };
+};
+
+type ProgramConfigAccount = {
+  admin: PublicKey | string;
+  allowUnreviewedBinding?: boolean;
+  feeLamports?: unknown;
+  fee_lamports?: unknown;
+  treasury: PublicKey | string;
+};
+
+type ApprovedOutcomeArtifactAccount = {
+  isFinalized: boolean;
+  status: number;
+};
+
+type OutcomeConfigAccount = {
+  nextResolveId?: unknown;
+  next_resolve_id?: unknown;
+};
+
 export type ResolveOperatorOptions = {
   configPath: string;
   walletPath?: string;
@@ -182,7 +225,22 @@ function loadKeypair(walletPath: string): Keypair {
 
 async function loadSwigClassic() {
   const mod = await import("@swig-wallet/classic");
-  return ((mod as any).default ?? mod) as typeof import("@swig-wallet/classic");
+  const loaded = mod as typeof import("@swig-wallet/classic") & {
+    default?: typeof import("@swig-wallet/classic");
+  };
+  return loaded.default ?? loaded;
+}
+
+function outcomeProgram(client: OutcomeClient): OutcomeProgram {
+  return client.program as OutcomeProgram;
+}
+
+function outcomeMethods(client: OutcomeClient): OutcomeMethods {
+  return outcomeProgram(client).methods;
+}
+
+function outcomeAccounts(client: OutcomeClient): OutcomeProgram["account"] {
+  return outcomeProgram(client).account;
 }
 
 function loadArtifactConfig(configPath: string): ArtifactConfig {
@@ -351,7 +409,7 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
     "confirmed"
   );
   if (!info) {
-    const instruction = await (client.program.methods as any)
+    const instruction = await outcomeMethods(client)
       .initializeProgramConfig({
         feeLamports: new BN(0),
         treasury: client.authority.publicKey,
@@ -369,10 +427,10 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
     return programConfigPda;
   }
 
-  const programConfig = await (client.program.account as any).programConfig.fetch(
+  const programConfig = await outcomeAccounts(client).programConfig.fetch(
     programConfigPda,
     "confirmed"
-  );
+  ) as ProgramConfigAccount;
   const currentAdmin = new PublicKey(programConfig.admin);
   if (!currentAdmin.equals(client.authority.publicKey)) {
     throw new Error(
@@ -380,8 +438,8 @@ async function ensureProgramConfig(client: OutcomeClient): Promise<PublicKey> {
     );
   }
 
-  if (Boolean(programConfig.allowUnreviewedBinding)) {
-    const instruction = await (client.program.methods as any)
+  if (programConfig.allowUnreviewedBinding) {
+    const instruction = await outcomeMethods(client)
       .setProgramConfig({
         newAdmin: client.authority.publicKey,
         allowUnreviewedBinding: false,
@@ -436,6 +494,55 @@ function artifactFormatVersion(blob: Buffer): number {
   return blob.readUInt16LE(4);
 }
 
+function readonlyRemainingAccounts(pubkeys: PublicKey[]): Array<{
+  pubkey: PublicKey;
+  isSigner: boolean;
+  isWritable: boolean;
+}> {
+  return pubkeys.map((pubkey) => ({
+    pubkey,
+    isSigner: false,
+    isWritable: false,
+  }));
+}
+
+async function buildFinalizeCompiledArtifactInstruction(
+  client: OutcomeClient,
+  artifactPda: PublicKey,
+  chunkPdas: PublicKey[]
+): Promise<TransactionInstruction> {
+  return outcomeMethods(client)
+    .finalizeCompiledArtifact()
+    .accounts({
+      publisher: client.authority.publicKey,
+      approvedOutcomeArtifact: artifactPda,
+    })
+    .remainingAccounts(readonlyRemainingAccounts(chunkPdas))
+    .instruction();
+}
+
+async function buildReviewCompiledArtifactInstruction(
+  client: OutcomeClient,
+  opts: {
+    artifactPda: PublicKey;
+    auditHash?: Buffer;
+    artifactUri: string;
+  }
+): Promise<TransactionInstruction> {
+  return outcomeMethods(client)
+    .reviewCompiledArtifact({
+      status: STATUS_APPROVED,
+      auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
+      artifactUri: Buffer.from(opts.artifactUri, "utf8"),
+    })
+    .accounts({
+      programConfig: deriveProgramConfigPda(client.programId),
+      admin: client.authority.publicKey,
+      approvedOutcomeArtifact: opts.artifactPda,
+    })
+    .instruction();
+}
+
 async function submitApprovedArtifact(
   client: OutcomeClient,
   opts: {
@@ -470,45 +577,26 @@ async function submitApprovedArtifact(
       );
     }
 
-    const artifactAccount = await (client.program.account as any).approvedOutcomeArtifact.fetch(
+    const artifactAccount = await outcomeAccounts(client).approvedOutcomeArtifact.fetch(
       artifactPda,
       "confirmed"
-    );
+    ) as ApprovedOutcomeArtifactAccount;
 
     if (!artifactAccount.isFinalized) {
-      const instruction = await (client.program.methods as any)
-        .finalizeCompiledArtifact()
-        .accounts({
-          publisher: client.authority.publicKey,
-          approvedOutcomeArtifact: artifactPda,
-        })
-        .remainingAccounts(
-          chunkPdas.map((pubkey) => ({
-            pubkey,
-            isSigner: false,
-            isWritable: false,
-          }))
-        )
-        .instruction();
+      const instruction = await buildFinalizeCompiledArtifactInstruction(
+        client,
+        artifactPda,
+        chunkPdas
+      );
       await sendOperatorInstructions(client, [instruction]);
     }
 
     if (artifactAccount.status !== STATUS_APPROVED) {
-      const instruction = await (client.program.methods as any)
-        .reviewCompiledArtifact({
-          status: STATUS_APPROVED,
-          auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
-          artifactUri: Buffer.from(
-            opts.artifactUri ?? path.basename(artifactPath),
-            "utf8"
-          ),
-        })
-        .accounts({
-          programConfig: deriveProgramConfigPda(client.programId),
-          admin: client.authority.publicKey,
-          approvedOutcomeArtifact: artifactPda,
-        })
-        .instruction();
+      const instruction = await buildReviewCompiledArtifactInstruction(client, {
+        artifactPda,
+        auditHash: opts.auditHash,
+        artifactUri: opts.artifactUri ?? path.basename(artifactPath),
+      });
       await sendOperatorInstructions(client, [instruction]);
     }
 
@@ -522,7 +610,7 @@ async function submitApprovedArtifact(
     };
   }
 
-  let instruction = await (client.program.methods as any)
+  let instruction = await outcomeMethods(client)
     .submitCompiledArtifact({
       compiledArtifactHash: [...compiledArtifactHash],
       formatVersion: artifactFormatVersion(opts.blob),
@@ -546,7 +634,7 @@ async function submitApprovedArtifact(
     );
     chunkPdas.push(chunkPda);
 
-    instruction = await (client.program.methods as any)
+    instruction = await outcomeMethods(client)
       .initCompiledArtifactChunk({
         compiledArtifactHash: [...compiledArtifactHash],
         chunkIndex,
@@ -574,7 +662,7 @@ async function submitApprovedArtifact(
         offset,
         Math.min(chunkBytes.length, offset + CHUNK_WRITE_BYTES)
       );
-      instruction = await (client.program.methods as any)
+      instruction = await outcomeMethods(client)
         .writeCompiledArtifactChunk({
           compiledArtifactHash: [...compiledArtifactHash],
           chunkIndex,
@@ -591,37 +679,18 @@ async function submitApprovedArtifact(
     }
   }
 
-  instruction = await (client.program.methods as any)
-    .finalizeCompiledArtifact()
-    .accounts({
-      publisher: client.authority.publicKey,
-      approvedOutcomeArtifact: artifactPda,
-    })
-    .remainingAccounts(
-      chunkPdas.map((pubkey) => ({
-        pubkey,
-        isSigner: false,
-        isWritable: false,
-      }))
-    )
-    .instruction();
+  instruction = await buildFinalizeCompiledArtifactInstruction(
+    client,
+    artifactPda,
+    chunkPdas
+  );
   await sendOperatorInstructions(client, [instruction]);
 
-  instruction = await (client.program.methods as any)
-    .reviewCompiledArtifact({
-      status: STATUS_APPROVED,
-      auditHash: [...(opts.auditHash ?? Buffer.alloc(32, 0))],
-      artifactUri: Buffer.from(
-        opts.artifactUri ?? path.basename(artifactPath),
-        "utf8"
-      ),
-    })
-    .accounts({
-      programConfig: deriveProgramConfigPda(client.programId),
-      admin: client.authority.publicKey,
-      approvedOutcomeArtifact: artifactPda,
-    })
-    .instruction();
+  instruction = await buildReviewCompiledArtifactInstruction(client, {
+    artifactPda,
+    auditHash: opts.auditHash,
+    artifactUri: opts.artifactUri ?? path.basename(artifactPath),
+  });
   await sendOperatorInstructions(client, [instruction]);
 
   return {
@@ -654,7 +723,7 @@ async function initializeOutcomeRuntime(
   const outcomeVaultPda = deriveOutcomeVaultPda(client.programId, opts.runtimeId);
   const treasury = opts.treasury ?? client.authority.publicKey;
 
-  const instruction = await (client.program.methods as any)
+  const instruction = await outcomeMethods(client)
     .initializeOutcomeConfig({
       runtimeId: [...opts.runtimeId],
       minInputLamports: new BN(opts.minInputLamports.toString()),
@@ -674,13 +743,7 @@ async function initializeOutcomeRuntime(
       ),
       systemProgram: SystemProgram.programId,
     })
-    .remainingAccounts(
-      opts.chunkPdas.map((pubkey) => ({
-        pubkey,
-        isSigner: false,
-        isWritable: false,
-      }))
-    )
+    .remainingAccounts(readonlyRemainingAccounts(opts.chunkPdas))
     .instruction();
   await sendOperatorInstructions(client, [instruction]);
 
@@ -736,7 +799,7 @@ async function refreshRuntimeMasterSeed(
     newMasterSeed: Buffer;
   }
 ): Promise<string> {
-  const instruction = await (client.program.methods as any)
+  const instruction = await outcomeMethods(client)
     .refreshMasterSeed({
       runtimeId: [...opts.runtimeId],
       newMasterSeed: [...opts.newMasterSeed],
@@ -754,10 +817,10 @@ async function fetchOutcomeConfigState(
   client: OutcomeClient,
   runtimeId: Buffer
 ): Promise<OutcomeConfigState> {
-  const decoded = await (client.program.account as any).outcomeConfig.fetch(
+  const decoded = await outcomeAccounts(client).outcomeConfig.fetch(
     deriveOutcomeConfigPda(client.programId, runtimeId),
     "confirmed"
-  );
+  ) as OutcomeConfigAccount;
   return {
     nextResolveId: asBigInt(decoded.nextResolveId ?? decoded.next_resolve_id),
   };
@@ -766,10 +829,10 @@ async function fetchOutcomeConfigState(
 async function fetchProgramConfigState(
   client: OutcomeClient
 ): Promise<ProgramConfigState> {
-  const decoded = await (client.program.account as any).programConfig.fetch(
+  const decoded = await outcomeAccounts(client).programConfig.fetch(
     deriveProgramConfigPda(client.programId),
     "confirmed"
-  );
+  ) as ProgramConfigAccount;
   return {
     feeLamports: asBigInt(decoded.feeLamports ?? decoded.fee_lamports),
     treasury: new PublicKey(decoded.treasury),
@@ -794,7 +857,7 @@ async function resolveOutcomeAndConfirm(
     opts.runtimeId,
     resolveId
   );
-  const instruction = await (client.program.methods as any)
+  const instruction = await outcomeMethods(client)
     .resolveOutcome({
       runtimeId: [...opts.runtimeId],
       inputLamports: new BN(opts.inputLamports.toString()),
@@ -813,13 +876,7 @@ async function resolveOutcomeAndConfirm(
       protocolTreasury: opts.protocolTreasury ?? client.authority.publicKey,
       systemProgram: SystemProgram.programId,
     })
-    .remainingAccounts(
-      opts.chunkPdas.map((pubkey) => ({
-        pubkey,
-        isSigner: false,
-        isWritable: false,
-      }))
-    )
+    .remainingAccounts(readonlyRemainingAccounts(opts.chunkPdas))
     .instruction();
 
   const signature = await sendOperatorInstructions(client, [instruction]);
