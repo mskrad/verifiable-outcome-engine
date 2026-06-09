@@ -1,0 +1,78 @@
+{
+  "generated_at": "2026-06-09T13:47:10.255Z",
+  "rpc_url": "http://127.0.0.1:8899",
+  "program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+  "wallet": "CzzHx2Ckqz5x7cMJqTxF5f9FrHHYyJ9MYmQkCGFwCKVy",
+  "happy_path": {
+    "signature": "6MP8sKHMj1yQrNRie8Kry6sjdsvSLKn7x1d6YLqGPkn5GCnBLmEuDYDKTMntR63e5X5JbmfWa3kNRKCFxbjaecP",
+    "runtime_id": "c5838f6bcedd4973a2eb7f7dc8bb24ca",
+    "resolve_id": "0",
+    "artifact_hash": "9733c58c93d137506a03c5d00a2a838bd1090c86c8d96623ad13cda36f712ac2",
+    "rng_status_after_settle": 2,
+    "target_slots": [
+      "9324",
+      "9339",
+      "9354"
+    ],
+    "resolved_slots": [
+      "9324",
+      "9339",
+      "9354"
+    ],
+    "slot_hashes": [
+      "846ef2e49209049bdbe3df3a689eda6fda98f286e3974149883983b67e0dfdab",
+      "dd1d82e7dbf6f88463b84e8397e64aaa096850a946e669f4dd799357d8df3190",
+      "664051d6606b3bcccf3e8b1a68a64dc8ffc4721753065399532bdd6bb041f6db"
+    ],
+    "pre_settle_sysvar_resolved_slots": [
+      "9324",
+      "9339",
+      "9354"
+    ],
+    "pre_settle_sysvar_slot_hashes": [
+      "846ef2e49209049bdbe3df3a689eda6fda98f286e3974149883983b67e0dfdab",
+      "dd1d82e7dbf6f88463b84e8397e64aaa096850a946e669f4dd799357d8df3190",
+      "664051d6606b3bcccf3e8b1a68a64dc8ffc4721753065399532bdd6bb041f6db"
+    ],
+    "replay": {
+      "status": "MATCH",
+      "reason": "OK",
+      "rng_version": 2,
+      "standard_version": "1.2.1",
+      "winners_count": 2,
+      "outcome_ids": [
+        "bravo",
+        "delta"
+      ]
+    }
+  },
+  "expiry_path": {
+    "signature": "4EKzGCmGq4PSndSv3uGRnVT9db42esrKvAEmJMM3nD2p2dv2wYekq3gMEqsbbhBkLB7NBtaU4Zu4vP3JbyXTw21U",
+    "runtime_id": "bbdc00a403d23b27913c0870b003a362",
+    "resolve_id": "0",
+    "status_after_expire": 3,
+    "expiry_slot": "10351"
+  },
+  "negative_cases": [
+    {
+      "label": "settle_before_last_target",
+      "ok": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/settle_rng_v2.rs:231. Error Code: RngV2TargetSlotNotReady. Error Number: 6024. Error Message: RNG v2 target slot is not ready."
+    },
+    {
+      "label": "wrong_slot_hashes_account",
+      "ok": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/settle_rng_v2.rs:239. Error Code: InvalidSlotHashesSysvar. Error Number: 6023. Error Message: Invalid slot hashes sysvar.\nProgram log: Left:\nProgram log: 11111111111111111111111111111111\nProgram log: Right:\nProgram log: SysvarS1otHashes111111111111111111111111111"
+    },
+    {
+      "label": "bad_operator_reveal",
+      "ok": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/settle_rng_v2.rs:186. Error Code: InvalidRngV2OperatorReveal. Error Number: 6027. Error Message: Invalid RNG v2 operator reveal."
+    },
+    {
+      "label": "settle_after_expire",
+      "ok": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/settle_rng_v2.rs:218. Error Code: InvalidRngV2Status. Error Number: 6022. Error Message: Invalid RNG v2 status."
+    }
+  ]
+}

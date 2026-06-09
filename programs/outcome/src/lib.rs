@@ -8,6 +8,7 @@ pub mod state;
 
 use instructions::admin_pause::AdminPause;
 use instructions::admin_withdraw::AdminWithdraw;
+use instructions::expire_rng_v2::{ExpireRngV2, ExpireRngV2Args};
 use instructions::finalize_compiled_artifact::FinalizeCompiledArtifact;
 use instructions::init_compiled_artifact_chunk::{
     InitCompiledArtifactChunk, InitCompiledArtifactChunkArgs,
@@ -18,6 +19,7 @@ use instructions::initialize_outcome_config::{
 use instructions::initialize_program_config::{
     InitializeProgramConfig, InitializeProgramConfigArgs,
 };
+use instructions::prepare_rng_v2::{PrepareRngV2, PrepareRngV2Args};
 use instructions::recover_program_config_admin::{
     RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
 };
@@ -26,6 +28,7 @@ use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
 use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121Args};
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
+use instructions::settle_rng_v2::{SettleRngV2, SettleRngV2Args};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
 use instructions::submit_compiled_artifact::{SubmitCompiledArtifact, SubmitCompiledArtifactArgs};
 use instructions::write_compiled_artifact_chunk::{
@@ -123,6 +126,18 @@ pub mod outcome {
         instructions::resolve_outcome_v121::handler(ctx, args)
     }
 
+    pub fn prepare_rng_v2(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()> {
+        instructions::prepare_rng_v2::handler(ctx, args)
+    }
+
+    pub fn settle_rng_v2(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
+        instructions::settle_rng_v2::handler(ctx, args)
+    }
+
+    pub fn expire_rng_v2(ctx: Context<ExpireRngV2>, args: ExpireRngV2Args) -> Result<()> {
+        instructions::expire_rng_v2::handler(ctx, args)
+    }
+
     pub fn admin_pause(ctx: Context<AdminPause>, paused: bool) -> Result<()> {
         instructions::admin_pause::handler(ctx, paused)
     }
@@ -170,6 +185,15 @@ mod __client_accounts_resolve_outcome_v4 {
 }
 mod __client_accounts_resolve_outcome_v121 {
     pub use crate::instructions::resolve_outcome_v121::__client_accounts_resolve_outcome_v121::*;
+}
+mod __client_accounts_prepare_rng_v2 {
+    pub use crate::instructions::prepare_rng_v2::__client_accounts_prepare_rng_v2::*;
+}
+mod __client_accounts_settle_rng_v2 {
+    pub use crate::instructions::settle_rng_v2::__client_accounts_settle_rng_v2::*;
+}
+mod __client_accounts_expire_rng_v2 {
+    pub use crate::instructions::expire_rng_v2::__client_accounts_expire_rng_v2::*;
 }
 mod __client_accounts_admin_pause {
     pub use crate::instructions::admin_pause::__client_accounts_admin_pause::*;

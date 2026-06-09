@@ -54,6 +54,9 @@ const FORMULA_RANK_DESC = 2;
 const FORMULA_RANK_ASC = 3;
 const FORMULA_FIRST_N = 4;
 const FORMULA_CLOSEST_TO = 5;
+const RNG_VERSION_V2 = 2;
+const RNG_V2_STATUS_SETTLED = 2;
+const RNG_V2_DOMAIN = "VRE_RNG_V2";
 function u32le(value: number): Buffer {
   const out = Buffer.alloc(4);
   out.writeUInt32LE(value, 0);
@@ -127,13 +130,25 @@ function deriveOutcomeResolutionPda(
   )[0];
 }
 
+function deriveRngV2StatePda(
+  programId: PublicKey,
+  runtimeId: Buffer,
+  resolveId: bigint
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("rng_v2_state"), runtimeId, u64le(resolveId)],
+    programId
+  )[0];
+}
+
 type OutcomeResolvedEvent = {
   runtimeId: Buffer;
   resolveId: bigint;
   actor: PublicKey;
   inputLamports: bigint;
   totalOutputLamports: bigint;
-  masterSeed: Buffer;
+  masterSeed?: Buffer;
+  rngVersion?: number;
   randomness: Buffer;
   compiledArtifactHash: Buffer;
   artifactFormatVersion: number;
@@ -145,6 +160,32 @@ type OutcomeResolvedEvent = {
   winnerClaimHash?: Buffer;
   effectCount: number;
   effectsDigest: Buffer;
+  snapshotHash?: Buffer;
+  resolvedSlots?: bigint[];
+  slotHashes?: Buffer[];
+  operatorCommitPresent?: boolean;
+  operatorCommitHash?: Buffer;
+  operatorRevealLen?: number;
+  operatorReveal?: Buffer;
+};
+
+type RngV2StateAccount = {
+  runtimeId: Buffer;
+  resolveId: bigint;
+  actor: PublicKey;
+  inputLamports: bigint;
+  status: number;
+  compiledArtifactHash: Buffer;
+  artifactFormatVersion: number;
+  snapshotHash: Buffer;
+  targetSlots: bigint[];
+  expirySlot: bigint;
+  operatorCommitPresent: boolean;
+  operatorCommitHash: Buffer;
+  operatorRevealLen: number;
+  operatorReveal: Buffer;
+  resolvedSlots: bigint[];
+  slotHashes: Buffer[];
 };
 
 type ParsedOutcome = {
@@ -209,6 +250,10 @@ function anchorEventDiscriminator(name: string): Buffer {
   return sha256(Buffer.from(`event:${name}`, "utf8")).subarray(0, 8);
 }
 
+function anchorAccountDiscriminator(name: string): Buffer {
+  return sha256(Buffer.from(`account:${name}`, "utf8")).subarray(0, 8);
+}
+
 function parseProgramInvoke(line: string): string | null {
   const match = line.match(/^Program ([1-9A-HJ-NP-Za-km-z]+) invoke \[\d+\]$/);
   return match ? match[1] : null;
@@ -258,6 +303,22 @@ function readBytes(buf: Buffer, offset: { value: number }, len: number): Buffer 
 function readVecU8(buf: Buffer, offset: { value: number }): number[] {
   const len = readU32LE(buf, offset);
   return [...readBytes(buf, offset, len)];
+}
+
+function readFixedU64Array(buf: Buffer, offset: { value: number }, len: number): bigint[] {
+  const out: bigint[] = [];
+  for (let index = 0; index < len; index += 1) {
+    out.push(readU64LE(buf, offset));
+  }
+  return out;
+}
+
+function readFixedHashArray(buf: Buffer, offset: { value: number }, len: number): Buffer[] {
+  const out: Buffer[] = [];
+  for (let index = 0; index < len; index += 1) {
+    out.push(readBytes(buf, offset, 32));
+  }
+  return out;
 }
 
 function readVecOutcomeIds(buf: Buffer, offset: { value: number }): Buffer[] {
@@ -451,6 +512,65 @@ function decodeOutcomeResolvedV3(line: string): OutcomeResolvedEvent | null {
   };
 }
 
+function decodeOutcomeResolvedV4(line: string): OutcomeResolvedEvent | null {
+  if (!line.startsWith("Program data: ")) return null;
+  const encoded = line.slice("Program data: ".length).trim();
+  const buf = Buffer.from(encoded, "base64");
+  const discriminator = anchorEventDiscriminator("OutcomeResolvedV4");
+  if (buf.length < 8 || !buf.subarray(0, 8).equals(discriminator)) return null;
+
+  const offset = { value: 8 };
+  const runtimeId = readBytes(buf, offset, 16);
+  const resolveId = readU64LE(buf, offset);
+  const actor = new PublicKey(readBytes(buf, offset, 32));
+  const inputLamports = readU64LE(buf, offset);
+  const totalOutputLamports = readU64LE(buf, offset);
+  const rngVersion = readU8(buf, offset);
+  const randomness = readBytes(buf, offset, 32);
+  const compiledArtifactHash = readBytes(buf, offset, 32);
+  const artifactFormatVersion = readU16LE(buf, offset);
+  const winnerCount = readU16LE(buf, offset);
+  const winnerClaimHash = readBytes(buf, offset, 32);
+  const outcomeIdLen = readU8(buf, offset);
+  const outcomeId = readBytes(buf, offset, MAX_OUTCOME_ID_BYTES);
+  const effectCount = readU16LE(buf, offset);
+  const effectsDigest = readBytes(buf, offset, 32);
+  const snapshotHash = readBytes(buf, offset, 32);
+  const resolvedSlots = readFixedU64Array(buf, offset, 3);
+  const slotHashes = readFixedHashArray(buf, offset, 3);
+  const operatorCommitPresent = readU8(buf, offset) !== 0;
+  const operatorCommitHash = readBytes(buf, offset, 32);
+  const operatorRevealLen = readU8(buf, offset);
+  const operatorReveal = readBytes(buf, offset, 32);
+
+  return {
+    runtimeId,
+    resolveId,
+    actor,
+    inputLamports,
+    totalOutputLamports,
+    rngVersion,
+    randomness,
+    compiledArtifactHash,
+    artifactFormatVersion,
+    winnerCount,
+    outcomeIdLen,
+    outcomeId,
+    outcomeIdLens: [outcomeIdLen],
+    outcomeIds: [outcomeId],
+    winnerClaimHash,
+    effectCount,
+    effectsDigest,
+    snapshotHash,
+    resolvedSlots,
+    slotHashes,
+    operatorCommitPresent,
+    operatorCommitHash,
+    operatorRevealLen,
+    operatorReveal,
+  };
+}
+
 function findOutcomeResolvedEvent(
   logs: string[],
   expectedProgramId: string
@@ -482,7 +602,11 @@ function findOutcomeResolvedEvent(
     if (!line.startsWith("Program data: ")) continue;
     if (stack.length === 0) continue;
     const currentProgramId = stack[stack.length - 1];
-    const event = decodeOutcomeResolvedV3(line) ?? decodeOutcomeResolvedV2(line) ?? decodeOutcomeResolvedV1(line);
+    const event =
+      decodeOutcomeResolvedV4(line) ??
+      decodeOutcomeResolvedV3(line) ??
+      decodeOutcomeResolvedV2(line) ??
+      decodeOutcomeResolvedV1(line);
     if (currentProgramId === expectedProgramId) {
       sawProgramDataForExpected = true;
       if (event) return event;
@@ -558,11 +682,100 @@ async function fetchDecodedAccount(
   }
 }
 
+function decodeOutcomeResolutionV4Account(data: Buffer): any {
+  const discriminator = anchorAccountDiscriminator("OutcomeResolutionV4");
+  if (data.length < 8 || !data.subarray(0, 8).equals(discriminator)) {
+    throw new Error("OutcomeResolutionV4 discriminator mismatch");
+  }
+  const offset = { value: 8 };
+  return {
+    runtime_id: [...readBytes(data, offset, 16)],
+    resolve_id: readU64LE(data, offset),
+    actor: new PublicKey(readBytes(data, offset, 32)),
+    input_lamports: readU64LE(data, offset),
+    status: readU8(data, offset),
+    rng_version: readU8(data, offset),
+    artifact_format_version: readU16LE(data, offset),
+    winner_count: readU16LE(data, offset),
+    winner_claim_hash: [...readBytes(data, offset, 32)],
+    total_output_lamports: readU64LE(data, offset),
+    compiled_artifact_hash: [...readBytes(data, offset, 32)],
+    randomness: [...readBytes(data, offset, 32)],
+    outcome_id_len: readU8(data, offset),
+    outcome_id: [...readBytes(data, offset, MAX_OUTCOME_ID_BYTES)],
+    effect_count: readU16LE(data, offset),
+    effects_digest: [...readBytes(data, offset, 32)],
+    snapshot_hash: [...readBytes(data, offset, 32)],
+    resolved_slots: readFixedU64Array(data, offset, 3),
+    slot_hashes: readFixedHashArray(data, offset, 3).map((hash) => [...hash]),
+    operator_commit_present: readU8(data, offset) !== 0,
+    operator_commit_hash: [...readBytes(data, offset, 32)],
+    operator_reveal_len: readU8(data, offset),
+    operator_reveal: [...readBytes(data, offset, 32)],
+    bump: readU8(data, offset),
+    reserved: [...readBytes(data, offset, 29)],
+  };
+}
+
+function decodeRngV2StateAccount(data: Buffer): RngV2StateAccount {
+  const discriminator = anchorAccountDiscriminator("RngV2State");
+  if (data.length < 8 || !data.subarray(0, 8).equals(discriminator)) {
+    throw new Error("RngV2State discriminator mismatch");
+  }
+  const offset = { value: 8 };
+  const state: RngV2StateAccount = {
+    runtimeId: readBytes(data, offset, 16),
+    resolveId: readU64LE(data, offset),
+    actor: new PublicKey(readBytes(data, offset, 32)),
+    inputLamports: readU64LE(data, offset),
+    status: readU8(data, offset),
+    compiledArtifactHash: readBytes(data, offset, 32),
+    artifactFormatVersion: readU16LE(data, offset),
+    snapshotHash: readBytes(data, offset, 32),
+    targetSlots: readFixedU64Array(data, offset, 3),
+    expirySlot: readU64LE(data, offset),
+    operatorCommitPresent: readU8(data, offset) !== 0,
+    operatorCommitHash: readBytes(data, offset, 32),
+    operatorRevealLen: readU8(data, offset),
+    operatorReveal: readBytes(data, offset, 32),
+    resolvedSlots: readFixedU64Array(data, offset, 3),
+    slotHashes: readFixedHashArray(data, offset, 3),
+  };
+  readU8(data, offset); // bump
+  readBytes(data, offset, 32); // reserved
+  return state;
+}
+
+async function fetchDecodedRngV2State(
+  connection: anchor.web3.Connection,
+  pubkey: PublicKey
+): Promise<RngV2StateAccount> {
+  const info = await connection.getAccountInfo(pubkey, "confirmed");
+  if (!info) {
+    mismatch("ERR_RNG_V2_STATE_MISMATCH", `RngV2State not found: ${pubkey.toBase58()}`);
+  }
+  try {
+    return decodeRngV2StateAccount(info.data);
+  } catch (error) {
+    mismatch(
+      "ERR_RNG_V2_STATE_MISMATCH",
+      `Failed to decode RngV2State: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
 async function fetchDecodedOutcomeResolution(
   connection: anchor.web3.Connection,
   coder: any,
   pubkey: PublicKey
-): Promise<{ accountName: "OutcomeResolution" | "OutcomeResolutionV2" | "OutcomeResolutionV3"; decoded: any }> {
+): Promise<{
+  accountName:
+    | "OutcomeResolution"
+    | "OutcomeResolutionV2"
+    | "OutcomeResolutionV3"
+    | "OutcomeResolutionV4";
+  decoded: any;
+}> {
   const info = await connection.getAccountInfo(pubkey, "confirmed");
   if (!info) {
     mismatch(
@@ -572,28 +785,35 @@ async function fetchDecodedOutcomeResolution(
   }
   try {
     return {
-      accountName: "OutcomeResolutionV3",
-      decoded: coder.accounts.decode("OutcomeResolutionV3", info.data),
+      accountName: "OutcomeResolutionV4",
+      decoded: decodeOutcomeResolutionV4Account(info.data),
     };
   } catch (_) {
     try {
       return {
-        accountName: "OutcomeResolutionV2",
-        decoded: coder.accounts.decode("OutcomeResolutionV2", info.data),
+        accountName: "OutcomeResolutionV3",
+        decoded: coder.accounts.decode("OutcomeResolutionV3", info.data),
       };
     } catch (_) {
       try {
         return {
-          accountName: "OutcomeResolution",
-          decoded: coder.accounts.decode("OutcomeResolution", info.data),
+          accountName: "OutcomeResolutionV2",
+          decoded: coder.accounts.decode("OutcomeResolutionV2", info.data),
         };
       } catch (error) {
-        mismatch(
-          "ERR_RESOLUTION_ACCOUNT_NOT_FOUND",
-          `Failed to decode OutcomeResolution account: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
+        try {
+          return {
+            accountName: "OutcomeResolution",
+            decoded: coder.accounts.decode("OutcomeResolution", info.data),
+          };
+        } catch (innerError) {
+          mismatch(
+            "ERR_RESOLUTION_ACCOUNT_NOT_FOUND",
+            `Failed to decode OutcomeResolution account: ${
+              innerError instanceof Error ? innerError.message : String(innerError)
+            }`
+          );
+        }
       }
     }
   }
@@ -1171,6 +1391,96 @@ function mismatchResult(reason: string, programId: string): VerifyResult {
   };
 }
 
+function deriveRngV2Seed(event: OutcomeResolvedEvent, snapshotHash: Buffer): Buffer {
+  if (
+    !event.resolvedSlots ||
+    event.resolvedSlots.length !== 3 ||
+    !event.slotHashes ||
+    event.slotHashes.length !== 3
+  ) {
+    mismatch("ERR_RNG_V2_EVIDENCE_MISSING", "RNG v2 slot evidence is missing");
+  }
+  const chunks: Buffer[] = [
+    Buffer.from(RNG_V2_DOMAIN, "ascii"),
+    event.runtimeId,
+    u64le(event.resolveId),
+    event.compiledArtifactHash,
+    snapshotHash,
+  ];
+  for (let index = 0; index < 3; index += 1) {
+    chunks.push(u64le(event.resolvedSlots[index]));
+    chunks.push(event.slotHashes[index]);
+  }
+  if (event.operatorCommitPresent) {
+    if (!event.operatorCommitHash) {
+      mismatch("ERR_RNG_V2_EVIDENCE_MISSING", "RNG v2 operator commit hash is missing");
+    }
+    chunks.push(event.operatorCommitHash);
+  }
+  return sha256(Buffer.concat(chunks));
+}
+
+function deriveRngV2Randomness(event: OutcomeResolvedEvent, snapshotHash: Buffer): Buffer {
+  const seed = deriveRngV2Seed(event, snapshotHash);
+  return sha256(
+    Buffer.concat([seed, event.runtimeId, u64le(event.resolveId), event.actor.toBuffer()])
+  );
+}
+
+function verifyRngV2StateBinding(
+  state: RngV2StateAccount,
+  event: OutcomeResolvedEvent
+): void {
+  if (
+    event.rngVersion !== RNG_VERSION_V2 ||
+    !event.snapshotHash ||
+    !event.resolvedSlots ||
+    !event.slotHashes
+  ) {
+    mismatch("ERR_RNG_V2_EVIDENCE_MISSING", "RNG v2 event evidence is missing");
+  }
+
+  if (
+    state.status !== RNG_V2_STATUS_SETTLED ||
+    !state.runtimeId.equals(event.runtimeId) ||
+    state.resolveId !== event.resolveId ||
+    !state.actor.equals(event.actor) ||
+    state.inputLamports !== event.inputLamports ||
+    !state.compiledArtifactHash.equals(event.compiledArtifactHash) ||
+    state.artifactFormatVersion !== event.artifactFormatVersion ||
+    !state.snapshotHash.equals(event.snapshotHash) ||
+    state.operatorCommitPresent !== Boolean(event.operatorCommitPresent) ||
+    !state.operatorCommitHash.equals(event.operatorCommitHash ?? Buffer.alloc(32, 0)) ||
+    state.operatorRevealLen !== (event.operatorRevealLen ?? 0) ||
+    !state.operatorReveal.equals(event.operatorReveal ?? Buffer.alloc(32, 0)) ||
+    state.resolvedSlots.length !== event.resolvedSlots.length ||
+    state.slotHashes.length !== event.slotHashes.length ||
+    state.resolvedSlots.some((slot, index) => slot !== event.resolvedSlots![index]) ||
+    state.slotHashes.some((hash, index) => !hash.equals(event.slotHashes![index]))
+  ) {
+    mismatch(
+      "ERR_RNG_V2_STATE_MISMATCH",
+      "RNG v2 state differs from event evidence"
+    );
+  }
+}
+
+function rngV2ResultFields(
+  event: OutcomeResolvedEvent,
+  state?: RngV2StateAccount
+): Partial<VerifyResult> {
+  if (event.rngVersion !== RNG_VERSION_V2) return {};
+  return {
+    rng_version: RNG_VERSION_V2,
+    ...(state ? { target_slots: state.targetSlots.map((slot) => slot.toString()) } : {}),
+    resolved_slots: (event.resolvedSlots ?? []).map((slot) => slot.toString()),
+    slot_hashes: (event.slotHashes ?? []).map((hash) => hash.toString("hex")),
+    ...(event.operatorCommitPresent && event.operatorCommitHash
+      ? { operator_commit_hash: event.operatorCommitHash.toString("hex") }
+      : {}),
+  };
+}
+
 async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promise<VerifyResult> {
   const programId = new PublicKey(opts.programId);
   const connection = new anchor.web3.Connection(opts.rpcUrl, { commitment: "confirmed" });
@@ -1190,6 +1500,10 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     event.runtimeId,
     event.resolveId
   );
+  const rngV2StatePda =
+    event.rngVersion === RNG_VERSION_V2
+      ? deriveRngV2StatePda(programId, event.runtimeId, event.resolveId)
+      : null;
   const approvedArtifactPda = deriveApprovedArtifactPda(
     programId,
     event.compiledArtifactHash
@@ -1208,6 +1522,9 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     outcomeResolutionPda
   );
   const outcomeResolution = outcomeResolutionAccount.decoded;
+  const rngV2State = rngV2StatePda
+    ? await fetchDecodedRngV2State(connection, rngV2StatePda)
+    : null;
   const approvedArtifact = await fetchDecodedAccount(
     connection,
     coder,
@@ -1363,18 +1680,67 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     );
   }
 
-  const recomputedRandomness = sha256(
-    Buffer.concat([
-      event.masterSeed,
-      event.runtimeId,
-      (() => {
-        const buffer = Buffer.alloc(8);
-        buffer.writeBigUInt64LE(event.resolveId, 0);
-        return buffer;
-      })(),
-      event.actor.toBuffer(),
-    ])
-  );
+  const recomputedRandomness =
+    event.rngVersion === RNG_VERSION_V2
+      ? (() => {
+          if (!parsedV4) {
+            mismatch(
+              "ERR_RNG_V2_ARTIFACT_UNSUPPORTED",
+              "RNG v2 replay requires a snapshot artifact"
+            );
+          }
+          if (!event.snapshotHash || !event.snapshotHash.equals(parsedV4.snapshotHash)) {
+            mismatch(
+              "ERR_RNG_V2_SNAPSHOT_HASH_MISMATCH",
+              "RNG v2 snapshot hash differs between event and artifact"
+            );
+          }
+          if (event.operatorCommitPresent) {
+            if (
+              !event.operatorCommitHash ||
+              !event.operatorReveal ||
+              !event.operatorRevealLen ||
+              event.operatorRevealLen < 1 ||
+              event.operatorRevealLen > 32
+            ) {
+              mismatch(
+                "ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH",
+                "RNG v2 operator reveal is missing"
+              );
+            }
+            const reveal = event.operatorReveal.subarray(0, event.operatorRevealLen);
+            if (!sha256(reveal).equals(event.operatorCommitHash)) {
+              mismatch(
+                "ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH",
+                "RNG v2 operator reveal hash does not match commit"
+              );
+            }
+          }
+          return deriveRngV2Randomness(event, parsedV4.snapshotHash);
+        })()
+      : (() => {
+          if (!event.masterSeed) {
+            mismatch(
+              "ERR_RANDOMNESS_MISMATCH",
+              "Legacy replay requires master_seed in event"
+            );
+          }
+          return sha256(
+            Buffer.concat([
+              event.masterSeed,
+              event.runtimeId,
+              u64le(event.resolveId),
+              event.actor.toBuffer(),
+            ])
+          );
+        })();
+
+  if (event.rngVersion === RNG_VERSION_V2) {
+    if (!rngV2State) {
+      mismatch("ERR_RNG_V2_STATE_MISMATCH", "RNG v2 state is missing");
+    }
+    verifyRngV2StateBinding(rngV2State, event);
+  }
 
   const resolutionRandomness = Buffer.from(
     pick<number[]>(outcomeResolution, "randomness", "randomness")
@@ -1402,7 +1768,8 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
 
   const resolutionArtifactFormatVersion =
     outcomeResolutionAccount.accountName === "OutcomeResolutionV2" ||
-    outcomeResolutionAccount.accountName === "OutcomeResolutionV3"
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV3" ||
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV4"
       ? Number(
           pick(
             outcomeResolution,
@@ -1413,7 +1780,8 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
       : FORMAT_VERSION_V1;
   const resolutionWinnerCount =
     outcomeResolutionAccount.accountName === "OutcomeResolutionV2" ||
-    outcomeResolutionAccount.accountName === "OutcomeResolutionV3"
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV3" ||
+    outcomeResolutionAccount.accountName === "OutcomeResolutionV4"
       ? Number(pick(outcomeResolution, "winner_count", "winnerCount"))
       : 1;
 
@@ -1455,6 +1823,66 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     const resolutionEffectsDigest = Buffer.from(
       pick<number[]>(outcomeResolution, "effects_digest", "effectsDigest")
     );
+
+    if (event.rngVersion === RNG_VERSION_V2) {
+      if (outcomeResolutionAccount.accountName !== "OutcomeResolutionV4") {
+        mismatch(
+          "ERR_RNG_V2_RESOLUTION_MISMATCH",
+          "RNG v2 event must be backed by OutcomeResolutionV4"
+        );
+      }
+      const resolutionRngVersion = Number(
+        pick(outcomeResolution, "rng_version", "rngVersion")
+      );
+      const resolutionSnapshotHash = Buffer.from(
+        pick<number[]>(outcomeResolution, "snapshot_hash", "snapshotHash")
+      );
+      const resolutionResolvedSlots = (
+        pick<any[]>(outcomeResolution, "resolved_slots", "resolvedSlots") ?? []
+      ).map(asBigInt);
+      const resolutionSlotHashes = (
+        pick<number[][]>(outcomeResolution, "slot_hashes", "slotHashes") ?? []
+      ).map((hash) => Buffer.from(hash));
+      const eventResolvedSlots = event.resolvedSlots ?? [];
+      const eventSlotHashes = event.slotHashes ?? [];
+      if (
+        resolutionRngVersion !== RNG_VERSION_V2 ||
+        !event.snapshotHash ||
+        !resolutionSnapshotHash.equals(event.snapshotHash) ||
+        resolutionResolvedSlots.length !== eventResolvedSlots.length ||
+        resolutionSlotHashes.length !== eventSlotHashes.length ||
+        resolutionResolvedSlots.some((slot, index) => slot !== eventResolvedSlots[index]) ||
+        resolutionSlotHashes.some((hash, index) => !hash.equals(eventSlotHashes[index]))
+      ) {
+        mismatch(
+          "ERR_RNG_V2_RESOLUTION_MISMATCH",
+          "RNG v2 evidence differs between event and resolution account"
+        );
+      }
+      const resolutionCommitPresent = Boolean(
+        pick(outcomeResolution, "operator_commit_present", "operatorCommitPresent")
+      );
+      const resolutionCommitHash = Buffer.from(
+        pick<number[]>(outcomeResolution, "operator_commit_hash", "operatorCommitHash")
+      );
+      const resolutionRevealLen = Number(
+        pick(outcomeResolution, "operator_reveal_len", "operatorRevealLen")
+      );
+      const resolutionReveal = Buffer.from(
+        pick<number[]>(outcomeResolution, "operator_reveal", "operatorReveal")
+      );
+      if (
+        resolutionCommitPresent !== Boolean(event.operatorCommitPresent) ||
+        !resolutionCommitHash.equals(event.operatorCommitHash ?? Buffer.alloc(32, 0)) ||
+        resolutionRevealLen !== (event.operatorRevealLen ?? 0) ||
+        !resolutionReveal.equals(event.operatorReveal ?? Buffer.alloc(32, 0))
+      ) {
+        mismatch(
+          "ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH",
+          "RNG v2 commit/reveal evidence differs between event and resolution account"
+        );
+      }
+    }
 
     let cleanupSnapshot = () => {};
     try {
@@ -1563,6 +1991,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
             : {
                 merkle_root: inspectedSnapshot.merkleRoot,
               }),
+          ...rngV2ResultFields(event, rngV2State ?? undefined),
           outcomes: [],
           resolve_id: resolveId,
           compiled_artifact_hash: compiledArtifactHashHex,
@@ -1658,6 +2087,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           : {
               merkle_root: inspectedSnapshot.merkleRoot,
             }),
+        ...rngV2ResultFields(event, rngV2State ?? undefined),
         outcomes: [],
         resolve_id: resolveId,
         compiled_artifact_hash: compiledArtifactHashHex,

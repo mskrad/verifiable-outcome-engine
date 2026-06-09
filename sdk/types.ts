@@ -336,6 +336,11 @@ export type VerifyResult = {
   resolution_formula?: RuntimeResolutionFormula;
   target?: number;
   snapshot_hash?: string;
+  rng_version?: number;
+  target_slots?: string[];
+  resolved_slots?: string[];
+  slot_hashes?: string[];
+  operator_commit_hash?: string;
   snapshot_count?: number;
   snapshot_uri?: string;
   entry_count?: number;
