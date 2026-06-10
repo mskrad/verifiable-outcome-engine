@@ -1,5 +1,5 @@
 {
-  "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+  "address": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
   "metadata": {
     "name": "outcome",
     "version": "0.1.0",
@@ -197,6 +197,256 @@
       ]
     },
     {
+      "name": "attest_winners",
+      "discriminator": [
+        68,
+        84,
+        121,
+        104,
+        4,
+        187,
+        43,
+        111
+      ],
+      "accounts": [
+        {
+          "name": "attester",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true
+        },
+        {
+          "name": "protocol_treasury",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "AttestWinnersArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "expire_rng_v2",
       "discriminator": [
         130,
@@ -210,7 +460,7 @@
       ],
       "accounts": [
         {
-          "name": "actor",
+          "name": "payer",
           "writable": true,
           "signer": true
         },
@@ -308,6 +558,14 @@
           }
         },
         {
+          "name": "operator",
+          "writable": true
+        },
+        {
+          "name": "protocol_treasury",
+          "writable": true
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -318,6 +576,141 @@
           "type": {
             "defined": {
               "name": "ExpireRngV2Args"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "expire_sealed_rng_v2",
+      "discriminator": [
+        20,
+        50,
+        70,
+        45,
+        142,
+        224,
+        3,
+        177
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "outcome_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "operator",
+          "writable": true
+        },
+        {
+          "name": "protocol_treasury",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "ExpireSealedRngV2Args"
             }
           }
         }
@@ -707,7 +1100,7 @@
         },
         {
           "name": "program",
-          "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+          "address": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
         },
         {
           "name": "program_data"
@@ -1022,7 +1415,7 @@
         },
         {
           "name": "program",
-          "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+          "address": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
         },
         {
           "name": "program_data"
@@ -1902,6 +2295,102 @@
       ]
     },
     {
+      "name": "seal_randomness",
+      "discriminator": [
+        217,
+        137,
+        207,
+        224,
+        46,
+        127,
+        20,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "sealer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "outcome_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slot_hashes"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SealRandomnessArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "set_program_config",
       "discriminator": [
         239,
@@ -1960,260 +2449,6 @@
           "type": {
             "defined": {
               "name": "SetProgramConfigArgs"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "settle_rng_v2",
-      "discriminator": [
-        95,
-        67,
-        194,
-        44,
-        159,
-        53,
-        215,
-        13
-      ],
-      "accounts": [
-        {
-          "name": "actor",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "program_config",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  117,
-                  116,
-                  99,
-                  111,
-                  109,
-                  101,
-                  95,
-                  112,
-                  114,
-                  111,
-                  103,
-                  114,
-                  97,
-                  109,
-                  95,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "outcome_config",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  117,
-                  116,
-                  99,
-                  111,
-                  109,
-                  101,
-                  95,
-                  99,
-                  111,
-                  110,
-                  102,
-                  105,
-                  103
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "args.runtime_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "outcome_vault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  117,
-                  116,
-                  99,
-                  111,
-                  109,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "args.runtime_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "rng_v2_state",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  114,
-                  110,
-                  103,
-                  95,
-                  118,
-                  50,
-                  95,
-                  115,
-                  116,
-                  97,
-                  116,
-                  101
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "args.runtime_id"
-              },
-              {
-                "kind": "arg",
-                "path": "args.resolve_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "outcome_resolution",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  111,
-                  117,
-                  116,
-                  99,
-                  111,
-                  109,
-                  101,
-                  95,
-                  114,
-                  101,
-                  115,
-                  111,
-                  108,
-                  117,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "args.runtime_id"
-              },
-              {
-                "kind": "arg",
-                "path": "args.resolve_id"
-              }
-            ]
-          }
-        },
-        {
-          "name": "approved_outcome_artifact",
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  112,
-                  112,
-                  114,
-                  111,
-                  118,
-                  101,
-                  100,
-                  95,
-                  111,
-                  117,
-                  116,
-                  99,
-                  111,
-                  109,
-                  101,
-                  95,
-                  97,
-                  114,
-                  116,
-                  105,
-                  102,
-                  97,
-                  99,
-                  116
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "outcome_config.compiled_artifact_hash",
-                "account": "OutcomeConfig"
-              }
-            ]
-          }
-        },
-        {
-          "name": "outcome_treasury",
-          "writable": true
-        },
-        {
-          "name": "protocol_treasury",
-          "writable": true
-        },
-        {
-          "name": "slot_hashes"
-        },
-        {
-          "name": "system_program",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": [
-        {
-          "name": "args",
-          "type": {
-            "defined": {
-              "name": "SettleRngV2Args"
             }
           }
         }
@@ -2618,6 +2853,19 @@
       ]
     },
     {
+      "name": "RngV2Attested",
+      "discriminator": [
+        131,
+        220,
+        165,
+        185,
+        119,
+        183,
+        64,
+        58
+      ]
+    },
+    {
       "name": "RngV2Expired",
       "discriminator": [
         246,
@@ -2631,6 +2879,19 @@
       ]
     },
     {
+      "name": "RngV2ExpiredSealed",
+      "discriminator": [
+        131,
+        192,
+        126,
+        76,
+        249,
+        57,
+        78,
+        76
+      ]
+    },
+    {
       "name": "RngV2Prepared",
       "discriminator": [
         179,
@@ -2641,6 +2902,19 @@
         106,
         251,
         84
+      ]
+    },
+    {
+      "name": "RngV2Sealed",
+      "discriminator": [
+        254,
+        213,
+        156,
+        79,
+        58,
+        7,
+        117,
+        68
       ]
     }
   ],
@@ -2784,6 +3058,26 @@
       "code": 6027,
       "name": "InvalidRngV2OperatorReveal",
       "msg": "Invalid RNG v2 operator reveal"
+    },
+    {
+      "code": 6028,
+      "name": "UnauthorizedRngV2Attester",
+      "msg": "Unauthorized RNG v2 attester"
+    },
+    {
+      "code": 6029,
+      "name": "RngV2BountyTooLow",
+      "msg": "RNG v2 bounty below required minimum"
+    },
+    {
+      "code": 6030,
+      "name": "RngV2PayoutMustBeZero",
+      "msg": "RNG v2 artifact payout must be zero"
+    },
+    {
+      "code": 6031,
+      "name": "RngV2AttestDeadlineNotReached",
+      "msg": "RNG v2 attest deadline not reached"
     }
   ],
   "types": [
@@ -2906,7 +3200,88 @@
       }
     },
     {
+      "name": "AttestWinnersArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "winner_count",
+            "type": "u16"
+          },
+          {
+            "name": "winner_claim_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "outcome_id_len",
+            "type": "u8"
+          },
+          {
+            "name": "outcome_id",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "operator_reveal_len",
+            "type": "u8"
+          },
+          {
+            "name": "operator_reveal",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
       "name": "ExpireRngV2Args",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExpireSealedRngV2Args",
       "type": {
         "kind": "struct",
         "fields": [
@@ -3105,11 +3480,23 @@
             "type": "u64"
           },
           {
+            "name": "attester_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "bounty_min",
+            "type": "u64"
+          },
+          {
+            "name": "slash_on_sealed_timeout",
+            "type": "bool"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                63
+                22
               ]
             }
           }
@@ -3548,11 +3935,19 @@
             "type": "u8"
           },
           {
+            "name": "protocol_revision",
+            "type": "u8"
+          },
+          {
+            "name": "bounty_lamports",
+            "type": "u64"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                29
+                20
               ]
             }
           }
@@ -4048,6 +4443,10 @@
             "type": "u64"
           },
           {
+            "name": "bounty_lamports",
+            "type": "u64"
+          },
+          {
             "name": "operator_commit_present",
             "type": "bool"
           },
@@ -4272,6 +4671,52 @@
       }
     },
     {
+      "name": "RngV2Attested",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "attester",
+            "type": "pubkey"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "winner_claim_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "protocol_revision",
+            "type": "u8"
+          },
+          {
+            "name": "bounty_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "RngV2Expired",
       "type": {
         "kind": "struct",
@@ -4295,6 +4740,43 @@
           },
           {
             "name": "input_lamports_refunded",
+            "type": "u64"
+          },
+          {
+            "name": "expired_at_slot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RngV2ExpiredSealed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "input_lamports_refunded",
+            "type": "u64"
+          },
+          {
+            "name": "input_lamports_slashed",
             "type": "u64"
           },
           {
@@ -4373,6 +4855,75 @@
                 32
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RngV2Sealed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "sealer",
+            "type": "pubkey"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "randomness",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "resolved_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "slot_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "bounty_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "sealed_at_slot",
+            "type": "u64"
           }
         ]
       }
@@ -4496,13 +5047,46 @@
             "type": "u8"
           },
           {
+            "name": "bounty_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "fee_snapshot",
+            "type": "u64"
+          },
+          {
+            "name": "attest_deadline_slot",
+            "type": "u64"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                32
+                8
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SealRandomnessArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
           }
         ]
       }
@@ -4527,66 +5111,6 @@
           {
             "name": "treasury",
             "type": "pubkey"
-          }
-        ]
-      }
-    },
-    {
-      "name": "SettleRngV2Args",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "runtime_id",
-            "type": {
-              "array": [
-                "u8",
-                16
-              ]
-            }
-          },
-          {
-            "name": "resolve_id",
-            "type": "u64"
-          },
-          {
-            "name": "winner_count",
-            "type": "u16"
-          },
-          {
-            "name": "winner_claim_hash",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
-          },
-          {
-            "name": "outcome_id_len",
-            "type": "u8"
-          },
-          {
-            "name": "outcome_id",
-            "type": {
-              "array": [
-                "u8",
-                64
-              ]
-            }
-          },
-          {
-            "name": "operator_reveal_len",
-            "type": "u8"
-          },
-          {
-            "name": "operator_reveal",
-            "type": {
-              "array": [
-                "u8",
-                32
-              ]
-            }
           }
         ]
       }

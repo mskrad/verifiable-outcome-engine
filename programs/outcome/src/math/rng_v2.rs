@@ -7,6 +7,9 @@ pub const RNG_V2_VERSION: u8 = 2;
 pub const RNG_V2_DOMAIN: &[u8] = b"VRE_RNG_V2";
 pub const RNG_V2_TARGET_OFFSETS: [u64; 3] = [75, 90, 105];
 pub const RNG_V2_EXPIRY_AFTER_LAST_TARGET: u64 = 480;
+/// v1.3.2: grace window (slots) after expiry during which a SEALED draw waits for
+/// attest_winners before any party may expire_sealed it.
+pub const RNG_V2_ATTEST_DEADLINE_AFTER_EXPIRY: u64 = 480;
 pub const SLOT_HASHES_ENTRY_BYTES: usize = 40;
 
 pub fn derive_target_slots(current_slot: u64) -> Result<([u64; 3], u64)> {

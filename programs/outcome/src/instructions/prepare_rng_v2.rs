@@ -16,6 +16,8 @@ use crate::{
 pub const RNG_V2_STATUS_PREPARED: u8 = 1;
 pub const RNG_V2_STATUS_SETTLED: u8 = 2;
 pub const RNG_V2_STATUS_EXPIRED: u8 = 3;
+pub const RNG_V2_STATUS_SEALED: u8 = 4;
+pub const RNG_V2_STATUS_EXPIRED_SEALED: u8 = 5;
 
 #[account]
 pub struct RngV2State {
@@ -36,7 +38,11 @@ pub struct RngV2State {
     pub resolved_slots: [u64; 3],
     pub slot_hashes: [[u8; 32]; 3],
     pub bump: u8,
-    pub reserved: [u8; 32],
+    // --- Outcome Standard v1.3.2 (Tier 0) additive fields, carved from reserved(32) ---
+    pub bounty_lamports: u64,       // 8 — bounty held on this PDA, paid to sealer / slashed on expire
+    pub fee_snapshot: u64,          // 8 — protocol fee captured at prepare (charged at attest)
+    pub attest_deadline_slot: u64,  // 8 — after this slot a SEALED draw may be expire_sealed'd
+    pub reserved: [u8; 8],
 }
 
 impl RngV2State {
@@ -58,7 +64,10 @@ impl RngV2State {
         + 8 * 3
         + 32 * 3
         + 1
-        + 32;
+        + 8
+        + 8
+        + 8
+        + 8;
 }
 
 fn sha256(bytes: &[u8]) -> [u8; 32] {
@@ -71,6 +80,7 @@ fn sha256(bytes: &[u8]) -> [u8; 32] {
 pub struct PrepareRngV2Args {
     pub runtime_id: [u8; 16],
     pub input_lamports: u64,
+    pub bounty_lamports: u64,
     pub operator_commit_present: bool,
     pub operator_commit_hash: [u8; 32],
 }
@@ -147,9 +157,27 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
             && parsed.max_input_lamports == config.max_input_lamports,
         OutcomeError::ArtifactBindingMismatch
     );
+    // v1.3.2 B-2: vault holds only Σ input → expire/expire_sealed always covered.
+    require!(
+        parsed.payout_lamports == 0,
+        OutcomeError::RngV2PayoutMustBeZero
+    );
+
+    // v1.3.2: snapshot the protocol fee at prepare and require a sufficient bounty.
+    let fee_snapshot = ctx.accounts.program_config.fee_lamports;
+    let bounty_floor = fee_snapshot
+        .checked_add(config.bounty_min)
+        .ok_or(OutcomeError::MathOverflow)?;
+    require!(
+        args.bounty_lamports >= bounty_floor,
+        OutcomeError::RngV2BountyTooLow
+    );
 
     let clock = Clock::get()?;
     let (target_slots, expiry_slot) = rng_v2::derive_target_slots(clock.slot)?;
+    let attest_deadline_slot = expiry_slot
+        .checked_add(rng_v2::RNG_V2_ATTEST_DEADLINE_AFTER_EXPIRY)
+        .ok_or(OutcomeError::MathOverflow)?;
     let resolve_id = config.next_resolve_id;
 
     system_program::transfer(
@@ -162,6 +190,21 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
         ),
         args.input_lamports,
     )?;
+
+    // v1.3.2: hold the bounty as lamports on the rng_v2_state PDA (rent-exempt),
+    // paid to the sealer on seal_randomness or slashed to treasury on expire.
+    if args.bounty_lamports > 0 {
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.actor.to_account_info(),
+                    to: ctx.accounts.rng_v2_state.to_account_info(),
+                },
+            ),
+            args.bounty_lamports,
+        )?;
+    }
 
     let state = &mut ctx.accounts.rng_v2_state;
     state.runtime_id = config.runtime_id;
@@ -185,7 +228,10 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
     state.resolved_slots = [0u64; 3];
     state.slot_hashes = [[0u8; 32]; 3];
     state.bump = ctx.bumps.rng_v2_state;
-    state.reserved = [0u8; 32];
+    state.bounty_lamports = args.bounty_lamports;
+    state.fee_snapshot = fee_snapshot;
+    state.attest_deadline_slot = attest_deadline_slot;
+    state.reserved = [0u8; 8];
 
     config.next_resolve_id = config
         .next_resolve_id

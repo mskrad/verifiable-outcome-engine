@@ -1,11 +1,11 @@
-use anchor_lang::{prelude::*, solana_program::sysvar, system_program};
+use anchor_lang::{prelude::*, system_program};
 use sha2::{Digest, Sha256};
 
 use crate::{
     errors::OutcomeError,
-    events::{OutcomeResolveStartedV1, OutcomeResolvedV4},
+    events::{OutcomeResolvedV4, RngV2Attested},
     instructions::compiled_artifact_chunks::load_blob_from_remaining,
-    instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_PREPARED, RNG_V2_STATUS_SETTLED},
+    instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_SEALED, RNG_V2_STATUS_SETTLED},
     math::{compiled_outcome_v1, rng_v2},
     state::{
         approved_outcome_artifact::ApprovedOutcomeArtifact,
@@ -15,6 +15,9 @@ use crate::{
 };
 
 pub const RESOLUTION_STATUS_SETTLED: u8 = 1;
+/// Marks a resolution produced by the v1.3.2 two-phase (seal → attest) lifecycle,
+/// distinguishing it from single-phase rng_version=2 resolutions under standard 1.2.1.
+pub const PROTOCOL_REVISION_V1_3_2: u8 = 1;
 
 #[account]
 pub struct OutcomeResolutionV4 {
@@ -42,7 +45,10 @@ pub struct OutcomeResolutionV4 {
     pub operator_reveal_len: u8,
     pub operator_reveal: [u8; 32],
     pub bump: u8,
-    pub reserved: [u8; 29],
+    // --- Outcome Standard v1.3.2 (Tier 0) additive fields, carved from reserved(29) ---
+    pub protocol_revision: u8,   // 1
+    pub bounty_lamports: u64,    // 8
+    pub reserved: [u8; 20],
 }
 
 impl OutcomeResolutionV4 {
@@ -71,7 +77,9 @@ impl OutcomeResolutionV4 {
         + 1
         + 32
         + 1
-        + 29;
+        + 1
+        + 8
+        + 20;
 }
 
 fn sha256(bytes: &[u8]) -> [u8; 32] {
@@ -81,7 +89,7 @@ fn sha256(bytes: &[u8]) -> [u8; 32] {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct SettleRngV2Args {
+pub struct AttestWinnersArgs {
     pub runtime_id: [u8; 16],
     pub resolve_id: u64,
     pub winner_count: u16,
@@ -92,18 +100,21 @@ pub struct SettleRngV2Args {
     pub operator_reveal: [u8; 32],
 }
 
+/// Phase 2 of the v1.3.2 two-phase settle. Allowlisted (operator OR
+/// outcome_config.attester_key). Records the official OutcomeResolution, reveals
+/// the operator secret for audit, charges the snapshotted protocol fee, and
+/// refunds the operator stake.
 #[derive(Accounts)]
-#[instruction(args: SettleRngV2Args)]
-pub struct SettleRngV2<'info> {
+#[instruction(args: AttestWinnersArgs)]
+pub struct AttestWinners<'info> {
     #[account(mut)]
-    pub actor: Signer<'info>,
+    pub attester: Signer<'info>,
     #[account(
         seeds = [b"outcome_program_config"],
         bump = program_config.bump
     )]
     pub program_config: Box<Account<'info, ProgramConfig>>,
     #[account(
-        mut,
         seeds = [b"outcome_config", args.runtime_id.as_ref()],
         bump = outcome_config.bump
     )]
@@ -122,7 +133,7 @@ pub struct SettleRngV2<'info> {
     pub rng_v2_state: Box<Account<'info, RngV2State>>,
     #[account(
         init,
-        payer = actor,
+        payer = attester,
         space = OutcomeResolutionV4::LEN,
         seeds = [b"outcome_resolution", args.runtime_id.as_ref(), &args.resolve_id.to_le_bytes()],
         bump
@@ -133,14 +144,12 @@ pub struct SettleRngV2<'info> {
         bump = approved_outcome_artifact.bump
     )]
     pub approved_outcome_artifact: Box<Account<'info, ApprovedOutcomeArtifact>>,
-    /// CHECK: must equal the treasury pubkey bound inside OutcomeConfig.
-    #[account(mut, address = outcome_config.treasury @ OutcomeError::InvalidTreasuryAccount)]
-    pub outcome_treasury: UncheckedAccount<'info>,
-    /// CHECK: validated manually when fee_lamports > 0.
+    /// CHECK: receives the operator stake refund; must equal rng_v2_state.actor.
+    #[account(mut, address = rng_v2_state.actor @ OutcomeError::InvalidRngV2State)]
+    pub operator: UncheckedAccount<'info>,
+    /// CHECK: validated manually when fee_snapshot > 0.
     #[account(mut)]
     pub protocol_treasury: SystemAccount<'info>,
-    /// CHECK: validated manually as the SlotHashes sysvar account.
-    pub slot_hashes: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -163,7 +172,7 @@ fn validate_primary_outcome_id(outcome_id_len: u8, outcome_id: &[u8]) -> Result<
     Ok(())
 }
 
-fn validate_operator_reveal(state: &mut RngV2State, args: &SettleRngV2Args) -> Result<()> {
+fn validate_operator_reveal(state: &mut RngV2State, args: &AttestWinnersArgs) -> Result<()> {
     if !state.operator_commit_present {
         require!(
             args.operator_reveal_len == 0 && args.operator_reveal == [0u8; 32],
@@ -192,54 +201,28 @@ fn validate_operator_reveal(state: &mut RngV2State, args: &SettleRngV2Args) -> R
     Ok(())
 }
 
-pub fn handler(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
-    if ctx.accounts.program_config.fee_lamports > 0 {
-        require_keys_eq!(
-            ctx.accounts.protocol_treasury.key(),
-            ctx.accounts.program_config.treasury,
-            OutcomeError::InvalidTreasuryAccount
-        );
-        system_program::transfer(
-            CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                system_program::Transfer {
-                    from: ctx.accounts.actor.to_account_info(),
-                    to: ctx.accounts.protocol_treasury.to_account_info(),
-                },
-            ),
-            ctx.accounts.program_config.fee_lamports,
-        )?;
-    }
-
+pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
     let config = &ctx.accounts.outcome_config;
     require!(!config.is_paused, OutcomeError::RuntimePaused);
 
     let state = &mut ctx.accounts.rng_v2_state;
     require!(
-        state.status == RNG_V2_STATUS_PREPARED,
+        state.status == RNG_V2_STATUS_SEALED,
         OutcomeError::InvalidRngV2Status
     );
     require!(
         state.runtime_id == args.runtime_id
             && state.resolve_id == args.resolve_id
-            && state.actor == ctx.accounts.actor.key()
             && state.compiled_artifact_hash == config.compiled_artifact_hash,
         OutcomeError::InvalidRngV2State
     );
 
-    let clock = Clock::get()?;
+    // Allowlist: operator (state.actor) OR a configured attester_key.
+    let attester = ctx.accounts.attester.key();
+    let attester_configured = config.attester_key != Pubkey::default();
     require!(
-        clock.slot > state.target_slots[2],
-        OutcomeError::RngV2TargetSlotNotReady
-    );
-    require!(
-        clock.slot <= state.expiry_slot,
-        OutcomeError::RngV2SettlementWindowExpired
-    );
-    require_keys_eq!(
-        ctx.accounts.slot_hashes.key(),
-        sysvar::slot_hashes::ID,
-        OutcomeError::InvalidSlotHashesSysvar
+        attester == state.actor || (attester_configured && attester == config.attester_key),
+        OutcomeError::UnauthorizedRngV2Attester
     );
 
     validate_operator_reveal(state, &args)?;
@@ -277,12 +260,8 @@ pub fn handler(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
     );
     validate_primary_outcome_id(args.outcome_id_len, &args.outcome_id)?;
 
-    let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
-    let (resolved_slots, slot_hashes) =
-        rng_v2::resolve_slot_hashes(&slot_hashes_data, &state.target_slots)?;
-    state.resolved_slots = resolved_slots;
-    state.slot_hashes = slot_hashes;
-
+    // Randomness was determined at seal; recompute it deterministically from the
+    // slot evidence persisted on-chain (no SlotHashes sysvar needed here).
     let seed = rng_v2::derive_seed(
         &state.runtime_id,
         state.resolve_id,
@@ -296,19 +275,32 @@ pub fn handler(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
     let randomness =
         rng_v2::derive_randomness(&seed, &state.runtime_id, state.resolve_id, &state.actor);
 
-    emit!(OutcomeResolveStartedV1 {
-        runtime_id: state.runtime_id,
-        resolve_id: state.resolve_id,
-        actor: state.actor,
-        input_lamports: state.input_lamports,
-    });
+    // Charge the snapshotted protocol fee (taken at prepare, not the live value).
+    if state.fee_snapshot > 0 {
+        require_keys_eq!(
+            ctx.accounts.protocol_treasury.key(),
+            ctx.accounts.program_config.treasury,
+            OutcomeError::InvalidTreasuryAccount
+        );
+        system_program::transfer(
+            CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.attester.to_account_info(),
+                    to: ctx.accounts.protocol_treasury.to_account_info(),
+                },
+            ),
+            state.fee_snapshot,
+        )?;
+    }
 
+    // Refund the operator stake from the vault (payout is always 0 in v1.3.2).
     let (total_output_lamports, effect_count, effects_digest) =
         compiled_outcome_v1::synthetic_effects_digest_v4(
             parsed.payout_lamports,
             parsed.winners_count,
         )?;
-    if total_output_lamports > 0 {
+    if state.input_lamports > 0 {
         let seeds: &[&[u8]] = &[b"outcome_vault", &state.runtime_id, &[config.vault_bump]];
         let signer = &[seeds];
         system_program::transfer(
@@ -316,11 +308,11 @@ pub fn handler(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
                 ctx.accounts.system_program.to_account_info(),
                 system_program::Transfer {
                     from: ctx.accounts.outcome_vault.to_account_info(),
-                    to: ctx.accounts.actor.to_account_info(),
+                    to: ctx.accounts.operator.to_account_info(),
                 },
                 signer,
             ),
-            total_output_lamports,
+            state.input_lamports,
         )?;
     }
 
@@ -349,7 +341,9 @@ pub fn handler(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
     resolution.operator_reveal_len = state.operator_reveal_len;
     resolution.operator_reveal = state.operator_reveal;
     resolution.bump = ctx.bumps.outcome_resolution;
-    resolution.reserved = [0u8; 29];
+    resolution.protocol_revision = PROTOCOL_REVISION_V1_3_2;
+    resolution.bounty_lamports = state.bounty_lamports;
+    resolution.reserved = [0u8; 20];
 
     state.status = RNG_V2_STATUS_SETTLED;
 
@@ -376,6 +370,15 @@ pub fn handler(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
         operator_commit_hash: state.operator_commit_hash,
         operator_reveal_len: state.operator_reveal_len,
         operator_reveal: state.operator_reveal,
+    });
+    emit!(RngV2Attested {
+        runtime_id: state.runtime_id,
+        resolve_id: state.resolve_id,
+        attester,
+        actor: state.actor,
+        winner_claim_hash: args.winner_claim_hash,
+        protocol_revision: PROTOCOL_REVISION_V1_3_2,
+        bounty_lamports: state.bounty_lamports,
     });
 
     Ok(())

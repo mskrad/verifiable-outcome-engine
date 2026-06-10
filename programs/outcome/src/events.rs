@@ -114,11 +114,45 @@ pub struct OutcomeResolvedV4 {
 }
 
 #[event]
+pub struct RngV2Sealed {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub sealer: Pubkey,
+    pub actor: Pubkey,
+    pub randomness: [u8; 32],
+    pub resolved_slots: [u64; 3],
+    pub slot_hashes: [[u8; 32]; 3],
+    pub bounty_lamports: u64,
+    pub sealed_at_slot: u64,
+}
+
+#[event]
+pub struct RngV2Attested {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub attester: Pubkey,
+    pub actor: Pubkey,
+    pub winner_claim_hash: [u8; 32],
+    pub protocol_revision: u8,
+    pub bounty_lamports: u64,
+}
+
+#[event]
 pub struct RngV2Expired {
     pub runtime_id: [u8; 16],
     pub resolve_id: u64,
     pub actor: Pubkey,
     pub input_lamports_refunded: u64,
+    pub expired_at_slot: u64,
+}
+
+#[event]
+pub struct RngV2ExpiredSealed {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub actor: Pubkey,
+    pub input_lamports_refunded: u64,
+    pub input_lamports_slashed: u64,
     pub expired_at_slot: u64,
 }
 

@@ -20,6 +20,7 @@ import {
   OUTCOME_STANDARD_V1_1,
   OUTCOME_STANDARD_V1_2,
   OUTCOME_STANDARD_V1_2_1,
+  OUTCOME_STANDARD_V1_3_2,
   V5_ENTRY_BYTES,
 } from "./snapshot.js";
 import {
@@ -713,7 +714,9 @@ function decodeOutcomeResolutionV4Account(data: Buffer): any {
     operator_reveal_len: readU8(data, offset),
     operator_reveal: [...readBytes(data, offset, 32)],
     bump: readU8(data, offset),
-    reserved: [...readBytes(data, offset, 29)],
+    protocol_revision: readU8(data, offset),
+    bounty_lamports: readU64LE(data, offset),
+    reserved: [...readBytes(data, offset, 20)],
   };
 }
 
@@ -1974,7 +1977,10 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           outcome_id: selected.outcomeIds[0],
           outcome_ids: selected.outcomeIds,
           winners_count: selected.winnersCount,
-          standard_version: OUTCOME_STANDARD_V1_2_1,
+          standard_version:
+            Number(pick(outcomeResolution, "protocol_revision", "protocolRevision") ?? 0) >= 1
+              ? OUTCOME_STANDARD_V1_3_2
+              : OUTCOME_STANDARD_V1_2_1,
           resolution_formula: formula,
           ...(formula === "closest_to"
             ? {

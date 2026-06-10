@@ -1,7 +1,9 @@
 pub mod admin_pause;
 pub mod admin_withdraw;
+pub mod attest_winners;
 pub mod compiled_artifact_chunks;
 pub mod expire_rng_v2;
+pub mod expire_sealed_rng_v2;
 pub mod finalize_compiled_artifact;
 pub mod init_compiled_artifact_chunk;
 pub mod initialize_outcome_config;
@@ -13,7 +15,7 @@ pub mod resolve_outcome;
 pub mod resolve_outcome_v121;
 pub mod resolve_outcome_v4;
 pub mod review_compiled_artifact;
-pub mod settle_rng_v2;
+pub mod seal_randomness;
 pub mod set_program_config;
 pub mod submit_compiled_artifact;
 pub mod write_compiled_artifact_chunk;

@@ -58,4 +58,12 @@ pub enum OutcomeError {
     RngV2SlotHashNotFound,
     #[msg("Invalid RNG v2 operator reveal")]
     InvalidRngV2OperatorReveal,
+    #[msg("Unauthorized RNG v2 attester")]
+    UnauthorizedRngV2Attester,
+    #[msg("RNG v2 bounty below required minimum")]
+    RngV2BountyTooLow,
+    #[msg("RNG v2 artifact payout must be zero")]
+    RngV2PayoutMustBeZero,
+    #[msg("RNG v2 attest deadline not reached")]
+    RngV2AttestDeadlineNotReached,
 }

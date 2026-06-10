@@ -344,7 +344,7 @@ export type VerifyResult = {
   snapshot_count?: number;
   snapshot_uri?: string;
   entry_count?: number;
-  standard_version?: "Outcome Standard V1.1" | "1.2" | "1.2.1";
+  standard_version?: "Outcome Standard V1.1" | "1.2" | "1.2.1" | "1.3.2";
   merkle_root?: string;
   irys_url?: string;
   proof_manifest_url?: string;

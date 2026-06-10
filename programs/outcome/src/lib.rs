@@ -8,7 +8,9 @@ pub mod state;
 
 use instructions::admin_pause::AdminPause;
 use instructions::admin_withdraw::AdminWithdraw;
+use instructions::attest_winners::{AttestWinners, AttestWinnersArgs};
 use instructions::expire_rng_v2::{ExpireRngV2, ExpireRngV2Args};
+use instructions::expire_sealed_rng_v2::{ExpireSealedRngV2, ExpireSealedRngV2Args};
 use instructions::finalize_compiled_artifact::FinalizeCompiledArtifact;
 use instructions::init_compiled_artifact_chunk::{
     InitCompiledArtifactChunk, InitCompiledArtifactChunkArgs,
@@ -28,7 +30,7 @@ use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
 use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121Args};
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
-use instructions::settle_rng_v2::{SettleRngV2, SettleRngV2Args};
+use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
 use instructions::submit_compiled_artifact::{SubmitCompiledArtifact, SubmitCompiledArtifactArgs};
 use instructions::write_compiled_artifact_chunk::{
@@ -130,12 +132,26 @@ pub mod outcome {
         instructions::prepare_rng_v2::handler(ctx, args)
     }
 
-    pub fn settle_rng_v2(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
-        instructions::settle_rng_v2::handler(ctx, args)
+    pub fn seal_randomness(
+        ctx: Context<SealRandomness>,
+        args: SealRandomnessArgs,
+    ) -> Result<()> {
+        instructions::seal_randomness::handler(ctx, args)
+    }
+
+    pub fn attest_winners(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
+        instructions::attest_winners::handler(ctx, args)
     }
 
     pub fn expire_rng_v2(ctx: Context<ExpireRngV2>, args: ExpireRngV2Args) -> Result<()> {
         instructions::expire_rng_v2::handler(ctx, args)
+    }
+
+    pub fn expire_sealed_rng_v2(
+        ctx: Context<ExpireSealedRngV2>,
+        args: ExpireSealedRngV2Args,
+    ) -> Result<()> {
+        instructions::expire_sealed_rng_v2::handler(ctx, args)
     }
 
     pub fn admin_pause(ctx: Context<AdminPause>, paused: bool) -> Result<()> {
@@ -189,11 +205,17 @@ mod __client_accounts_resolve_outcome_v121 {
 mod __client_accounts_prepare_rng_v2 {
     pub use crate::instructions::prepare_rng_v2::__client_accounts_prepare_rng_v2::*;
 }
-mod __client_accounts_settle_rng_v2 {
-    pub use crate::instructions::settle_rng_v2::__client_accounts_settle_rng_v2::*;
+mod __client_accounts_seal_randomness {
+    pub use crate::instructions::seal_randomness::__client_accounts_seal_randomness::*;
+}
+mod __client_accounts_attest_winners {
+    pub use crate::instructions::attest_winners::__client_accounts_attest_winners::*;
 }
 mod __client_accounts_expire_rng_v2 {
     pub use crate::instructions::expire_rng_v2::__client_accounts_expire_rng_v2::*;
+}
+mod __client_accounts_expire_sealed_rng_v2 {
+    pub use crate::instructions::expire_sealed_rng_v2::__client_accounts_expire_sealed_rng_v2::*;
 }
 mod __client_accounts_admin_pause {
     pub use crate::instructions::admin_pause::__client_accounts_admin_pause::*;

@@ -29,6 +29,7 @@ export const FORMAT_VERSION_V1_2_1_SCALE = 7;
 export const OUTCOME_STANDARD_V1_1 = "Outcome Standard V1.1";
 export const OUTCOME_STANDARD_V1_2 = "1.2";
 export const OUTCOME_STANDARD_V1_2_1 = "1.2.1";
+export const OUTCOME_STANDARD_V1_3_2 = "1.3.2";
 export const WINNER_CLAIM_HASH_DOMAIN = "outcome-standard-v1.2.1/winner-claim";
 export const MAX_OUTCOME_ID_BYTES = 64;
 export const MAX_WINNERS = 32;
@@ -213,6 +214,25 @@ function parsePositiveLamports(value: bigint | number | undefined, label: string
 
 function parseOptionalLamports(value: bigint | number | undefined, fallback: bigint, label: string): bigint {
   return value === undefined ? fallback : parsePositiveLamports(value, label);
+}
+
+// Like parsePositiveLamports but also accepts an explicit 0. Outcome Standard
+// v1.3.2 mandates payout_lamports == 0 (prizes paid off-chain); the FORMAT_VERSION 7
+// byte layout already stores payout as a plain u64, so 0 is a valid value — only the
+// builder's input gate refused it. Format, snapshot_hash and winner_claim_hash unchanged.
+function parseNonNegativeLamports(value: bigint | number | undefined, label: string): bigint {
+  if (value === 0 || value === 0n) {
+    return 0n;
+  }
+  return parsePositiveLamports(value, label);
+}
+
+function parseOptionalNonNegativeLamports(
+  value: bigint | number | undefined,
+  fallback: bigint,
+  label: string
+): bigint {
+  return value === undefined ? fallback : parseNonNegativeLamports(value, label);
 }
 
 function sha256(bytes: Buffer): Buffer {
@@ -748,7 +768,7 @@ function buildSnapshotArtifact(
 ): Buffer {
   const formula = validateFormula(config.formula);
   const inputLamports = parsePositiveLamports(config.input_lamports, "input_lamports");
-  const payoutLamports = parseOptionalLamports(config.payout_lamports, 3n, "payout_lamports");
+  const payoutLamports = parseOptionalNonNegativeLamports(config.payout_lamports, 3n, "payout_lamports");
   const snapshotHash = normalizeHex32(config.snapshot_hash, "snapshot_hash");
   if (!Number.isInteger(config.snapshot_count) || config.snapshot_count <= 0 || config.snapshot_count > MAX_U32) {
     throw new RangeError(`snapshot_count must be an integer 1..${MAX_U32}`);
@@ -898,7 +918,7 @@ export function buildArtifactV5(config: CompactNamedEntryDrawConfig): Buffer {
   const formula = validateFormula(config.formula);
   const entries = normalizeCompactNamedEntries(config.participants, formula);
   const inputLamports = parsePositiveLamports(config.input_lamports, "input_lamports");
-  const payoutLamports = parseOptionalLamports(config.payout_lamports, 3n, "payout_lamports");
+  const payoutLamports = parseOptionalNonNegativeLamports(config.payout_lamports, 3n, "payout_lamports");
   const winnersCount = validateWinnersCount(config.winners_count, entries.length);
   const targetScore =
     formula === "closest_to"

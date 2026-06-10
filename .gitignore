@@ -56,8 +56,10 @@ programs/outcome/src/instructions/*
 !programs/outcome/src/instructions/recover_program_config_admin.rs
 !programs/outcome/src/instructions/submit_compiled_artifact.rs
 !programs/outcome/src/instructions/prepare_rng_v2.rs
-!programs/outcome/src/instructions/settle_rng_v2.rs
+!programs/outcome/src/instructions/seal_randomness.rs
+!programs/outcome/src/instructions/attest_winners.rs
 !programs/outcome/src/instructions/expire_rng_v2.rs
+!programs/outcome/src/instructions/expire_sealed_rng_v2.rs
 !programs/outcome/src/math/
 programs/outcome/src/math/*
 !programs/outcome/src/math/mod.rs
