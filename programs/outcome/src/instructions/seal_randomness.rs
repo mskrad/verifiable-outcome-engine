@@ -38,20 +38,18 @@ pub struct SealRandomness<'info> {
 }
 
 pub fn handler(ctx: Context<SealRandomness>, args: SealRandomnessArgs) -> Result<()> {
-    require!(
-        !ctx.accounts.outcome_config.is_paused,
-        OutcomeError::RuntimePaused
-    );
-
+    // PATCH v3.1 lifecycle isolation: an open draw depends only on its frozen RngV2State
+    // and protocol-global config — never on mutable OutcomeConfig (pause / artifact hash).
+    // No is_paused gate (pause blocks new prepare only, not sealing an open draw) and no
+    // bind to outcome_config.compiled_artifact_hash (seal reads no blob; a config artifact
+    // rotation must not be able to abort an open draw).
     let state = &mut ctx.accounts.rng_v2_state;
     require!(
         state.status == RNG_V2_STATUS_PREPARED,
         OutcomeError::InvalidRngV2Status
     );
     require!(
-        state.runtime_id == args.runtime_id
-            && state.resolve_id == args.resolve_id
-            && state.compiled_artifact_hash == ctx.accounts.outcome_config.compiled_artifact_hash,
+        state.runtime_id == args.runtime_id && state.resolve_id == args.resolve_id,
         OutcomeError::InvalidRngV2State
     );
 

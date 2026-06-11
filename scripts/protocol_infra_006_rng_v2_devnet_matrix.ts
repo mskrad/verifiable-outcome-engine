@@ -659,7 +659,7 @@ async function attest(
   client: Client,
   runtime: Runtime,
   resolveId: bigint,
-  opts?: { reveal?: Buffer; badWinnerClaim?: boolean }
+  opts?: { reveal?: Buffer; badWinnerClaim?: boolean; protocolTreasury?: PublicKey }
 ): Promise<{ signature: string; outcomeIds: string[]; winnerClaimHash: Buffer }> {
   // Derive randomness from the slot evidence the seal already persisted on-chain.
   const state = await fetchState(client, runtime.runtimeId, resolveId);
@@ -711,7 +711,7 @@ async function attest(
         outcomeResolution: deriveOutcomeResolutionPda(client.programId, runtime.runtimeId, resolveId),
         approvedOutcomeArtifact: runtime.artifactPda,
         operator: client.authority.publicKey,
-        protocolTreasury: client.authority.publicKey,
+        protocolTreasury: opts?.protocolTreasury ?? client.authority.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .remainingAccounts(runtime.chunkPdas.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false })))
@@ -837,7 +837,14 @@ async function runMatrixBatch(
   return rows;
 }
 
-async function expireDraw(client: Client, runtime: Runtime, resolveId: bigint): Promise<string> {
+// PATCH v3.1: expire slashes the bounty to ProgramConfig.treasury (protocol-global),
+// not outcome_config.treasury. Caller may override protocolTreasury to test the gate.
+async function expireDraw(
+  client: Client,
+  runtime: Runtime,
+  resolveId: bigint,
+  protocolTreasury?: PublicKey
+): Promise<string> {
   return withRetry(`expire:${toHex(runtime.runtimeId)}`, () =>
     (client.program.methods as any)
       .expireRngV2({
@@ -846,11 +853,12 @@ async function expireDraw(client: Client, runtime: Runtime, resolveId: bigint): 
       })
       .accounts({
         payer: client.authority.publicKey,
+        programConfig: deriveProgramConfigPda(client.programId),
         outcomeConfig: runtime.outcomeConfigPda,
         outcomeVault: runtime.outcomeVaultPda,
         rngV2State: deriveRngV2StatePda(client.programId, runtime.runtimeId, resolveId),
         operator: client.authority.publicKey,
-        protocolTreasury: runtime.treasury,
+        protocolTreasury: protocolTreasury ?? client.authority.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .rpc()
@@ -860,7 +868,8 @@ async function expireDraw(client: Client, runtime: Runtime, resolveId: bigint): 
 async function expireSealedDraw(
   client: Client,
   runtime: Runtime,
-  resolveId: bigint
+  resolveId: bigint,
+  protocolTreasury?: PublicKey
 ): Promise<string> {
   return (client.program.methods as any)
     .expireSealedRngV2({
@@ -869,28 +878,64 @@ async function expireSealedDraw(
     })
     .accounts({
       payer: client.authority.publicKey,
+      programConfig: deriveProgramConfigPda(client.programId),
       outcomeConfig: runtime.outcomeConfigPda,
       outcomeVault: runtime.outcomeVaultPda,
       rngV2State: deriveRngV2StatePda(client.programId, runtime.runtimeId, resolveId),
       operator: client.authority.publicKey,
-      protocolTreasury: runtime.treasury,
+      protocolTreasury: protocolTreasury ?? client.authority.publicKey,
       systemProgram: SystemProgram.programId,
     })
     .rpc();
 }
 
-async function setFeeLamports(client: Client, feeLamports: bigint): Promise<string> {
+async function setFeeLamports(
+  client: Client,
+  feeLamports: bigint,
+  treasury?: PublicKey
+): Promise<string> {
   return withRetry(`setFee:${feeLamports.toString()}`, () =>
     (client.program.methods as any)
       .setProgramConfig({
         newAdmin: client.authority.publicKey,
         allowUnreviewedBinding: false,
         feeLamports: new BN(feeLamports.toString()),
-        treasury: client.authority.publicKey,
+        treasury: treasury ?? client.authority.publicKey,
       })
       .accounts({
         programConfig: deriveProgramConfigPda(client.programId),
         admin: client.authority.publicKey,
+      })
+      .rpc()
+  );
+}
+
+// Pre-fund a fresh account to the rent-exempt minimum so that a subsequent small credit
+// (slashed bounty / protocol fee) does not leave it below the rent threshold. In production
+// the protocol treasury is a long-lived rent-exempt account; a throwaway test keypair is not.
+async function fundRentExempt(client: Client, pubkey: PublicKey): Promise<number> {
+  const min = await client.provider.connection.getMinimumBalanceForRentExemption(0);
+  await withRetry(`fundRent:${pubkey.toBase58().slice(0, 8)}`, () => {
+    const tx = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: client.authority.publicKey,
+        toPubkey: pubkey,
+        lamports: min,
+      })
+    );
+    return client.provider.sendAndConfirm(tx, []);
+  });
+  return min;
+}
+
+async function adminPause(client: Client, runtime: Runtime, paused: boolean): Promise<string> {
+  return withRetry(`adminPause:${paused}`, () =>
+    (client.program.methods as any)
+      .adminPause(paused)
+      .accounts({
+        programConfig: deriveProgramConfigPda(client.programId),
+        outcomeConfig: runtime.outcomeConfigPda,
+        authority: client.authority.publicKey,
       })
       .rpc()
   );
@@ -943,6 +988,11 @@ async function attestAs(
 }
 
 async function runNegativeCases(client: Client, outputDir: string): Promise<any[]> {
+  // ProgramConfig is a global singleton that survives across runs. Normalize it up front
+  // (fee=0, treasury=authority) so a prior aborted run that left a generated treasury in
+  // place cannot poison the default-treasury attest cases below. Idempotent on re-runs.
+  await setFeeLamports(client, 0n);
+
   const baseCase: MatrixCase = {
     id: "negative-weighted_random-n104-w2",
     formula: "weighted_random",
@@ -1055,6 +1105,115 @@ async function runNegativeCases(client: Client, outputDir: string): Promise<any[
     programId: client.programId.toBase58(),
   });
 
+  // --- PATCH v3.1 cases ---
+  const getBalance = (pubkey: PublicKey) => client.provider.connection.getBalance(pubkey, "confirmed");
+
+  // 12. [BLOCKER] expire slash recipient is ProgramConfig.treasury, NOT outcome_config.treasury.
+  // Make the two treasuries distinct: set ProgramConfig.treasury to a fresh key while the
+  // runtime's outcome_config.treasury stays = authority. The slash must land in the program
+  // treasury; passing outcome_config.treasury (authority) must be rejected by the address gate.
+  const programTreasury = Keypair.generate();
+  await fundRentExempt(client, programTreasury.publicKey);
+  const slashFeeSetSig = await setFeeLamports(client, 0n, programTreasury.publicKey);
+  const slashRuntime = await createRuntime(client, { ...baseCase, id: "negative-expire-slash-recipient" }, outputDir);
+  const slashResolveId = await prepare(client, slashRuntime);
+  const slashState = await fetchState(client, slashRuntime.runtimeId, slashResolveId);
+  await waitUntilSlot(client, asBigInt(slashState.expirySlot) + 1n);
+  // Negative sub-assertion: the operator-controlled outcome_config.treasury is rejected.
+  const slashWrongRecipient = await expectFailure("expire_slash_rejects_config_treasury", () =>
+    expireDraw(client, slashRuntime, slashResolveId, client.authority.publicKey)
+  );
+  // Positive: the bounty is slashed to the program-global treasury.
+  const treasuryBefore = await getBalance(programTreasury.publicKey);
+  const slashSig = await expireDraw(client, slashRuntime, slashResolveId, programTreasury.publicKey);
+  const treasuryAfter = await getBalance(programTreasury.publicKey);
+  const slashDelta = BigInt(treasuryAfter - treasuryBefore);
+  const slashRestoreSig = await setFeeLamports(client, 0n);
+  const expireSlashRecipient = {
+    label: "expire_slash_recipient_is_program_treasury",
+    ok: slashWrongRecipient.ok && slashDelta === BOUNTY_LAMPORTS,
+    rejects_config_treasury: slashWrongRecipient,
+    program_treasury: programTreasury.publicKey.toBase58(),
+    bounty_lamports: BOUNTY_LAMPORTS.toString(),
+    slash_delta_lamports: slashDelta.toString(),
+    fee_set_signature: slashFeeSetSig,
+    expire_signature: slashSig,
+    fee_restore_signature: slashRestoreSig,
+  };
+
+  // 13. [GAP] seal must succeed while the runtime is paused (pause blocks new prepare, not
+  // the lifecycle of an open draw — otherwise the operator regains an abort lever).
+  const pausedRuntime = await createRuntime(client, { ...baseCase, id: "negative-seal-while-paused" }, outputDir);
+  const pausedResolveId = await prepare(client, pausedRuntime);
+  const pauseOnSig = await adminPause(client, pausedRuntime, true);
+  let sealWhilePausedOk = false;
+  let sealWhilePausedSig = "";
+  let sealWhilePausedError = "";
+  try {
+    const sealed = await seal(client, pausedRuntime, pausedResolveId);
+    sealWhilePausedSig = sealed.signature;
+    sealWhilePausedOk = true;
+  } catch (error) {
+    sealWhilePausedError = error instanceof Error ? error.message : String(error);
+  }
+  const pauseOffSig = await adminPause(client, pausedRuntime, false);
+  const sealWhilePaused = {
+    label: "seal_while_paused_succeeds",
+    ok: sealWhilePausedOk,
+    pause_on_signature: pauseOnSig,
+    seal_signature: sealWhilePausedSig,
+    pause_off_signature: pauseOffSig,
+    ...(sealWhilePausedError ? { error: sealWhilePausedError } : {}),
+  };
+
+  // 14. [GAP] the protocol fee is taken out of the operator stake (vault), not charged to
+  // the attester. With fee=F: vault → treasury (F) + vault → operator (input − F).
+  const FEE_LAMPORTS = 40n; // must be <= INPUT_LAMPORTS (100)
+  const feeTreasury = Keypair.generate();
+  await fundRentExempt(client, feeTreasury.publicKey);
+  const feeSetSig = await setFeeLamports(client, FEE_LAMPORTS, feeTreasury.publicKey);
+  const feeRuntime = await createRuntime(client, { ...baseCase, id: "negative-fee-from-stake" }, outputDir);
+  const feeResolveId = await prepare(client, feeRuntime);
+  await seal(client, feeRuntime, feeResolveId);
+  const vaultBefore = BigInt(await getBalance(feeRuntime.outcomeVaultPda));
+  const feeTreasuryBefore = await getBalance(feeTreasury.publicKey);
+  const feeAttestSig = await attest(client, feeRuntime, feeResolveId, { protocolTreasury: feeTreasury.publicKey });
+  const vaultAfter = BigInt(await getBalance(feeRuntime.outcomeVaultPda));
+  const feeTreasuryAfter = await getBalance(feeTreasury.publicKey);
+  const feeTreasuryDelta = BigInt(feeTreasuryAfter - feeTreasuryBefore);
+  const vaultDrained = vaultBefore - vaultAfter;
+  const feeRestoreSig2 = await setFeeLamports(client, 0n);
+  const feeFromStake = {
+    label: "attest_fee_taken_from_stake",
+    // The vault is a rent-exempt PDA holding (rent + input); the stake is the input on top.
+    // Correct behavior: fee leaves the vault to the treasury and the rest refunds the
+    // operator, draining exactly `input` from the vault back to its rent-exempt baseline.
+    ok: feeTreasuryDelta === FEE_LAMPORTS && vaultDrained === INPUT_LAMPORTS,
+    fee_lamports: FEE_LAMPORTS.toString(),
+    input_lamports: INPUT_LAMPORTS.toString(),
+    operator_refund_implied: (INPUT_LAMPORTS - FEE_LAMPORTS).toString(),
+    treasury_delta_lamports: feeTreasuryDelta.toString(),
+    vault_before_lamports: vaultBefore.toString(),
+    vault_after_lamports: vaultAfter.toString(),
+    fee_treasury: feeTreasury.publicKey.toBase58(),
+    fee_set_signature: feeSetSig,
+    attest_signature: feeAttestSig.signature,
+    fee_restore_signature: feeRestoreSig2,
+  };
+
+  // 15. seal_after_artifact_rotation — STRUCTURAL only (not on-chain constructible).
+  // outcome_config.compiled_artifact_hash is written only by initialize_outcome_config; no
+  // rotate setter exists, so the config artifact hash cannot be mutated on a live runtime.
+  // PATCH v3.1 removed seal's dependency on it entirely (seal reads no blob and no longer
+  // compares against outcome_config), so the abort-via-rotation vector is unreachable by
+  // construction. Marked ok=true on that structural basis; flagged in the report notes.
+  const sealAfterArtifactRotation = {
+    label: "seal_after_artifact_rotation",
+    ok: true,
+    structural: true,
+    note: "seal_randomness no longer reads outcome_config.compiled_artifact_hash; no on-chain rotate setter exists (only initialize_outcome_config writes it), so the vector is unreachable by construction",
+  };
+
   return [
     sealBeforeTarget,
     wrongSlotHashes,
@@ -1066,6 +1225,10 @@ async function runNegativeCases(client: Client, outputDir: string): Promise<any[
     nonzeroPayout,
     { ...lowBounty, fee_raise_signature: feeRaiseSig, fee_restore_signature: feeRestoreSig },
     badReveal,
+    expireSlashRecipient,
+    sealWhilePaused,
+    feeFromStake,
+    sealAfterArtifactRotation,
     {
       label: "wrong_winner_claim_recomputed_winner_mismatch",
       ok: badClaimReplay.status === "MISMATCH" && badClaimReplay.reason === "ERR_WINNER_CLAIM_HASH_MISMATCH",

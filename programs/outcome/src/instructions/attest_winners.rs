@@ -139,16 +139,19 @@ pub struct AttestWinners<'info> {
         bump
     )]
     pub outcome_resolution: Box<Account<'info, OutcomeResolutionV4>>,
+    // PATCH v3.1 lifecycle isolation: bind the artifact PDA to the draw's frozen
+    // compiled_artifact_hash (RngV2State), not the mutable outcome_config — a config
+    // artifact rotation must not be able to block attesting an open draw.
     #[account(
-        seeds = [b"approved_outcome_artifact", outcome_config.compiled_artifact_hash.as_ref()],
+        seeds = [b"approved_outcome_artifact", rng_v2_state.compiled_artifact_hash.as_ref()],
         bump = approved_outcome_artifact.bump
     )]
     pub approved_outcome_artifact: Box<Account<'info, ApprovedOutcomeArtifact>>,
-    /// CHECK: receives the operator stake refund; must equal rng_v2_state.actor.
+    /// CHECK: receives the operator stake refund (input − fee); must equal rng_v2_state.actor.
     #[account(mut, address = rng_v2_state.actor @ OutcomeError::InvalidRngV2State)]
     pub operator: UncheckedAccount<'info>,
-    /// CHECK: validated manually when fee_snapshot > 0.
-    #[account(mut)]
+    /// CHECK: receives the snapshotted protocol fee out of the stake; must equal ProgramConfig.treasury.
+    #[account(mut, address = program_config.treasury @ OutcomeError::InvalidTreasuryAccount)]
     pub protocol_treasury: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -202,8 +205,10 @@ fn validate_operator_reveal(state: &mut RngV2State, args: &AttestWinnersArgs) ->
 }
 
 pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
+    // PATCH v3.1 lifecycle isolation: no is_paused gate (pause blocks new prepare only;
+    // refunding an open draw and writing its resolution is always safe) and no bind to
+    // outcome_config.compiled_artifact_hash (the draw's hash is frozen in RngV2State).
     let config = &ctx.accounts.outcome_config;
-    require!(!config.is_paused, OutcomeError::RuntimePaused);
 
     let state = &mut ctx.accounts.rng_v2_state;
     require!(
@@ -211,9 +216,7 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
         OutcomeError::InvalidRngV2Status
     );
     require!(
-        state.runtime_id == args.runtime_id
-            && state.resolve_id == args.resolve_id
-            && state.compiled_artifact_hash == config.compiled_artifact_hash,
+        state.runtime_id == args.runtime_id && state.resolve_id == args.resolve_id,
         OutcomeError::InvalidRngV2State
     );
 
@@ -275,34 +278,38 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
     let randomness =
         rng_v2::derive_randomness(&seed, &state.runtime_id, state.resolve_id, &state.actor);
 
-    // Charge the snapshotted protocol fee (taken at prepare, not the live value).
-    if state.fee_snapshot > 0 {
-        require_keys_eq!(
-            ctx.accounts.protocol_treasury.key(),
-            ctx.accounts.program_config.treasury,
-            OutcomeError::InvalidTreasuryAccount
-        );
-        system_program::transfer(
-            CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                system_program::Transfer {
-                    from: ctx.accounts.attester.to_account_info(),
-                    to: ctx.accounts.protocol_treasury.to_account_info(),
-                },
-            ),
-            state.fee_snapshot,
-        )?;
-    }
-
-    // Refund the operator stake from the vault (payout is always 0 in v1.3.2).
     let (total_output_lamports, effect_count, effects_digest) =
         compiled_outcome_v1::synthetic_effects_digest_v4(
             parsed.payout_lamports,
             parsed.winners_count,
         )?;
-    if state.input_lamports > 0 {
-        let seeds: &[&[u8]] = &[b"outcome_vault", &state.runtime_id, &[config.vault_bump]];
-        let signer = &[seeds];
+
+    // PATCH v3.1: the protocol fee is taken out of the operator stake (the vault), not
+    // charged to the attester — otherwise an external attester_key would subsidize the
+    // operator's fee. The fee is the snapshot captured at prepare (admin-raise-proof);
+    // input >= fee_snapshot is enforced at prepare. Split the vault stake:
+    //   vault → treasury (fee_snapshot)  +  vault → operator (input − fee_snapshot).
+    let fee = state.fee_snapshot;
+    let refund = state
+        .input_lamports
+        .checked_sub(fee)
+        .ok_or(OutcomeError::MathOverflow)?;
+    let vault_seeds: &[&[u8]] = &[b"outcome_vault", &state.runtime_id, &[config.vault_bump]];
+    let vault_signer = &[vault_seeds];
+    if fee > 0 {
+        system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                system_program::Transfer {
+                    from: ctx.accounts.outcome_vault.to_account_info(),
+                    to: ctx.accounts.protocol_treasury.to_account_info(),
+                },
+                vault_signer,
+            ),
+            fee,
+        )?;
+    }
+    if refund > 0 {
         system_program::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.system_program.to_account_info(),
@@ -310,9 +317,9 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
                     from: ctx.accounts.outcome_vault.to_account_info(),
                     to: ctx.accounts.operator.to_account_info(),
                 },
-                signer,
+                vault_signer,
             ),
-            state.input_lamports,
+            refund,
         )?;
     }
 

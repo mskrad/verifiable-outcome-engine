@@ -163,13 +163,16 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
         OutcomeError::RngV2PayoutMustBeZero
     );
 
-    // v1.3.2: snapshot the protocol fee at prepare and require a sufficient bounty.
+    // v1.3.2 PATCH v3.1: snapshot the protocol fee at prepare. The fee is taken out of
+    // the stake at attest (vault → treasury), so the stake must cover it. The bounty is
+    // a separate anti-regrind lever and no longer carries the fee.
     let fee_snapshot = ctx.accounts.program_config.fee_lamports;
-    let bounty_floor = fee_snapshot
-        .checked_add(config.bounty_min)
-        .ok_or(OutcomeError::MathOverflow)?;
     require!(
-        args.bounty_lamports >= bounty_floor,
+        args.input_lamports >= fee_snapshot,
+        OutcomeError::RngV2InputBelowFee
+    );
+    require!(
+        args.bounty_lamports >= config.bounty_min,
         OutcomeError::RngV2BountyTooLow
     );
 
@@ -249,6 +252,9 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
         expiry_slot,
         operator_commit_present: args.operator_commit_present,
         operator_commit_hash: state.operator_commit_hash,
+        bounty_lamports: args.bounty_lamports,
+        fee_snapshot,
+        attest_deadline_slot,
     });
 
     Ok(())

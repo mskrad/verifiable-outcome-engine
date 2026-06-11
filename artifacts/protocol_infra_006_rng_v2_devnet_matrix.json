@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-10T12:33:02.758Z",
+  "generated_at": "2026-06-11T05:51:58.604Z",
   "task_id": "PROTOCOL-INFRA-006",
   "standard_version": "1.3.2",
   "rpc_url": "https://api.devnet.solana.com",
@@ -34,8 +34,8 @@
     "total_rows": 0,
     "passed_rows": 0,
     "failed_rows": 0,
-    "negative_total": 11,
-    "negative_passed": 11,
+    "negative_total": 15,
+    "negative_passed": 15,
     "negative_aborted": false
   },
   "rows": [],
@@ -43,39 +43,39 @@
     {
       "label": "seal_before_target_slot",
       "ok": true,
-      "error": "Unable to resolve SlotHashes entry after target 468462355"
+      "error": "Unable to resolve SlotHashes entry after target 468626169"
     },
     {
       "label": "seal_wrong_slot_hashes_account",
       "ok": true,
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x1787. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: SealRandomness\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/seal_randomness.rs:67. Error Code: InvalidSlotHashesSysvar. Error Number: 6023. Error Message: Invalid slot hashes sysvar.\",\n  \"Program log: Left:\",\n  \"Program log: 11111111111111111111111111111111\",\n  \"Program log: Right:\",\n  \"Program log: SysvarS1otHashes111111111111111111111111111\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 8607 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x1787\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x1787. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: SealRandomness\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/seal_randomness.rs:65. Error Code: InvalidSlotHashesSysvar. Error Number: 6023. Error Message: Invalid slot hashes sysvar.\",\n  \"Program log: Left:\",\n  \"Program log: 11111111111111111111111111111111\",\n  \"Program log: Right:\",\n  \"Program log: SysvarS1otHashes111111111111111111111111111\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 8588 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x1787\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
     },
     {
       "label": "seal_after_expiry",
       "ok": true,
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x1789. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: SealRandomness\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/seal_randomness.rs:63. Error Code: RngV2SettlementWindowExpired. Error Number: 6025. Error Message: RNG v2 settlement window expired.\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 8109 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x1789\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x1789. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: SealRandomness\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/seal_randomness.rs:61. Error Code: RngV2SettlementWindowExpired. Error Number: 6025. Error Message: RNG v2 settlement window expired.\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 8092 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x1789\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
     },
     {
       "label": "attest_by_non_allowlisted_key",
       "ok": true,
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x178c. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: AttestWinners\",\n  \"Program 11111111111111111111111111111111 invoke [2]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/attest_winners.rs:223. Error Code: UnauthorizedRngV2Attester. Error Number: 6028. Error Message: Unauthorized RNG v2 attester.\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 21674 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x178c\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details.",
-      "fund_stranger_signature": "4x2apoLnP1VrCbDyDUhDckRJB62U7EGTxnwKfRFaGYEe541F6KFXL1upES6rEH9utgFnT665owRWPK49c4KF1Y2N",
-      "stranger": "5sQMSpZBeRJ5AD8KQL7Wsau6L5Zhnc9D1HQKCGZ4j3sc"
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x178c. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: AttestWinners\",\n  \"Program 11111111111111111111111111111111 invoke [2]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/attest_winners.rs:226. Error Code: UnauthorizedRngV2Attester. Error Number: 6028. Error Message: Unauthorized RNG v2 attester.\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 29189 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x178c\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details.",
+      "fund_stranger_signature": "2ARtayDirufGF8cUNgqUshekDFjagSgESbNXNmMheNfM6eQgseTi51vmR2VAejzVybjtSzrWSJo25brZ5m5MS8Qm",
+      "stranger": "9GocNPM9rooiDj774aagrKm2HbAUyLGs8WFYcDNxtZzR"
     },
     {
       "label": "expire_after_seal_rejected",
       "ok": true,
-      "error": "AnchorError thrown in programs/outcome/src/instructions/expire_rng_v2.rs:52. Error Code: InvalidRngV2Status. Error Number: 6022. Error Message: Invalid RNG v2 status."
+      "error": "AnchorError thrown in programs/outcome/src/instructions/expire_rng_v2.rs:58. Error Code: InvalidRngV2Status. Error Number: 6022. Error Message: Invalid RNG v2 status."
     },
     {
       "label": "expire_sealed_before_deadline",
       "ok": true,
-      "error": "AnchorError thrown in programs/outcome/src/instructions/expire_sealed_rng_v2.rs:68. Error Code: RngV2AttestDeadlineNotReached. Error Number: 6031. Error Message: RNG v2 attest deadline not reached."
+      "error": "AnchorError thrown in programs/outcome/src/instructions/expire_sealed_rng_v2.rs:74. Error Code: RngV2AttestDeadlineNotReached. Error Number: 6031. Error Message: RNG v2 attest deadline not reached."
     },
     {
       "label": "attest_twice_rejected",
       "ok": true,
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x0. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: AttestWinners\",\n  \"Program 11111111111111111111111111111111 invoke [2]\",\n  \"Allocate: account Address { address: 2D35KEaNfxWCokAG5kWFbnDbMMLcZuqYgKpL2JCNT5Ak, base: None } already in use\",\n  \"Program 11111111111111111111111111111111 failed: custom program error: 0x0\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 10460 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x0\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x0. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: AttestWinners\",\n  \"Program 11111111111111111111111111111111 invoke [2]\",\n  \"Allocate: account Address { address: 4Z6ZpmqgH2rSR5PFk6sQFtRPKrjrMgNCRJeq1ZRKGFL9, base: None } already in use\",\n  \"Program 11111111111111111111111111111111 failed: custom program error: 0x0\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 8960 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x0\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
     },
     {
       "label": "prepare_nonzero_payout_rejected",
@@ -85,19 +85,61 @@
     {
       "label": "prepare_bounty_below_floor",
       "ok": true,
-      "error": "AnchorError thrown in programs/outcome/src/instructions/prepare_rng_v2.rs:171. Error Code: RngV2BountyTooLow. Error Number: 6029. Error Message: RNG v2 bounty below required minimum.",
-      "fee_raise_signature": "2HUBddpsyDXbaSfaLuz9CipV6ZK2jw1fK19A9mdNDBAogsfAwB5rnok8QWENud9PawMX3Kn4EBzQr8xsU3jAX8Vs",
-      "fee_restore_signature": "4YumNc8LkWQXeFBsHzWtoKm2EDgFv8T3w6RPvzZXhpdezPeYNzbuAXcKVgVPsHXRGZSqEeq89fVgdjwF7xDuZKE9"
+      "error": "AnchorError thrown in programs/outcome/src/instructions/prepare_rng_v2.rs:170. Error Code: RngV2InputBelowFee. Error Number: 6032. Error Message: RNG v2 input below snapshotted protocol fee.",
+      "fee_raise_signature": "2KiE3PotnWJZZvVHx6zrx5Tip5eTDcgiEAJbZzCBpYVPoKxHCR79oD8W9YJ5rutpMb3NZzAZe5xbiM4aLCvz767R",
+      "fee_restore_signature": "4UsydWyKufGgs53HS1ieGe6REHmxRbaqD6TdBF3d3iQCoedCS6CB7QyChz14NzM3GnNi2uAekjMPHP5iM4iPPHW6"
     },
     {
       "label": "bad_operator_reveal",
       "ok": true,
-      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x178b. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: AttestWinners\",\n  \"Program 11111111111111111111111111111111 invoke [2]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/attest_winners.rs:195. Error Code: InvalidRngV2OperatorReveal. Error Number: 6027. Error Message: Invalid RNG v2 operator reveal.\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 30110 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x178b\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+      "error": "Simulation failed. \nMessage: Transaction simulation failed: Error processing Instruction 1: custom program error: 0x178b. \nLogs: \n[\n  \"Program ComputeBudget111111111111111111111111111111 invoke [1]\",\n  \"Program ComputeBudget111111111111111111111111111111 success\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B invoke [1]\",\n  \"Program log: Instruction: AttestWinners\",\n  \"Program 11111111111111111111111111111111 invoke [2]\",\n  \"Program 11111111111111111111111111111111 success\",\n  \"Program log: AnchorError thrown in programs/outcome/src/instructions/attest_winners.rs:198. Error Code: InvalidRngV2OperatorReveal. Error Number: 6027. Error Message: Invalid RNG v2 operator reveal.\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B consumed 30112 of 1399850 compute units\",\n  \"Program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B failed: custom program error: 0x178b\"\n]. \nCatch the `SendTransactionError` and call `getLogs()` on it for full details."
+    },
+    {
+      "label": "expire_slash_recipient_is_program_treasury",
+      "ok": true,
+      "rejects_config_treasury": {
+        "label": "expire_slash_rejects_config_treasury",
+        "ok": true,
+        "error": "AnchorError caused by account: protocol_treasury. Error Code: InvalidTreasuryAccount. Error Number: 6020. Error Message: Invalid treasury account.\nProgram log: Left:\nProgram log: HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava\nProgram log: Right:\nProgram log: CtHtDSfT1AkC16kkoE1WJUg273i9kxEyrFcTRtTQzfGs"
+      },
+      "program_treasury": "CtHtDSfT1AkC16kkoE1WJUg273i9kxEyrFcTRtTQzfGs",
+      "bounty_lamports": "50000",
+      "slash_delta_lamports": "50000",
+      "fee_set_signature": "2h5yUU3aEyDf1mZoJRZVJKzJsLBQmzuLBFRQXyuCvNdFootJqZLFh7rYZW8oe1YafE4LWf1ZtnAgKDbYypYotWuu",
+      "expire_signature": "3CSBfhfcXUVwDyEcySqagVLMcsqUEkMBnYXnaohLBaqLVDB6v2hJB3fnC8oWTCQSYgfoABd5pG8sTTD1xZK6dKuC",
+      "fee_restore_signature": "2CFiQ4Mmfs3ThJY98ChaDCZj5EgqVuyZD19LumwakuvPFaE3cjyqpsfGFDGsLv6TD3baC5EGXRGNrVmrv249tkyz"
+    },
+    {
+      "label": "seal_while_paused_succeeds",
+      "ok": true,
+      "pause_on_signature": "6ZDR7xrJoJurJfz4RA3fiBbLvjQQZv6f43B1zpPkcF4y1QcsgZkxadkh78Vb9dU4RW5SDsacX3FJqRuQZGexnqL",
+      "seal_signature": "3yC1reXnqYDS8H6pUK9aHe4tZGhxRU6xAyFSEfCvJSESzT1C4yKkQBA94AGhdtvTpP7T9DHLDmaLWyfxjfesVaFH",
+      "pause_off_signature": "Zui66V9Urst7mEa4mcorT9QM3HBSL9Wuq3cpaDCAuHRarwKJ4agwavA4sZqCqxmen7TJNgVPWuLRXN5B4FR5ks9"
+    },
+    {
+      "label": "attest_fee_taken_from_stake",
+      "ok": true,
+      "fee_lamports": "40",
+      "input_lamports": "100",
+      "operator_refund_implied": "60",
+      "treasury_delta_lamports": "40",
+      "vault_before_lamports": "890980",
+      "vault_after_lamports": "890880",
+      "fee_treasury": "7ExSjzy9YpkEgrXkcdycjd8a2mATwsEKycGWtTzj7sYo",
+      "fee_set_signature": "3H8ZmteSwMBrU4pjteBCAzNfGsFMbt1nnuwZGx4JzeEzoRhb2VXvxx14ywiuYzHrR6P6sRT7MqSPzjsL5CmKgjT",
+      "attest_signature": "2cKJQGe7Gg8YzJAezqcdZK95vsD8WftLdaDX542TYf7qEuTAFGc4YHSx8jJH3EgEhN3Ry1KUnv7833bJUENYQN3r",
+      "fee_restore_signature": "4wqxDzACHue8wtdnTVEL9x3dPkWEqgawR1KihYzWqpzjbJrToEgopnjFtEHRJrAJJr7knQKs87Xw7BryWwqMqPUC"
+    },
+    {
+      "label": "seal_after_artifact_rotation",
+      "ok": true,
+      "structural": true,
+      "note": "seal_randomness no longer reads outcome_config.compiled_artifact_hash; no on-chain rotate setter exists (only initialize_outcome_config writes it), so the vector is unreachable by construction"
     },
     {
       "label": "wrong_winner_claim_recomputed_winner_mismatch",
       "ok": true,
-      "signature": "4fxKmEywviFtNoEp4kbdjvrgeZE5prD23KLqLDi4eK5LLpdpMSnv3CoU4tESjwoggwceGGjubChjZ9sWA2EPUNCb",
+      "signature": "42kYeXK9VimndRU7zh28Nzdk6XSysCZkGnaiaSfGwGEHEBv7NDow8F8XWjrNdVnm4h6pnDARKEy9VZFKXMHa2mRv",
       "replay": {
         "status": "MISMATCH",
         "reason": "ERR_WINNER_CLAIM_HASH_MISMATCH"

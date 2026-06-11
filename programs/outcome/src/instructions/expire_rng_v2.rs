@@ -4,7 +4,7 @@ use crate::{
     errors::OutcomeError,
     events::RngV2Expired,
     instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_EXPIRED, RNG_V2_STATUS_PREPARED},
-    state::outcome_config::OutcomeConfig,
+    state::{outcome_config::OutcomeConfig, program_config::ProgramConfig},
 };
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -21,6 +21,11 @@ pub struct ExpireRngV2Args {
 pub struct ExpireRngV2<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
+    #[account(
+        seeds = [b"outcome_program_config"],
+        bump = program_config.bump
+    )]
+    pub program_config: Account<'info, ProgramConfig>,
     #[account(
         seeds = [b"outcome_config", args.runtime_id.as_ref()],
         bump = outcome_config.bump
@@ -41,8 +46,9 @@ pub struct ExpireRngV2<'info> {
     /// CHECK: receives the stake refund; must equal rng_v2_state.actor.
     #[account(mut, address = rng_v2_state.actor @ OutcomeError::InvalidRngV2State)]
     pub operator: UncheckedAccount<'info>,
-    /// CHECK: receives the slashed bounty; must equal outcome_config.treasury.
-    #[account(mut, address = outcome_config.treasury @ OutcomeError::InvalidTreasuryAccount)]
+    /// CHECK: receives the slashed bounty; PATCH v3.1: protocol-global ProgramConfig.treasury,
+    /// not the operator-controlled outcome_config.treasury (else self-hosted regrind is free).
+    #[account(mut, address = program_config.treasury @ OutcomeError::InvalidTreasuryAccount)]
     pub protocol_treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }

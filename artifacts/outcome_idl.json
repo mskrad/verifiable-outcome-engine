@@ -416,8 +416,8 @@
               },
               {
                 "kind": "account",
-                "path": "outcome_config.compiled_artifact_hash",
-                "account": "OutcomeConfig"
+                "path": "rng_v2_state.compiled_artifact_hash",
+                "account": "RngV2State"
               }
             ]
           }
@@ -465,6 +465,40 @@
           "signer": true
         },
         {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "outcome_config",
           "pda": {
             "seeds": [
@@ -563,6 +597,9 @@
         },
         {
           "name": "protocol_treasury",
+          "docs": [
+            "not the operator-controlled outcome_config.treasury (else self-hosted regrind is free)."
+          ],
           "writable": true
         },
         {
@@ -600,6 +637,40 @@
           "signer": true
         },
         {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "outcome_config",
           "pda": {
             "seeds": [
@@ -698,6 +769,9 @@
         },
         {
           "name": "protocol_treasury",
+          "docs": [
+            "protocol-global ProgramConfig.treasury, not the operator-controlled outcome_config.treasury."
+          ],
           "writable": true
         },
         {
@@ -3078,6 +3152,11 @@
       "code": 6031,
       "name": "RngV2AttestDeadlineNotReached",
       "msg": "RNG v2 attest deadline not reached"
+    },
+    {
+      "code": 6032,
+      "name": "RngV2InputBelowFee",
+      "msg": "RNG v2 input below snapshotted protocol fee"
     }
   ],
   "types": [
@@ -4855,6 +4934,18 @@
                 32
               ]
             }
+          },
+          {
+            "name": "bounty_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "fee_snapshot",
+            "type": "u64"
+          },
+          {
+            "name": "attest_deadline_slot",
+            "type": "u64"
           }
         ]
       }

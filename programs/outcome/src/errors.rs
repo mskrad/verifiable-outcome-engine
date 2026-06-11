@@ -66,4 +66,6 @@ pub enum OutcomeError {
     RngV2PayoutMustBeZero,
     #[msg("RNG v2 attest deadline not reached")]
     RngV2AttestDeadlineNotReached,
+    #[msg("RNG v2 input below snapshotted protocol fee")]
+    RngV2InputBelowFee,
 }

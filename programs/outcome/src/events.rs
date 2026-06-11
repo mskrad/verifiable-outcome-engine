@@ -85,6 +85,10 @@ pub struct RngV2Prepared {
     pub expiry_slot: u64,
     pub operator_commit_present: bool,
     pub operator_commit_hash: [u8; 32],
+    // --- Outcome Standard v1.3.2 (Tier 0) additive fields (keeper observability) ---
+    pub bounty_lamports: u64,
+    pub fee_snapshot: u64,
+    pub attest_deadline_slot: u64,
 }
 
 #[event]
