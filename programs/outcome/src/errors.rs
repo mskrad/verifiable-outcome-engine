@@ -68,4 +68,28 @@ pub enum OutcomeError {
     RngV2AttestDeadlineNotReached,
     #[msg("RNG v2 input below snapshotted protocol fee")]
     RngV2InputBelowFee,
+    #[msg("Invalid sortition draw")]
+    InvalidSortitionDraw,
+    #[msg("Invalid sortition status")]
+    InvalidSortitionStatus,
+    #[msg("Invalid sortition window")]
+    InvalidSortitionWindow,
+    #[msg("Invalid sortition threshold")]
+    InvalidSortitionThreshold,
+    #[msg("Invalid sortition commitment")]
+    InvalidSortitionCommitment,
+    #[msg("Sortition registration is still open")]
+    SortitionRegistrationOpen,
+    #[msg("Sortition registration is closed")]
+    SortitionRegistrationClosed,
+    #[msg("Invalid sortition ticket")]
+    InvalidSortitionTicket,
+    #[msg("Invalid sortition secret")]
+    InvalidSortitionSecret,
+    #[msg("Sortition predicate not met")]
+    SortitionPredicateNotMet,
+    #[msg("Sortition ticket already claimed")]
+    SortitionAlreadyClaimed,
+    #[msg("Sortition claim window is closed")]
+    SortitionClaimWindowClosed,
 }

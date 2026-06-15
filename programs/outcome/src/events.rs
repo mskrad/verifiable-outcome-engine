@@ -161,6 +161,48 @@ pub struct RngV2ExpiredSealed {
 }
 
 #[event]
+pub struct SortitionDrawCreated {
+    pub draw_id: [u8; 16],
+    pub authority: Pubkey,
+    pub standard_version: [u8; 5],
+    pub threshold: [u8; 32],
+    pub target_slots: [u64; 3],
+    pub registration_deadline: u64,
+    pub claim_deadline: u64,
+    pub unclaimed_rule: u8,
+}
+
+#[event]
+pub struct SortitionRegistered {
+    pub draw_id: [u8; 16],
+    pub ticket_id: [u8; 16],
+    pub owner: Pubkey,
+    pub commitment: [u8; 32],
+    pub registration_snapshot_hash: [u8; 32],
+}
+
+#[event]
+pub struct SortitionSealed {
+    pub draw_id: [u8; 16],
+    pub sealer: Pubkey,
+    pub omega: [u8; 32],
+    pub resolved_slots: [u64; 3],
+    pub slot_hashes: [[u8; 32]; 3],
+    pub registration_snapshot_hash: [u8; 32],
+    pub sealed_at_slot: u64,
+}
+
+#[event]
+pub struct SortitionClaimed {
+    pub draw_id: [u8; 16],
+    pub ticket_id: [u8; 16],
+    pub owner: Pubkey,
+    pub omega: [u8; 32],
+    pub predicate_digest: [u8; 32],
+    pub winners_count: u64,
+}
+
+#[event]
 pub struct MasterSeedRefreshedV1 {
     pub runtime_id: [u8; 16],
     pub master_seed: [u8; 32],

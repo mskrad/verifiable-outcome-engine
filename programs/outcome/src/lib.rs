@@ -9,6 +9,8 @@ pub mod state;
 use instructions::admin_pause::AdminPause;
 use instructions::admin_withdraw::AdminWithdraw;
 use instructions::attest_winners::{AttestWinners, AttestWinnersArgs};
+use instructions::claim_sortition_ticket::{ClaimSortitionTicket, ClaimSortitionTicketArgs};
+use instructions::create_sortition_draw::{CreateSortitionDraw, CreateSortitionDrawArgs};
 use instructions::expire_rng_v2::{ExpireRngV2, ExpireRngV2Args};
 use instructions::expire_sealed_rng_v2::{ExpireSealedRngV2, ExpireSealedRngV2Args};
 use instructions::finalize_compiled_artifact::FinalizeCompiledArtifact;
@@ -25,12 +27,14 @@ use instructions::prepare_rng_v2::{PrepareRngV2, PrepareRngV2Args};
 use instructions::recover_program_config_admin::{
     RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
 };
+use instructions::register_sortition_ticket::{RegisterSortitionTicket, RegisterSortitionTicketArgs};
 use instructions::refresh_master_seed::{RefreshMasterSeed, RefreshMasterSeedArgs};
 use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
 use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121Args};
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
 use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
+use instructions::seal_sortition_draw::{SealSortitionDraw, SealSortitionDrawArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
 use instructions::submit_compiled_artifact::{SubmitCompiledArtifact, SubmitCompiledArtifactArgs};
 use instructions::write_compiled_artifact_chunk::{
@@ -161,6 +165,34 @@ pub mod outcome {
     pub fn admin_withdraw(ctx: Context<AdminWithdraw>, lamports: u64) -> Result<()> {
         instructions::admin_withdraw::handler(ctx, lamports)
     }
+
+    pub fn create_sortition_draw(
+        ctx: Context<CreateSortitionDraw>,
+        args: CreateSortitionDrawArgs,
+    ) -> Result<()> {
+        instructions::create_sortition_draw::handler(ctx, args)
+    }
+
+    pub fn register_sortition_ticket(
+        ctx: Context<RegisterSortitionTicket>,
+        args: RegisterSortitionTicketArgs,
+    ) -> Result<()> {
+        instructions::register_sortition_ticket::handler(ctx, args)
+    }
+
+    pub fn seal_sortition_draw(
+        ctx: Context<SealSortitionDraw>,
+        args: SealSortitionDrawArgs,
+    ) -> Result<()> {
+        instructions::seal_sortition_draw::handler(ctx, args)
+    }
+
+    pub fn claim_sortition_ticket(
+        ctx: Context<ClaimSortitionTicket>,
+        args: ClaimSortitionTicketArgs,
+    ) -> Result<()> {
+        instructions::claim_sortition_ticket::handler(ctx, args)
+    }
 }
 
 mod __client_accounts_initialize_program_config {
@@ -222,4 +254,16 @@ mod __client_accounts_admin_pause {
 }
 mod __client_accounts_admin_withdraw {
     pub use crate::instructions::admin_withdraw::__client_accounts_admin_withdraw::*;
+}
+mod __client_accounts_create_sortition_draw {
+    pub use crate::instructions::create_sortition_draw::__client_accounts_create_sortition_draw::*;
+}
+mod __client_accounts_register_sortition_ticket {
+    pub use crate::instructions::register_sortition_ticket::__client_accounts_register_sortition_ticket::*;
+}
+mod __client_accounts_seal_sortition_draw {
+    pub use crate::instructions::seal_sortition_draw::__client_accounts_seal_sortition_draw::*;
+}
+mod __client_accounts_claim_sortition_ticket {
+    pub use crate::instructions::claim_sortition_ticket::__client_accounts_claim_sortition_ticket::*;
 }
