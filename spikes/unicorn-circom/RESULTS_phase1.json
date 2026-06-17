@@ -72,6 +72,12 @@
       "ptau_pow": 24,
       "run": false,
       "reason": "deliberately skipped under time constraint: needs local pot24 ceremony (~1-2h) + zkey setup of 14.49M constraints (zkey multi-GB, working set >> 18GB -> swap). Given the n8 setup already stalled on 18GB, the full setup is not viable on this hardware. Documented as not-run; not required to establish the gate."
+    },
+    "local_slope_retry": {
+      "attempted": true,
+      "result": "NOT OBTAINABLE on this machine",
+      "evidence": "Second independent confirmation: regenerating right-sized ptau locally, snarkjs `powersoftau prepare phase2` for even 2^20 ran >2.4h at ~800% CPU without clean completion (2^20 should take minutes). Across ~4.7h of attempts (groth16 setup over pot22 + ptau ceremonies) zero clean prover points were produced.",
+      "conclusion": "the snarkjs powers-of-tau / groth16 setup pipeline is pathologically slow on this 18GB Apple-Silicon box; the live prover slope must be measured on a >=32-64GB machine and/or with rapidsnark + an externally-sourced 2^24 ptau. The constraint count (the gate) is unaffected — it comes from the circom compile, not snarkjs."
     }
   },
 
