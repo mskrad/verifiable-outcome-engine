@@ -1,0 +1,10 @@
+# Build artifacts and large binaries — measurement outputs, not source.
+build/
+node_modules/
+*.ptau
+*.r1cs
+*.zkey
+*.wtns
+*.wasm
+# Keep: circuits/*.circom, gen_fixture.js, run_slope.sh, RESULTS_phase1.json,
+#       package.json, package-lock.json

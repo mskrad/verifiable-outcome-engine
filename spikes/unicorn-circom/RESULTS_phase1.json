@@ -1,0 +1,84 @@
+{
+  "phase": "Unicorn-G Phase 1 — full Wesolowski-verify circuit hard measurement",
+  "date": "2026-06-17",
+  "branch": "unicorn-g",
+  "machine": {
+    "cpu": "Apple M3 Pro",
+    "ram_gb": 18,
+    "note": "unified soldered RAM (not upgradeable); macOS swap on SSD only",
+    "circom": "2.2.3",
+    "snarkjs": "0.7.6",
+    "time_tool": "/usr/bin/time -l (BSD; maximum resident set size)"
+  },
+
+  "circuit": {
+    "name": "wesolowski_verify (RSA-2048, EXPBITS=128)",
+    "proves": "pi^l * u^r == y (mod N)",
+    "modexp_strategy": "square-and-multiply, naive (1 squaring + 1 conditional-multiply per exponent bit)",
+    "h_to_prime": "SIMPLIFIED for gate measurement: l and r supplied as witness (no in-circuit primality of l, no SHA256 binding l=H(u,y), N supplied as witness). These omitted layers are minor increments (SHA256 ~30k c/block; Pocklington primality is modexp over ~128-bit l, cheap vs the 2048-bit modexp) and do NOT move the gate number.",
+    "files": "circuits/{modexp,wesolowski_verify,wv_n128}.circom; fixture gen_fixture.js"
+  },
+
+  "constraint_count": {
+    "measured": true,
+    "full_circuit_nonlinear_constraints": 14487811,
+    "wires": 14336605,
+    "public_inputs": 64,
+    "private_inputs": 66,
+    "r1cs_bytes": 3598673640,
+    "compile_wall_s": 207.66,
+    "compile_peak_rss_gb": 4.83,
+    "linearity_anchors": {
+      "comment": "reduced EXPBITS confirm constraints ~= (4*EXPBITS + 1) * 28225 (one 2048-bit modmul = 28,225 c). All match measured to <0.1%.",
+      "n8_measured": 931891,
+      "n16_measured": 1835619,
+      "n32_measured": 3643075,
+      "n128_measured": 14487811,
+      "modmul_equivalents_full": 513.3
+    },
+    "correction_to_desk_estimate": {
+      "desk_extrapolation": 10800000,
+      "hard_measured": 14487811,
+      "delta_pct": 34.1,
+      "reason": "desk count assumed ~384 modmul; naive square-and-multiply does a conditional-multiply EVERY bit (fixed circuit), so ~2 modmul/bit => ~256 modmul/modexp => ~512 modmul total + final modmul."
+    }
+  },
+
+  "correctness_validation": {
+    "valid_fixture_witness": "OK (exit 0) — pi^l*u^r==y self-checked off-chain before witness-gen",
+    "tampered_y_witness": "Assert Failed (exit 1) — circuit genuinely enforces the equation, not a tautology",
+    "validated_on": "wv_n8 (same template as full, EXPBITS=8)"
+  },
+
+  "prover_cost": {
+    "clean_anchor_measured": {
+      "constraints": 28225,
+      "groth16_prove_wall_s": 0.75,
+      "ptau_pow": 15,
+      "source": "prior dossier run (single 2048-bit modmul), reproducible baseline"
+    },
+    "extrapolated_full_prove": {
+      "method": "linear in constraints from 28,225->0.75s, x513",
+      "prove_wall_s_est": "~300-400 (≈5-7 min) snarkjs; <1 min rapidsnark (consistent with desk + Filecoin precedent)",
+      "note": "prove-time is one-time per draw, latency-by-design; acceptable IF run on adequate hardware"
+    },
+    "end_to_end_on_18gb": {
+      "attempted": true,
+      "result": "NOT VIABLE on this machine",
+      "evidence": "snarkjs groth16 setup over pot22 (2^22) for even the n8 sub-circuit (0.93M constraints) did NOT finish in 36 min wall (8.8 min CPU, ~24% CPU, RSS ~46MB, GC/IO-bound, zkey never written). Setup expands the 230MB r1cs into multi-GB JS objects + reads the 1.74GB ptau; on 18GB it thrashes.",
+      "implication": "the bottleneck is Groth16 SETUP + zkey memory, not prove-time per se."
+    },
+    "full_2pow24_attempt": {
+      "ptau_pow": 24,
+      "run": false,
+      "reason": "deliberately skipped under time constraint: needs local pot24 ceremony (~1-2h) + zkey setup of 14.49M constraints (zkey multi-GB, working set >> 18GB -> swap). Given the n8 setup already stalled on 18GB, the full setup is not viable on this hardware. Documented as not-run; not required to establish the gate."
+    }
+  },
+
+  "verdict": {
+    "constraint_axis": "HARD-CONFIRMED. Full Wesolowski-verify (RSA-2048, naive square-and-multiply) = 14,487,811 constraints. Replaces the 10.8M desk extrapolation (+34%). Deterministic, circuit compiles, logic validated.",
+    "prover_axis": "Prove-time extrapolates to ~minutes (acceptable, 1x/draw). BUT the end-to-end Groth16 setup/prove pipeline for ~14.5M constraints is NOT runnable on a commodity 18GB machine (snarkjs setup GC/IO-bound; even 0.93M setup did not complete in 36 min). Requires a >=32-64GB prover box and/or rapidsnark + a 2^24 ptau.",
+    "overall": "FEASIBLE but not on a laptop. Gate number is now solid; building the real prover is a genuine eng-investment (2^24 ptau ceremony, big-RAM/rapidsnark prover infra) — precedented (Filecoin VDF-in-SNARK). Not refuted; honest cost is higher than the desk estimate on both size (+34% constraints) and prover-hardware (needs a real prover box).",
+    "optimization_lever": "Shamir multi-exponentiation (joint pi^l * u^r in one square-and-multiply with precomputed pi*u) ~halves the modmul count => ~7.3M constraints; windowed exponentiation a further constant factor. Recommended before any production build."
+  }
+}
