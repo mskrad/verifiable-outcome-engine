@@ -16,6 +16,7 @@
     "proves": "pi^l * u^r == y (mod N)",
     "modexp_strategy": "square-and-multiply, naive (1 squaring + 1 conditional-multiply per exponent bit)",
     "h_to_prime": "SIMPLIFIED for gate measurement: l and r supplied as witness (no in-circuit primality of l, no SHA256 binding l=H(u,y), N supplied as witness). These omitted layers are minor increments (SHA256 ~30k c/block; Pocklington primality is modexp over ~128-bit l, cheap vs the 2048-bit modexp) and do NOT move the gate number.",
+    "soundness_note": "This is a COST-MEASUREMENT circuit, NOT a sound verifier as-is: l, r and N are free witness, so a prover could choose them. The measured count is therefore a LOWER BOUND for the production circuit. To be sound, production must: (1) bake N as a circuit constant, (2) bind l = H(u,y) (Fiat-Shamir, SHA256), (3) prove l prime (Pocklington/Miller-Rabin witness-hint), (4) compute/verify r = 2^T mod l in-circuit. All four are small relative to the two 2048-bit modexp, so the gate number stands. Circuit logic itself is validated: independent BigInt re-derivation of the exact MSB-first square-and-multiply equals modpow, the Wesolowski identity holds, and circom witness-gen accepts the valid fixture and rejects a tampered y (Assert Failed).",
     "files": "circuits/{modexp,wesolowski_verify,wv_n128}.circom; fixture gen_fixture.js"
   },
 
