@@ -208,3 +208,28 @@ pub struct MasterSeedRefreshedV1 {
     pub master_seed: [u8; 32],
     pub source_slot: u64,
 }
+
+#[event]
+pub struct SortitionEconomicsInitialized {
+    pub draw_id: [u8; 16],
+    pub fee_mode: u8,
+    pub entry_fee_lamports: u64,
+    pub close_skim_bps: u16,
+}
+
+#[event]
+pub struct SortitionEntryFeePaid {
+    pub draw_id: [u8; 16],
+    pub ticket_id: [u8; 16],
+    pub participant: Pubkey,
+    pub fee_lamports: u64,
+}
+
+#[event]
+pub struct SortitionTicketClosed {
+    pub draw_id: [u8; 16],
+    pub ticket_id: [u8; 16],
+    pub owner: Pubkey,
+    pub refunded_lamports: u64,
+    pub skim_lamports: u64,
+}

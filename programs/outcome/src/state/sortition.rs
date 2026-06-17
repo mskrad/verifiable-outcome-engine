@@ -4,8 +4,17 @@ pub const SORTITION_STATUS_REGISTERING: u8 = 1;
 pub const SORTITION_STATUS_SEALED: u8 = 2;
 pub const SORTITION_STATUS_CLOSED: u8 = 3;
 pub const SORTITION_STANDARD_VERSION: [u8; 5] = *b"1.4.0";
-pub const SORTITION_RESERVED_BYTES: usize = 31;
+// v1.4.1 (INFRA-013): 11 bytes carved from the original 31 reserved for economics
+// (fee_mode + entry_fee_lamports + close_skim_bps). LEN unchanged → byte-compatible
+// with draws created under 1.4.0 (those 11 bytes were zero = economics disabled).
+pub const SORTITION_RESERVED_BYTES: usize = 20;
 pub const TICKET_RESERVED_BYTES: usize = 30;
+
+// fee_mode bitflags (stored on SortitionDraw; enforcement-critical → on the
+// mandatory account, never an optional/companion one).
+pub const SORTITION_FEE_ENTRY: u8 = 1 << 0; // flat entry fee at register
+pub const SORTITION_FEE_CLOSE_SKIM: u8 = 1 << 1; // % of rent skimmed on close
+pub const SORTITION_FEE_ALL: u8 = SORTITION_FEE_ENTRY | SORTITION_FEE_CLOSE_SKIM;
 
 #[account]
 pub struct SortitionDraw {
@@ -25,6 +34,10 @@ pub struct SortitionDraw {
     pub winners_count: u64,
     pub unclaimed_rule: u8,
     pub bump: u8,
+    // --- v1.4.1 economics (carved from reserved; 0 = disabled) ---
+    pub fee_mode: u8,
+    pub entry_fee_lamports: u64,
+    pub close_skim_bps: u16,
     pub reserved: [u8; SORTITION_RESERVED_BYTES],
 }
 
@@ -46,6 +59,9 @@ impl SortitionDraw {
         + 8
         + 1
         + 1
+        + 1 // fee_mode
+        + 8 // entry_fee_lamports
+        + 2 // close_skim_bps
         + SORTITION_RESERVED_BYTES;
 }
 

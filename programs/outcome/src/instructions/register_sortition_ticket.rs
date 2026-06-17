@@ -36,7 +36,7 @@ pub struct RegisterSortitionTicket<'info> {
     pub system_program: Program<'info, System>,
 }
 
-fn update_snapshot_hash(
+pub(crate) fn update_snapshot_hash(
     previous: &[u8; 32],
     ticket_id: &[u8; 16],
     owner: &Pubkey,
@@ -69,6 +69,12 @@ pub fn handler(
     require!(
         clock.slot <= draw.registration_deadline,
         OutcomeError::SortitionRegistrationClosed
+    );
+    // If the draw charges an entry fee, the free path is blocked — registration
+    // must go through register_sortition_ticket_paid (enforcement, not convention).
+    require!(
+        draw.fee_mode & crate::state::sortition::SORTITION_FEE_ENTRY == 0,
+        OutcomeError::SortitionPaidRegistrationRequired
     );
 
     let ticket = &mut ctx.accounts.ticket_commit;

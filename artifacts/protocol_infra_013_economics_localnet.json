@@ -1,0 +1,108 @@
+{
+  "generated_at": "2026-06-16T21:09:07.432Z",
+  "program_id": "6n9SD14DDsdxS65RNCXxBHLNQm1McwPe66aeLkUvmU8W",
+  "cu": {
+    "register_paid": 22704,
+    "init_economics": 5234,
+    "close": 9643,
+    "sweep_2": 21459
+  },
+  "positive": {
+    "entry_fee": {
+      "per_ticket": 1000000,
+      "tickets": 3,
+      "treasury_delta": "3000000",
+      "expected": "3000000",
+      "ok": true
+    },
+    "close": {
+      "rent": "1837440",
+      "expected_refund": "1653696",
+      "owner_delta": "1653696",
+      "expected_skim": "183744",
+      "treasury_delta": "183744",
+      "ok": true
+    },
+    "sweep": {
+      "tickets": 2,
+      "treasury_delta": "367488",
+      "expected_skim_total": "367488",
+      "o1_delta": "1653696",
+      "o2_delta": "1653696",
+      "expected_refund_each": "1653696",
+      "ok": true
+    }
+  },
+  "negatives": [
+    {
+      "label": "free_register_on_paid_draw",
+      "expected": "SortitionPaidRegistrationRequired",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/register_sortition_ticket.rs:75. Error Code: SortitionPaidRegistrationRequired. Error Number: 6050. Error Message: This draw requires paid regis"
+    },
+    {
+      "label": "late_set_economics",
+      "expected": "SortitionEconomicsAfterRegistration",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/init_sortition_economics.rs:52. Error Code: SortitionEconomicsAfterRegistration. Error Number: 6051. Error Message: Sortition economics must be "
+    },
+    {
+      "label": "economics_already_set",
+      "expected": "SortitionEconomicsAlreadySet",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/init_sortition_economics.rs:57. Error Code: SortitionEconomicsAlreadySet. Error Number: 6049. Error Message: Sortition economics already set for"
+    },
+    {
+      "label": "close_before_deadline",
+      "expected": "SortitionCloseTooEarly",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/close_sortition_ticket.rs:59. Error Code: SortitionCloseTooEarly. Error Number: 6046. Error Message: Sortition ticket cannot be closed before th"
+    },
+    {
+      "label": "invalid_fee_mode_bits",
+      "expected": "InvalidSortitionConfig",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/init_sortition_economics.rs:59. Error Code: InvalidSortitionConfig. Error Number: 6045. Error Message: Invalid sortition config."
+    },
+    {
+      "label": "skim_bps_over_max",
+      "expected": "InvalidSkimBps",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/init_sortition_economics.rs:63. Error Code: InvalidSkimBps. Error Number: 6047. Error Message: Invalid close skim basis points."
+    },
+    {
+      "label": "entry_fee_zero",
+      "expected": "InvalidEntryFee",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError thrown in programs/outcome/src/instructions/init_sortition_economics.rs:65. Error Code: InvalidEntryFee. Error Number: 6048. Error Message: Invalid entry fee."
+    },
+    {
+      "label": "register_paid_wrong_treasury",
+      "expected": "InvalidTreasuryAccount",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError caused by account: treasury. Error Code: InvalidTreasuryAccount. Error Number: 6020. Error Message: Invalid treasury account.\nProgram log: Left:\nProgram log: 8mJdbcrAjkyPpPNRejwu9Hgk3Me9S3"
+    },
+    {
+      "label": "close_wrong_treasury",
+      "expected": "InvalidTreasuryAccount",
+      "ok": true,
+      "matched": true,
+      "error": "AnchorError caused by account: treasury. Error Code: InvalidTreasuryAccount. Error Number: 6020. Error Message: Invalid treasury account.\nProgram log: Left:\nProgram log: 5nLM7sqnDv6BXUnpjYFUGBxzJAKUnR"
+    }
+  ],
+  "pass": true,
+  "treasury": "EGVqqEKYbCbmacAeqfRotKhYE4MvAVsR5xkGibMmikhG",
+  "treasury_is_dedicated": false,
+  "summary": {
+    "positive_ok": true,
+    "negatives_passed": "9/9"
+  }
+}

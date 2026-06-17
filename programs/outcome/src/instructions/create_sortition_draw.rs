@@ -79,6 +79,9 @@ pub fn handler(ctx: Context<CreateSortitionDraw>, args: CreateSortitionDrawArgs)
     draw.winners_count = 0;
     draw.unclaimed_rule = args.unclaimed_rule;
     draw.bump = ctx.bumps.sortition_draw;
+    draw.fee_mode = 0;
+    draw.entry_fee_lamports = 0;
+    draw.close_skim_bps = 0;
     draw.reserved = [0u8; crate::state::sortition::SORTITION_RESERVED_BYTES];
 
     emit!(SortitionDrawCreated {

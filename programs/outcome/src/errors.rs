@@ -92,4 +92,18 @@ pub enum OutcomeError {
     SortitionAlreadyClaimed,
     #[msg("Sortition claim window is closed")]
     SortitionClaimWindowClosed,
+    #[msg("Invalid sortition config")]
+    InvalidSortitionConfig,
+    #[msg("Sortition ticket cannot be closed before the claim window ends")]
+    SortitionCloseTooEarly,
+    #[msg("Invalid close skim basis points")]
+    InvalidSkimBps,
+    #[msg("Invalid entry fee")]
+    InvalidEntryFee,
+    #[msg("Sortition economics already set for this draw")]
+    SortitionEconomicsAlreadySet,
+    #[msg("This draw requires paid registration")]
+    SortitionPaidRegistrationRequired,
+    #[msg("Sortition economics must be set before the first registration")]
+    SortitionEconomicsAfterRegistration,
 }

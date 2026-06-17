@@ -10,7 +10,13 @@ use instructions::admin_pause::AdminPause;
 use instructions::admin_withdraw::AdminWithdraw;
 use instructions::attest_winners::{AttestWinners, AttestWinnersArgs};
 use instructions::claim_sortition_ticket::{ClaimSortitionTicket, ClaimSortitionTicketArgs};
+use instructions::close_sortition_ticket::{CloseSortitionTicket, CloseSortitionTicketArgs};
 use instructions::create_sortition_draw::{CreateSortitionDraw, CreateSortitionDrawArgs};
+use instructions::init_sortition_economics::{
+    InitSortitionEconomics, InitSortitionEconomicsArgs,
+};
+use instructions::register_sortition_ticket_paid::RegisterSortitionTicketPaid;
+use instructions::sweep_sortition_tickets::{SweepSortitionTickets, SweepSortitionTicketsArgs};
 use instructions::expire_rng_v2::{ExpireRngV2, ExpireRngV2Args};
 use instructions::expire_sealed_rng_v2::{ExpireSealedRngV2, ExpireSealedRngV2Args};
 use instructions::finalize_compiled_artifact::FinalizeCompiledArtifact;
@@ -193,6 +199,34 @@ pub mod outcome {
     ) -> Result<()> {
         instructions::claim_sortition_ticket::handler(ctx, args)
     }
+
+    pub fn init_sortition_economics(
+        ctx: Context<InitSortitionEconomics>,
+        args: InitSortitionEconomicsArgs,
+    ) -> Result<()> {
+        instructions::init_sortition_economics::handler(ctx, args)
+    }
+
+    pub fn register_sortition_ticket_paid(
+        ctx: Context<RegisterSortitionTicketPaid>,
+        args: RegisterSortitionTicketArgs,
+    ) -> Result<()> {
+        instructions::register_sortition_ticket_paid::handler(ctx, args)
+    }
+
+    pub fn close_sortition_ticket(
+        ctx: Context<CloseSortitionTicket>,
+        args: CloseSortitionTicketArgs,
+    ) -> Result<()> {
+        instructions::close_sortition_ticket::handler(ctx, args)
+    }
+
+    pub fn sweep_sortition_tickets<'info>(
+        ctx: Context<'_, '_, 'info, 'info, SweepSortitionTickets<'info>>,
+        args: SweepSortitionTicketsArgs,
+    ) -> Result<()> {
+        instructions::sweep_sortition_tickets::handler(ctx, args)
+    }
 }
 
 mod __client_accounts_initialize_program_config {
@@ -266,4 +300,16 @@ mod __client_accounts_seal_sortition_draw {
 }
 mod __client_accounts_claim_sortition_ticket {
     pub use crate::instructions::claim_sortition_ticket::__client_accounts_claim_sortition_ticket::*;
+}
+mod __client_accounts_init_sortition_economics {
+    pub use crate::instructions::init_sortition_economics::__client_accounts_init_sortition_economics::*;
+}
+mod __client_accounts_register_sortition_ticket_paid {
+    pub use crate::instructions::register_sortition_ticket_paid::__client_accounts_register_sortition_ticket_paid::*;
+}
+mod __client_accounts_close_sortition_ticket {
+    pub use crate::instructions::close_sortition_ticket::__client_accounts_close_sortition_ticket::*;
+}
+mod __client_accounts_sweep_sortition_tickets {
+    pub use crate::instructions::sweep_sortition_tickets::__client_accounts_sweep_sortition_tickets::*;
 }
