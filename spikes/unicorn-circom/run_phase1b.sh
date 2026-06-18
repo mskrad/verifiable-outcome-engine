@@ -29,6 +29,9 @@ PTAU_POW="${PTAU_POW:-24}"             # 2^24 covers 14.49M; wv_n32 fits 2^22
 PTAU="build/pot${PTAU_POW}.ptau"
 LOG="phase1b/run.log"
 TIME=/usr/bin/time                     # GNU time on Linux supports -v (wall + max RSS)
+# snarkjs loads large r1cs/zkey into the JS heap; node's ~2GB default OOMs on
+# multi-hundred-MB r1cs. Lift it well below the box RAM (children inherit this).
+export NODE_OPTIONS="--max-old-space-size=49152"
 exec > >(tee -a "$LOG") 2>&1
 echo "=== Phase 1b run $(date -u +%FT%TZ)  circuit=$CIRCUIT ptau=2^$PTAU_POW ==="
 
