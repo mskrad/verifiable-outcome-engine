@@ -43,6 +43,16 @@ RAM_GB=$(awk '/MemTotal/{printf "%.0f",$2/1024/1024}' /proc/meminfo)
 CORES=$(nproc)
 echo "CPU=$CPU | RAM=${RAM_GB}GB | cores=$CORES"
 
+# snarkjs groth16 setup peaks well above RAM for the full circuit (~19GB at 3.6M ->
+# ~76GB projected at 14.5M). With no swap that OOM-kills. Add NVMe swap so the working
+# set fits (RAM + swap); slower but completes. Skipped if swap already present.
+if [ "$(swapon --show --noheadings 2>/dev/null | wc -l)" = "0" ] && [ ! -f /swapfile ]; then
+  echo "--- creating 64G swap on NVMe ---"
+  fallocate -l 64G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=65536
+  chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+fi
+free -h
+
 # ---------------------------------------------------------------------------
 # 1. Dependencies (idempotent)
 # ---------------------------------------------------------------------------
@@ -161,25 +171,27 @@ echo "verify snarkjs=$V1 | rapidsnark=$V2"
 wall(){ grep -i "wall clock" "$1" | sed 's/.*: //'; }
 rssgb(){ awk '/Maximum resident/{printf "%.2f",$NF/1024/1024}' "$1"; }   # kbytes -> GB
 
-node -e '
+CPU="$CPU" RAM_GB="$RAM_GB" CORES="$CORES" CIRCUIT="$CIRCUIT" PTAU_POW="$PTAU_POW" NC="$NC" V1="$V1" V2="$V2" node -e '
 const fs=require("fs");
 const f=(p)=>{try{return fs.readFileSync(p,"utf8")}catch(e){return ""}};
-const wall=s=>{const m=f(s).match(/wall clock[^:]*: (.+)/i);return m?m[1].trim():null};
-const rss=s=>{const m=f(s).match(/Maximum resident set size[^:]*: (\d+)/i);return m?+(+m[1]/1024/1024).toFixed(2):null};
+// GNU time -v line: "Elapsed (wall clock) time (h:mm:ss or m:ss): M:SS.ss" — grab the
+// trailing time token (greedy lazy to the value anchored at end of line).
+const wall=s=>{const m=f(s).match(/wall clock\)[^\n]*?:\s*([0-9.:]+)\s*$/m);return m?m[1]:null};
+const rss=s=>{const m=f(s).match(/Maximum resident set size[^:]*:\s*(\d+)/i);return m?+(+m[1]/1024/1024).toFixed(2):null};
 const out={
   phase:"Unicorn-G Phase 1b — live prover measurement",
   date:new Date().toISOString(),
-  machine:{cpu:process.env.CPU,ram_gb:+process.env.RAM_GB,cores:+process.env.CORES},
+  machine:{cpu:process.env.CPU||null,ram_gb:+process.env.RAM_GB||null,cores:+process.env.CORES||null},
   circuit:process.env.CIRCUIT, ptau_pow:+process.env.PTAU_POW, constraints:+(process.env.NC||0),
   zkey_setup:{wall:wall("phase1b/time_setup.txt"), peak_rss_gb:rss("phase1b/time_setup.txt"), note:"ONE-TIME per circuit, not per draw"},
   compile:{wall:wall("phase1b/time_compile.txt"), peak_rss_gb:rss("phase1b/time_compile.txt")},
   prove_snarkjs:{wall:wall("phase1b/time_prove_snarkjs.txt"), peak_rss_gb:rss("phase1b/time_prove_snarkjs.txt")},
   prove_rapidsnark:{wall:wall("phase1b/time_prove_rapidsnark.txt"), peak_rss_gb:rss("phase1b/time_prove_rapidsnark.txt"), note:"the real PER-DRAW number"},
-  verify:{snarkjs:process.env.V1, rapidsnark:process.env.V2}
+  verify:{snarkjs:process.env.V1||null, rapidsnark:process.env.V2||null}
 };
 fs.writeFileSync("RESULTS_phase1b.json", JSON.stringify(out,null,2));
 console.log(JSON.stringify(out,null,2));
-' CPU="$CPU" RAM_GB="$RAM_GB" CORES="$CORES" CIRCUIT="$CIRCUIT" PTAU_POW="$PTAU_POW" NC="$NC" V1="$V1" V2="$V2"
+'
 
 echo "=== DONE -> RESULTS_phase1b.json ==="
 echo "Reminder: destroy the rented box after copying RESULTS_phase1b.json."
