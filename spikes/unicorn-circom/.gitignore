@@ -8,3 +8,6 @@ node_modules/
 *.wasm
 # Keep: circuits/*.circom, gen_fixture.js, run_slope.sh, RESULTS_phase1.json,
 #       package.json, package-lock.json
+phase1b/
+rapidsnark/
+# RESULTS_phase1b.json is the (small) evidence artifact — keep it tracked.
