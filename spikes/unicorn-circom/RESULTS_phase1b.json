@@ -1,0 +1,44 @@
+{
+  "phase": "Unicorn-G Phase 1b — live prover measurement",
+  "date": "2026-06-18T15:44:15Z",
+  "machine": {
+    "cpu": "AMD EPYC 9754 128-Core Processor",
+    "ram_gb": 126,
+    "vcpu": 16,
+    "note": "rented cloud box (Selectel-class, 128GB); 64GB box OOM-killed setup (72GB peak > 64)"
+  },
+  "circuit": "wv_n128 (full Wesolowski-verify, RSA-2048, square-and-multiply)",
+  "ptau_pow": 24,
+  "constraints": 14487811,
+
+  "zkey_setup": {
+    "wall": "2:46:54",
+    "peak_rss_gb": 71.94,
+    "cpu_pct": 666,
+    "zkey_size_gb": 8.6,
+    "note": "ONE-TIME per circuit (trusted setup) — CAPEX, not per draw. Single-threaded read phase + parallel key-build phase (~16 cores). Needs >=128GB RAM."
+  },
+  "compile": { "wall": "7:24.86", "peak_rss_gb": 9.9, "note": "one-time (circom r1cs+wasm)" },
+
+  "prove_snarkjs": {
+    "wall": "6:16.94",
+    "peak_rss_gb": 45.85,
+    "note": "baseline (JS/WASM) — slow + heavy; NOT the per-draw tool"
+  },
+  "prove_rapidsnark": {
+    "wall": "0:38.77",
+    "peak_rss_gb": 11.33,
+    "note": "THE PER-DRAW number — native C++, ~10x faster and ~4x lighter than snarkjs"
+  },
+  "verify": { "snarkjs": "OK", "rapidsnark": "OK" },
+
+  "verdict": {
+    "feasible": true,
+    "constraints_hard_confirmed": 14487811,
+    "per_draw": "rapidsnark prove = 39s + 11.3GB RSS => a modest 16GB box does one draw in <1 min. Plus the by-design VDF delay + cheap on-chain Groth16 verify (~200k CU).",
+    "one_time_setup": "2h47m + 72GB RSS on 16 vCPU => needs a 128GB box once per circuit; not repeated per draw.",
+    "tooling": "use rapidsnark for proving (snarkjs prove is 10x slower/4x heavier).",
+    "optimization_lever": "Shamir multi-exp (~7.3M) would ~halve setup time/RAM and per-draw cost.",
+    "cross_machine": "constraint count 14,487,811 reproduced identically on laptop (18GB) and this 128GB box."
+  }
+}
