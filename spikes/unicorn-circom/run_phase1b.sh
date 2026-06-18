@@ -30,8 +30,11 @@ PTAU="build/pot${PTAU_POW}.ptau"
 LOG="phase1b/run.log"
 TIME=/usr/bin/time                     # GNU time on Linux supports -v (wall + max RSS)
 # snarkjs loads large r1cs/zkey into the JS heap; node's ~2GB default OOMs on
-# multi-hundred-MB r1cs. Lift it well below the box RAM (children inherit this).
-export NODE_OPTIONS="--max-old-space-size=49152"
+# multi-hundred-MB r1cs. Size the heap to ~85% of box RAM (children inherit this) so
+# the full-circuit setup (~76GB at 14.5M) fits without GC-OOM on a big box.
+HEAP_MB=$(awk '/MemTotal/{printf "%d",$2/1024*0.85}' /proc/meminfo)
+export NODE_OPTIONS="--max-old-space-size=${HEAP_MB}"
+echo "NODE_OPTIONS=$NODE_OPTIONS"
 exec > >(tee -a "$LOG") 2>&1
 echo "=== Phase 1b run $(date -u +%FT%TZ)  circuit=$CIRCUIT ptau=2^$PTAU_POW ==="
 
@@ -45,9 +48,10 @@ echo "CPU=$CPU | RAM=${RAM_GB}GB | cores=$CORES"
 
 # snarkjs groth16 setup peaks well above RAM for the full circuit (~19GB at 3.6M ->
 # ~76GB projected at 14.5M). With no swap that OOM-kills. Add NVMe swap so the working
-# set fits (RAM + swap); slower but completes. Skipped if swap already present.
-if [ "$(swapon --show --noheadings 2>/dev/null | wc -l)" = "0" ] && [ ! -f /swapfile ]; then
-  echo "--- creating 64G swap on NVMe ---"
+# set fits (RAM + swap); slower but completes. Only needed on smaller boxes — a
+# 128GB box holds the full setup in RAM, so skip swap when RAM is ample (>=100GB).
+if [ "$RAM_GB" -lt 100 ] && [ "$(swapon --show --noheadings 2>/dev/null | wc -l)" = "0" ] && [ ! -f /swapfile ]; then
+  echo "--- creating 64G swap on NVMe (RAM < 100GB) ---"
   fallocate -l 64G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=65536
   chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
 fi
