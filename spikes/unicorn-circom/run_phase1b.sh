@@ -114,8 +114,11 @@ echo "ptau: $(du -h "$PTAU" | cut -f1)"
 # ---------------------------------------------------------------------------
 echo "--- compile $CIRCUIT (r1cs + wasm) ---"
 $TIME -v circom "circuits/$CIRCUIT.circom" --r1cs --wasm --O2 -o build -l circuits -l node_modules \
-  2> phase1b/time_compile.txt
-NC=$($SNARK r1cs info "build/$CIRCUIT.r1cs" 2>/dev/null | awk '/# of Constraints/{print $NF}')
+  > phase1b/compile_out.txt 2> phase1b/time_compile.txt
+cat phase1b/compile_out.txt
+# Take the constraint count straight from circom's own output (cheap). Do NOT use
+# `snarkjs r1cs info`: it loads the entire r1cs into the JS heap and OOMs on large ones.
+NC=$(grep -m1 'non-linear constraints' phase1b/compile_out.txt | grep -oE '[0-9]+')
 echo "constraints=$NC"
 
 echo "--- fixture + witness ---"
