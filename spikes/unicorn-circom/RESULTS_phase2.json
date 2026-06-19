@@ -77,6 +77,14 @@
       "result": "SAME error: Detected sbpf_version required by the executable which are not enabled",
       "conclusion": "Rules out the --arch-flag and toolchain-corruption hypotheses. Confirmed: Agave 3.0.10 / platform-tools v1.51 emits an SBPF version devnet's loader gate (SBPFv3 inactive) rejects, independent of e_flags. CLI<->cluster ops mismatch, not verifier-logic.",
       "boundary": "canonical 9tEram... slot 459318657 unchanged; 6QtLot... slot 469920132 unchanged; orphaned buffer JCa7je... closed, ~1.37 SOL reclaimed (~0.001 SOL fees lost)."
+    },
+    "reference_test_2026_06_19": {
+      "action": "DECISIVE: deployed the known-good outcome.so (the exact bytes already LIVE on devnet as 6QtLot) to a fresh throwaway id on devnet right now.",
+      "result": "SAME error: Detected sbpf_version required by the executable which are not enabled.",
+      "conclusion": "The wall is NOT unicorn/alt_bn128-specific and NOT a build-method issue. The current local CLI (Agave 3.0.10 / platform-tools v1.51) can no longer deploy ANY program to devnet, because devnet advanced to Agave 4.1.0-rc.1 and tightened its SBPF/loader feature gates. 6QtLot is on devnet only because it was deployed EARLIER, when the local CLI matched devnet's then-state.",
+      "fix": "Align the local Solana/Agave CLI + platform-tools to a devnet-compatible version (devnet=4.1.0-rc.1). This is a routine toolchain alignment, done once at release time; it changes the toolchain used for the canonical outcome build, so verify outcome still builds afterward.",
+      "cu_note": "Devnet live CU would be IDENTICAL to localnet (alt_bn128 syscall costs are fixed protocol constants). The 113,529 / 353,060 numbers ARE the on-chain CU; a devnet deploy adds no new information.",
+      "boundary": "ref-test used a throwaway id; buffer AUeeRqF... closed, 7.67 SOL reclaimed; canonical + 6QtLot untouched."
     }
   },
   "devnet_buffer_cleanup": {
