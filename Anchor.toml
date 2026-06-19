@@ -1,5 +1,11 @@
 [toolchain]
 package_manager = "yarn"
+# Pinned foundation (2026-06-19 rebase). Agave 4.0.x required: devnet/mainnet
+# loaders reject legacy SBF (machine 0x107) from older toolchains. Deploy recipe:
+#   cargo build-sbf --arch v3   (emits EM_BPF/Flags-0x3, accepted by devnet 4.1.x)
+# anchor-lang 0.32.1 builds + tests (29/29) cleanly on Agave 4.0.3 — no major migration.
+anchor_version = "0.32.1"
+solana_version = "4.0.3"
 
 [features]
 resolution = true
