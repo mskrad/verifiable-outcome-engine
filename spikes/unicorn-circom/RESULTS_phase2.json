@@ -184,6 +184,24 @@
     "final_recipient_balance_sol": 11.53673707,
     "temporary_recovered_keypairs": "deleted"
   },
+  "phase2_closed_2026_06_19": {
+    "status": "PHASE 2 FULLY CLOSED — live on-chain Groth16 verify on devnet",
+    "call_depth_root_cause": "The hand-rolled raw `extern \"C\" sol_alt_bn128_group_op` produced bad codegen under SBPFv3: even a SINGLE syscall call from a handler trapped `exceeded max BPF to BPF call depth` at handler entry (~684 CU, before any verify work); baseline (no syscall) ran fine. Ruled out Vec/nesting and msg!-fmt by elimination.",
+    "fix": "Switch to the official solana-bn254 wrappers (alt_bn128_addition/multiplication/pairing) which invoke the syscall with the correct ABI per active SBPF version. (Edition2024 cascade is no longer a blocker — platform-tools v1.53 ships rustc 1.89.)",
+    "toolchain": "Agave 4.0.3 / cargo-build-sbf 4.0.0 / platform-tools v1.53; build `--arch v3` (EM_BPF/0x3).",
+    "live_devnet": {
+      "program_id": "6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu",
+      "deploy_slot": 470523398,
+      "baseline_cu": 695,
+      "verify_groth16_9pub": { "status": "OK", "cu": 114184 },
+      "verify_groth16_ours_64pub": { "status": "OK", "cu": 355680 },
+      "tampered_9pub": "REJECTED (VerifyFailed 0x1770)",
+      "tampered_64pub": "REJECTED (VerifyFailed 0x1770)",
+      "note": "live devnet CU == localnet (deterministic syscall costs confirmed live)."
+    },
+    "boundary": "canonical 9tEram... 459318657 and 6QtLot... 469920132 unchanged.",
+    "remaining": "64-pubinput = 355,680 CU > 200k target -> PHASE2B (compress public inputs to one hash, ~120k)."
+  },
   "verdict": {
     "localnet": "PASS: raw alt_bn128 Groth16 verifier executes; valid proofs pass; tampered proofs reject",
     "cu": "9-public-input demo = 113529 net CU; 64-public-input real fixture = 353060 net CU, EXCEEDS the <200k target. Slope ~4355 CU/public-input, pairing base ~74k. alt_bn128 syscall CU costs are fixed protocol constants, so localnet net CU is representative of on-chain CU.",

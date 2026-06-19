@@ -3,6 +3,9 @@
 //! (10-pubinput circuit); proof_a pre-negated off-chain. Does NOT touch `outcome`.
 
 use anchor_lang::prelude::*;
+use solana_bn254::prelude::{
+    alt_bn128_addition, alt_bn128_multiplication, alt_bn128_pairing,
+};
 
 mod generated_ours;
 
@@ -17,7 +20,7 @@ pub mod unicorn_spike {
         Ok(())
     }
 
-    /// Raw syscall verification of the historical demo vector.
+    /// Groth16 verification of the historical demo vector.
     pub fn verify_groth16(_ctx: Context<VerifyGroth16>) -> Result<()> {
         verify_demo(false)
     }
@@ -68,7 +71,7 @@ fn verify_demo(tamper: bool) -> Result<()> {
         &PROOF_B,
         &proof_c,
     )?;
-    msg!("groth16 demo verify OK (raw alt_bn128, {} pubinputs)", PUBLIC_INPUTS.len());
+    msg!("groth16 demo verify OK");
     Ok(())
 }
 
@@ -89,10 +92,7 @@ fn verify_ours(tamper: bool) -> Result<()> {
         &generated_ours::PROOF_B,
         &proof_c,
     )?;
-    msg!(
-        "groth16 ours verify OK (raw alt_bn128, {} pubinputs)",
-        generated_ours::PUBLIC_INPUTS.len()
-    );
+    msg!("groth16 ours verify OK");
     Ok(())
 }
 
@@ -113,19 +113,22 @@ fn verify_raw(
         UnicornError::InvalidFixture
     );
 
+    // MSM via the official solana_program alt_bn128 wrappers (they invoke the syscall
+    // with the correct ABI for the active SBPF version — the hand-rolled raw extern
+    // tripped "exceeded max BPF to BPF call depth" under SBPFv3 on Agave 4).
+    // vk_x = ic[0] + sum(public_i * ic[i+1]).
     let mut vk_x = ic[0].to_vec();
     for (public_input, ic_point) in public_inputs.iter().zip(ic.iter().skip(1)) {
         let mut mul_input = Vec::with_capacity(96);
         mul_input.extend_from_slice(ic_point);
         mul_input.extend_from_slice(public_input);
-        let scaled = bn254_group_op(BN254_MUL, &mul_input, 64)
-            .map_err(|_| error!(UnicornError::VerifyFailed))?;
+        let scaled =
+            alt_bn128_multiplication(&mul_input).map_err(|_| error!(UnicornError::VerifyFailed))?;
 
         let mut add_input = Vec::with_capacity(128);
         add_input.extend_from_slice(&vk_x);
         add_input.extend_from_slice(&scaled);
-        vk_x = bn254_group_op(BN254_ADD, &add_input, 64)
-            .map_err(|_| error!(UnicornError::VerifyFailed))?;
+        vk_x = alt_bn128_addition(&add_input).map_err(|_| error!(UnicornError::VerifyFailed))?;
     }
 
     let mut pairing_input = Vec::with_capacity(192 * 4);
@@ -139,57 +142,13 @@ fn verify_raw(
         pairing_input.extend_from_slice(g2);
     }
 
-    let pairing = bn254_group_op(BN254_PAIRING, &pairing_input, 32)
-        .map_err(|_| error!(UnicornError::VerifyFailed))?;
+    let pairing =
+        alt_bn128_pairing(&pairing_input).map_err(|_| error!(UnicornError::VerifyFailed))?;
     require!(
         pairing.len() == 32 && pairing[31] == 1,
         UnicornError::VerifyFailed
     );
     Ok(())
-}
-
-const BN254_ADD: u64 = 0;
-const BN254_MUL: u64 = 2;
-const BN254_PAIRING: u64 = 3;
-
-#[cfg(target_os = "solana")]
-extern "C" {
-    fn sol_alt_bn128_group_op(
-        group_op: u64,
-        input_addr: *const u8,
-        input_size: u64,
-        result_addr: *mut u8,
-    ) -> u64;
-}
-
-#[inline(always)]
-fn bn254_group_op(op: u64, input: &[u8], output_len: usize) -> core::result::Result<Vec<u8>, ()> {
-    let mut output = vec![0u8; output_len];
-    bn254_group_op_into(op, input, &mut output)?;
-    Ok(output)
-}
-
-#[cfg(target_os = "solana")]
-#[inline(always)]
-fn bn254_group_op_into(op: u64, input: &[u8], output: &mut [u8]) -> core::result::Result<(), ()> {
-    let status = unsafe {
-        sol_alt_bn128_group_op(
-            op,
-            input.as_ptr(),
-            input.len() as u64,
-            output.as_mut_ptr(),
-        )
-    };
-    if status == 0 {
-        Ok(())
-    } else {
-        Err(())
-    }
-}
-
-#[cfg(not(target_os = "solana"))]
-fn bn254_group_op_into(_op: u64, _input: &[u8], _output: &mut [u8]) -> core::result::Result<(), ()> {
-    Err(())
 }
 
 pub struct DemoVerifyingKey {

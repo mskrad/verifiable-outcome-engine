@@ -21,6 +21,10 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = "0.32.1"
+# Official alt_bn128 syscall wrappers (correct ABI per active SBPF version). The raw
+# hand-rolled extern tripped SBPFv3 "max BPF to BPF call depth" on Agave 4. Edition2024
+# is fine now (platform-tools v1.53 ships rustc 1.89).
+solana-bn254 = "2.2"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
