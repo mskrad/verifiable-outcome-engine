@@ -4,7 +4,8 @@ const idl = require("./target/idl/unicorn_spike.json");
 const PROGRAM = new PublicKey(idl.address);
 const conn = new Connection((process.env.RPC_URL || "http://localhost:8899"), "confirmed");
 const payer = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(process.env.PAYER || process.env.HOME+"/.config/solana/id.json"))));
-const disc = name => Buffer.from(idl.instructions.find(i=>i.name===name).discriminator);
+const crypto = require("crypto");
+const disc = name => { const f = idl.instructions.find(i=>i.name===name); return f && f.discriminator ? Buffer.from(f.discriminator) : crypto.createHash("sha256").update("global:"+name).digest().subarray(0,8); };
 async function run(name){
   const ix = new TransactionInstruction({ programId: PROGRAM, keys:[{pubkey:payer.publicKey,isSigner:true,isWritable:true}], data: disc(name) });
   const tx = new Transaction().add(ComputeBudgetProgram.setComputeUnitLimit({units:1_400_000})).add(ix);
