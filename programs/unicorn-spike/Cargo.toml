@@ -5,7 +5,7 @@ description = "Unicorn-G Spike U1 — live CU probe for on-chain Groth16 verify 
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib"]
 name = "unicorn_spike"
 
 [features]

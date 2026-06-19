@@ -85,6 +85,87 @@
       "fix": "Align the local Solana/Agave CLI + platform-tools to a devnet-compatible version (devnet=4.1.0-rc.1). This is a routine toolchain alignment, done once at release time; it changes the toolchain used for the canonical outcome build, so verify outcome still builds afterward.",
       "cu_note": "Devnet live CU would be IDENTICAL to localnet (alt_bn128 syscall costs are fixed protocol constants). The 113,529 / 353,060 numbers ARE the on-chain CU; a devnet deploy adds no new information.",
       "boundary": "ref-test used a throwaway id; buffer AUeeRqF... closed, 7.67 SOL reclaimed; canonical + 6QtLot untouched."
+    },
+    "agave4_rebase_2026_06_19": {
+      "cluster_version": "4.1.0-rc.1",
+      "toolchain": {
+        "solana_cli": "4.0.3",
+        "cargo_build_sbf": "4.0.0",
+        "platform_tools": "v1.53",
+        "rustc": "1.89.0"
+      },
+      "accepted_deploy_path": {
+        "command": "cargo build-sbf --arch v3 --manifest-path programs/unicorn-spike/Cargo.toml --sbf-out-dir target/deploy-unicorn-agave4-v3-inline -- -p unicorn-spike",
+        "elf": {
+          "path": "target/deploy-unicorn-agave4-v3-inline/unicorn_spike.so",
+          "bytes": 190328,
+          "sha256": "7d418d583d090b45ad18cf7d6ef7cb7c368fd605742728524f6f541b8aa51d8a",
+          "machine": "EM_BPF",
+          "flags": "0x3"
+        },
+        "deploy_signature": "5bpP9xtUaNu4koaQRCoZyAin189yURW3AVTQKmMSjdX5TtRPj3693pqBJbwPTru85TZUbLFMv4w4n4wLaszEEwm7",
+        "program_id": "6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu",
+        "program_slot_after_deploy": 470488969,
+        "program_data_length_after_extend": 214688
+      },
+      "rejected_alternatives": [
+        {
+          "command": "cargo build-sbf --arch v0 ... target/deploy-unicorn-agave4-v0",
+          "elf_machine": "Solana Bytecode Format",
+          "elf_flags": "0x0",
+          "deploy_error": "Detected sbpf_version required by the executable which are not enabled",
+          "closed_buffer": "871Z1yQV3629DgFZvAdJHpknjdPkqo4dSCw6129VUKH3",
+          "closed_balance_sol": 1.35289176
+        },
+        {
+          "command": "cargo build-sbf --arch v2 ... target/deploy-unicorn-agave4-v2",
+          "elf_machine": "Solana Bytecode Format",
+          "elf_flags": "0x2",
+          "deploy_error": "Detected sbpf_version required by the executable which are not enabled",
+          "closed_buffer": "EhwN2r5oeDsvQ84TNGzwk6nQhsdgZvVtJJkVbFokJdg9",
+          "closed_balance_sol": 1.36258008
+        }
+      ],
+      "live_execution_probe": {
+        "status": "DEPLOY_PASS_EXECUTION_BLOCKED",
+        "probe_artifact": "tmp/unicorn_spike_devnet_probe_result.json",
+        "baseline": {
+          "signature": "5vPXQxjUuGtW1ZYniu7WaPQfF4Jnr1VvP8NkwL2kwuv3ivCrdq6MCyhZE5nLekUvC93LpzMgAg7TtB7P1kDD6jV2",
+          "status": "OK",
+          "tx_compute_units": 695,
+          "program_compute_units": 545
+        },
+        "verify_groth16": {
+          "signature": "2y63ovcFUuieVb8Y8nGFH4HwmU37S21AvaiMRQSYL4iHQoVwRUAnrnf1s8bUQA1FDLmefYbJ1vGi7AQx3JLomJ8h",
+          "status": "BLOCKED",
+          "error": "ProgramFailedToComplete: exceeded max BPF to BPF call depth"
+        },
+        "verify_groth16_tampered": {
+          "signature": "45S9CgvoZ1RNEpMVrcX4h6fN65QRuEYYYLjLKxCNBmXCcQuMNQV8Bo97LxVj8jjBJcbjTShB2ubCEo4zHLXCE6Tw",
+          "status": "BLOCKED",
+          "error": "ProgramFailedToComplete: exceeded max BPF to BPF call depth"
+        },
+        "verify_groth16_ours": {
+          "signature": "5KJfg2srubcehbjAPgPF9s4x1EsVs21QTRizPS1u2yYbyyz4YggwrCnxqAN3iyoc4bwy2aPs94cR9eqtifmiz9Nk",
+          "status": "BLOCKED",
+          "error": "ProgramFailedToComplete: exceeded max BPF to BPF call depth"
+        },
+        "verify_groth16_ours_tampered": {
+          "signature": "5NU5qzJVwAz53oEMTVbXWaFWHpRMrY8LWpVdXZHuxDByXhAjkz3AkyPFuGnDS5ZeRNTN9JNfawQGhoEb3qAbNJ8D",
+          "status": "BLOCKED",
+          "error": "ProgramFailedToComplete: exceeded max BPF to BPF call depth"
+        },
+        "mitigations_tried": [
+          "programs/unicorn-spike crate-type cdylib-only to restore LTO",
+          "inline(always) hints on verifier helpers"
+        ],
+        "conclusion": "Agave 4.0.3 + platform-tools v1.53 + --arch v3 is the safe reproducible deploy path for devnet loader compatibility. Full verifier execution still needs a separate SBPFv3 call-depth mitigation; this is runtime/codegen behavior, not the original deploy-time sbpf_version blocker."
+      },
+      "boundary": {
+        "canonical_9tEram_last_deployed_slot_after": 459318657,
+        "isolated_protocol_6QtLot_last_deployed_slot_after": 469920132,
+        "authority_balance_after_sol": 10.02790307
+      }
     }
   },
   "devnet_buffer_cleanup": {
@@ -106,7 +187,7 @@
   "verdict": {
     "localnet": "PASS: raw alt_bn128 Groth16 verifier executes; valid proofs pass; tampered proofs reject",
     "cu": "9-public-input demo = 113529 net CU; 64-public-input real fixture = 353060 net CU, EXCEEDS the <200k target. Slope ~4355 CU/public-input, pairing base ~74k. alt_bn128 syscall CU costs are fixed protocol constants, so localnet net CU is representative of on-chain CU.",
-    "devnet": "deploy blocked before execution by CLI<->cluster SBPF-version mismatch (3.0.10/v1.51 vs devnet loader). Confirmed by a 2026-06-19 re-test with repaired toolchain + default-arch 0x0 build (same error). This is an ops/toolchain follow-up, NOT a verifier issue.",
+    "devnet": "original deploy blocker is resolved by Agave 4.0.3 / cargo-build-sbf 4.0.0 / platform-tools v1.53 with --arch v3 (EM_BPF, e_flags=0x3). Devnet deploy to throwaway 6k6M passed. Agave4 --arch v0 and --arch v2 are rejected by the devnet loader with the same sbpf_version error. Full verifier execution is still blocked after deploy by SBPFv3 runtime/codegen call-depth failure (`exceeded max BPF to BPF call depth`) on verify instructions; baseline executes.",
     "phase2_overall": "DONE on the substance: on-chain Groth16 verify works and its CU is measured (localnet, representative). FINDING: our 64-public-input layout (u,y as 32+32 limbs) costs 353k > 200k -> compress public inputs to a single hash commitment (see PROTOCOL-INFRA-014-PHASE2B-ARCH). Devnet live deploy deferred to an ops follow-up (devnet-matched CLI/platform-tools).",
     "next": "PHASE2B: compress public inputs (~353k -> ~120k). Then phase 3 sound-circuit, phase 4 seal integration."
   }

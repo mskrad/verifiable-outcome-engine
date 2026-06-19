@@ -51,6 +51,7 @@ pub enum UnicornError {
     InvalidFixture,
 }
 
+#[inline(always)]
 fn verify_demo(tamper: bool) -> Result<()> {
     let mut proof_c = PROOF_C;
     if tamper {
@@ -71,6 +72,7 @@ fn verify_demo(tamper: bool) -> Result<()> {
     Ok(())
 }
 
+#[inline(always)]
 fn verify_ours(tamper: bool) -> Result<()> {
     let mut proof_c = generated_ours::PROOF_C;
     if tamper {
@@ -94,6 +96,7 @@ fn verify_ours(tamper: bool) -> Result<()> {
     Ok(())
 }
 
+#[inline(always)]
 fn verify_raw(
     alpha_g1: &[u8; 64],
     beta_g2: &[u8; 128],
@@ -159,6 +162,7 @@ extern "C" {
     ) -> u64;
 }
 
+#[inline(always)]
 fn bn254_group_op(op: u64, input: &[u8], output_len: usize) -> core::result::Result<Vec<u8>, ()> {
     let mut output = vec![0u8; output_len];
     bn254_group_op_into(op, input, &mut output)?;
@@ -166,6 +170,7 @@ fn bn254_group_op(op: u64, input: &[u8], output_len: usize) -> core::result::Res
 }
 
 #[cfg(target_os = "solana")]
+#[inline(always)]
 fn bn254_group_op_into(op: u64, input: &[u8], output: &mut [u8]) -> core::result::Result<(), ()> {
     let status = unsafe {
         sol_alt_bn128_group_op(
