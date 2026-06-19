@@ -1,0 +1,26 @@
+[package]
+name = "unicorn-spike"
+version = "0.1.0"
+description = "Unicorn-G Spike U1 — live CU probe for on-chain Groth16 verify (alt_bn128). Isolated, non-canonical, throwaway."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "unicorn_spike"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "0.32.1"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

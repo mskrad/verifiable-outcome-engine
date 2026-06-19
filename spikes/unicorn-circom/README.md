@@ -77,10 +77,26 @@ modmul + equality. Built from 0xPARC `bigint.circom` + circomlib (`Num2Bits`,
 - **Full prover (≥128 GB Linux box):** see `PHASE1B_RUNBOOK.md`; `CIRCUIT=wv_n128 PTAU_POW=24 bash run_phase1b.sh`.
 - Build artifacts (r1cs, ptau, zkey, witness, rapidsnark, `phase1b/` logs) are gitignored.
 
+## Phase 2 — raw alt_bn128 verifier
+
+Localnet result is captured in `RESULTS_phase2.json`.
+
+- SBF build passes without `groth16-solana`.
+- Raw `sol_alt_bn128_group_op` verifier executes on localnet.
+- Valid proofs pass and tampered proofs reject.
+- Net CU:
+  - demo fixture, 9 public inputs: `113,529`
+  - Unicorn-G fixture, 64 public inputs: `353,060`
+
+The 64-public-input path exceeds the `<200k` target. Devnet live CU is not yet
+measured because the current Agave `3.0.10` / platform-tools `v1.51` ELF is
+rejected by devnet before execution with `Detected sbpf_version required by the
+executable which are not enabled`.
+
 ## Next (PROTOCOL-INFRA-014 §10)
-Phase 1 (U2-circuit) ✅ done. Remaining: (2) on-chain Groth16 verify via raw
-`alt_bn128` syscalls + live CU on devnet; (3) harden circuit to sound (bake N,
-l=H(u,y), primality, r) and re-measure; (4) program integration
-(`seal_randomness_unicorn`, `entropy_source`, `UnicornGConfig`); (5) off-chain
-permissionless prover service; (6) RSA + Groth16 ceremonies; (7) global-Ω first,
-then sortition.
+Phase 1 (U2-circuit) ✅ done. Phase 2 localnet ✅ done / devnet CU blocked by
+toolchain-cluster ELF compatibility. Remaining: devnet-compatible build for live
+CU; then (3) harden circuit to sound (bake N, l=H(u,y), primality, r) and
+re-measure; (4) program integration (`seal_randomness_unicorn`, `entropy_source`,
+`UnicornGConfig`); (5) off-chain permissionless prover service; (6) RSA +
+Groth16 ceremonies; (7) global-Ω first, then sortition.

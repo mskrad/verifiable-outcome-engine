@@ -1,0 +1,105 @@
+{
+  "phase": "Unicorn-G Phase 2 — on-chain Groth16 verify (localnet raw alt_bn128)",
+  "generated_at": "2026-06-18T20:51:40+03:00",
+  "cluster": "localnet",
+  "validator_version": "3.0.10",
+  "program_id": "6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu",
+  "approach": "raw sol_alt_bn128_group_op syscall, no groth16-solana, no solana-bn254 dependency",
+  "sbf_build": {
+    "command": "cargo build-sbf --arch v0 -- -p unicorn-spike",
+    "status": "passed",
+    "elf_path": "target/deploy/unicorn_spike.so",
+    "elf_bytes": 196704,
+    "warning": "build-sbf post-processing does not list sol_alt_bn128_group_op as a known syscall, but localnet runtime executed it successfully"
+  },
+  "deploy": {
+    "signature": "2Mo32ruWJr1Bc33mPd1cuH3aT9KzqkJFR5fuhRq9YTxLasYLY1aPGPQLk3DQfuNyvBNwjHm3ar3zwAqVEPanH3g2",
+    "status": "passed"
+  },
+  "baseline": {
+    "instruction": "baseline",
+    "signature": "3oxTAyxoLkvczgwJyQPMdH5RU6nHwqzrv4cjZy5AZzbv2LuofeZuLfMpb9gGTitAt458zq3442G3jqHeKfrzvuyA",
+    "tx_compute_units": 787,
+    "program_compute_units": 637,
+    "status": "OK"
+  },
+  "fixture_A_demo": {
+    "instruction": "verify_groth16",
+    "pubinputs": 9,
+    "signature": "2PBeepZGepqmgByyed1DtMmsG5Avz8J7fngLXoGJbeWf3Ez5QS7b3LxRkURbcM7zKBw2QCawcoRLEqyLc4f6QRHR",
+    "verify": "OK",
+    "tx_compute_units": 114316,
+    "program_compute_units": 114166,
+    "tx_compute_units_net": 113529,
+    "program_compute_units_net": 113529
+  },
+  "fixture_A_demo_tampered": {
+    "instruction": "verify_groth16_tampered",
+    "signature": "eevJdMuHHtnEngRdvVZhJMExk7RzxCNvX1wHpJcaQa8Hq9v7DYwtQoQDiEsjgMBUpazkyt9cHtKP8Gi3wfcYRBV",
+    "verify": "REJECTED",
+    "error": "VerifyFailed / custom program error 6000",
+    "tx_compute_units": 115277,
+    "program_compute_units": 115127,
+    "tx_compute_units_net": 114490,
+    "program_compute_units_net": 114490
+  },
+  "fixture_B_ours": {
+    "instruction": "verify_groth16_ours",
+    "pubinputs": 64,
+    "signature": "32nsgtpUx5UHnX9uuMv5i38GwGMEDTiZSNM46xa7Wwh5x7uJ57RdNubsuJFXT3Bxq2CzWjxNjt65qfsZLm7BJguw",
+    "verify": "OK",
+    "tx_compute_units": 353847,
+    "program_compute_units": 353697,
+    "tx_compute_units_net": 353060,
+    "program_compute_units_net": 353060
+  },
+  "fixture_B_ours_tampered": {
+    "instruction": "verify_groth16_ours_tampered",
+    "signature": "53esr8KSe5DhiJoT7oTyLiF1KuNCQNrqemAXDpJLiWf4tk1944K29Kw8YJGkz5NU3TJmnwJLWw3ixBG6Lq5krxXb",
+    "verify": "REJECTED",
+    "error": "VerifyFailed / custom program error 6000",
+    "tx_compute_units": 354804,
+    "program_compute_units": 354654,
+    "tx_compute_units_net": 354017,
+    "program_compute_units_net": 354017
+  },
+  "devnet_attempt": {
+    "status": "BLOCKED_BEFORE_EXECUTION",
+    "program_id": "6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu",
+    "error": "Detected sbpf_version required by the executable which are not enabled",
+    "notes": [
+      "The deploy failure happened in BPFLoaderUpgradeable before invoking the program.",
+      "Explicit --arch v0 produced the same deploy error with Solana CLI 3.0.10 / platform-tools v1.51.",
+      "A follow-up needs a devnet-compatible older platform-tools build or a cluster/toolchain match."
+    ],
+    "reattempt_2026_06_19": {
+      "action": "repaired platform-tools v1.51 (--force-tools-install), rebuilt DEFAULT arch (no --arch); ELF e_flags=0x0, identical to the devnet-deployed outcome.so reference",
+      "result": "SAME error: Detected sbpf_version required by the executable which are not enabled",
+      "conclusion": "Rules out the --arch-flag and toolchain-corruption hypotheses. Confirmed: Agave 3.0.10 / platform-tools v1.51 emits an SBPF version devnet's loader gate (SBPFv3 inactive) rejects, independent of e_flags. CLI<->cluster ops mismatch, not verifier-logic.",
+      "boundary": "canonical 9tEram... slot 459318657 unchanged; 6QtLot... slot 469920132 unchanged; orphaned buffer JCa7je... closed, ~1.37 SOL reclaimed (~0.001 SOL fees lost)."
+    }
+  },
+  "devnet_buffer_cleanup": {
+    "status": "COMPLETED",
+    "closed_buffers": [
+      {
+        "address": "g3uV4sVupTRgaqVoudg2uHMdgmHy5T638q2Y2n7AKuY",
+        "returned_sol": 1.37026392
+      },
+      {
+        "address": "Dj7hKVzHfZwun6Mn3pfcYrXJG5XZL44LCf2En4EfoJun",
+        "returned_sol": 1.37026392
+      }
+    ],
+    "recipient": "HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava",
+    "final_recipient_balance_sol": 11.53673707,
+    "temporary_recovered_keypairs": "deleted"
+  },
+  "verdict": {
+    "localnet": "PASS: raw alt_bn128 Groth16 verifier executes; valid proofs pass; tampered proofs reject",
+    "cu": "9-public-input demo = 113529 net CU; 64-public-input real fixture = 353060 net CU, EXCEEDS the <200k target. Slope ~4355 CU/public-input, pairing base ~74k. alt_bn128 syscall CU costs are fixed protocol constants, so localnet net CU is representative of on-chain CU.",
+    "devnet": "deploy blocked before execution by CLI<->cluster SBPF-version mismatch (3.0.10/v1.51 vs devnet loader). Confirmed by a 2026-06-19 re-test with repaired toolchain + default-arch 0x0 build (same error). This is an ops/toolchain follow-up, NOT a verifier issue.",
+    "phase2_overall": "DONE on the substance: on-chain Groth16 verify works and its CU is measured (localnet, representative). FINDING: our 64-public-input layout (u,y as 32+32 limbs) costs 353k > 200k -> compress public inputs to a single hash commitment (see PROTOCOL-INFRA-014-PHASE2B-ARCH). Devnet live deploy deferred to an ops follow-up (devnet-matched CLI/platform-tools).",
+    "next": "PHASE2B: compress public inputs (~353k -> ~120k). Then phase 3 sound-circuit, phase 4 seal integration."
+  }
+}
