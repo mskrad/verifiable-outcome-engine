@@ -14,51 +14,9 @@
 //! by trial division (the prover supplies small prime factors), so a composite passed as a
 //! "factor" cannot forge the certificate.
 
-/// a*b mod m for full 128-bit m (binary/Russian-peasant; overflow-safe for m up to 2^128-1).
-fn mulmod(mut a: u128, mut b: u128, m: u128) -> u128 {
-    let mut r: u128 = 0;
-    a %= m;
-    while b > 0 {
-        if b & 1 == 1 {
-            r = addmod(r, a, m);
-        }
-        a = addmod(a, a, m);
-        b >>= 1;
-    }
-    r
-}
-
-/// a+b mod m for a,b < m, m up to 2^128-1 (handles the 2^128 wrap).
-fn addmod(a: u128, b: u128, m: u128) -> u128 {
-    match a.checked_add(b) {
-        Some(s) => {
-            if s >= m {
-                s - m
-            } else {
-                s
-            }
-        }
-        // a+b >= 2^128 > m: a+b-m = a - (m - b) (b < m so m-b > 0, and a > m-b here)
-        None => a - (m - b),
-    }
-}
-
-/// base^exp mod m (square-and-multiply).
-fn modpow(mut base: u128, mut exp: u128, m: u128) -> u128 {
-    if m == 1 {
-        return 0;
-    }
-    let mut r: u128 = 1;
-    base %= m;
-    while exp > 0 {
-        if exp & 1 == 1 {
-            r = mulmod(r, base, m);
-        }
-        base = mulmod(base, base, m);
-        exp >>= 1;
-    }
-    r
-}
+// Modular multiply/exponentiation come from the Montgomery module (B4b) — the naive
+// binary mulmod blew the on-chain CU budget. crate::mont::MontCtx::modpow is ~100x cheaper.
+use crate::mont::MontCtx;
 
 fn gcd(mut a: u128, mut b: u128) -> u128 {
     while b != 0 {
@@ -137,18 +95,19 @@ pub fn pocklington_verify(c: &PocklingtonCert) -> bool {
         }
         None => {}
     }
-    // 3. Fermat: a^(l-1) == 1 (mod l)
+    // 3. Fermat: a^(l-1) == 1 (mod l)   (l is odd, checked above -> Montgomery applies)
     if c.a < 2 || c.a >= l {
         return false;
     }
-    if modpow(c.a, lm1, l) != 1 {
+    let ctx = MontCtx::new(l);
+    if ctx.modpow(c.a, lm1) != 1 {
         return false;
     }
     // 4. for each prime q | f: gcd(a^((l-1)/q) - 1, l) == 1
     for i in 0..n {
         let q = c.factors[i];
         let e = lm1 / q; // exact since q | f | (l-1)
-        let g = modpow(c.a, e, l);
+        let g = ctx.modpow(c.a, e);
         let gm1 = if g == 0 { l - 1 } else { g - 1 };
         if gcd(gm1, l) != 1 {
             return false;
@@ -178,22 +137,6 @@ mod tests {
             fa[i] = q;
         }
         PocklingtonCert { l, f, r: lm1 / f, a, factors: fa, n_factors: distinct.len() as u8 }
-    }
-
-    #[test]
-    fn mulmod_no_overflow_full_128bit() {
-        let m = (1u128 << 127) | 1; // ~2^127, odd
-        let a = m - 2;
-        let b = m - 3;
-        // (m-2)(m-3) mod m = 6 mod m
-        assert_eq!(mulmod(a, b, m), 6 % m);
-    }
-
-    #[test]
-    fn modpow_fermat_small_prime() {
-        // 5^(p-1) == 1 mod p for prime p
-        let p: u128 = 1_000_003;
-        assert_eq!(modpow(5, p - 1, p), 1);
     }
 
     #[test]

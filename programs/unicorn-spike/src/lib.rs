@@ -9,6 +9,7 @@ use solana_bn254::prelude::{
 
 mod generated_ours;
 mod generated_prod;
+mod mont;
 mod pocklington;
 mod generated_cert;
 
