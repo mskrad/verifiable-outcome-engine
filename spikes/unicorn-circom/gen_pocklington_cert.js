@@ -97,3 +97,24 @@ pub const CERT: crate::pocklington::PocklingtonCert = crate::pocklington::Pockli
 fs.writeFileSync("../../programs/unicorn-spike/src/generated_cert.rs", rust);
 fs.writeFileSync("build/pocklington_cert.json", JSON.stringify({ nonce: found.nonce, l: found.l.toString(), f: found.f.toString(), r: found.r.toString(), a: found.a.toString(), factors: found.distinct.map(String) }, null, 2));
 console.log("wrote programs/unicorn-spike/src/generated_cert.rs");
+
+// --- circom witness for the in-circuit Pocklington (option A) ---
+const mask64 = (1n << 64n) - 1n;
+const lm1 = found.l - 1n;
+const lo2 = (x) => [(x & mask64).toString(), ((x >> 64n) & mask64).toString()];
+const q = [], e = [], ediv = [], sinv = [];
+for (let i = 0; i < 8; i++) {
+  if (i < found.distinct.length) {
+    const p = found.distinct[i];
+    let ee = 0n, t = lm1; while (t % p === 0n) { ee++; t /= p; }
+    q.push(p.toString()); e.push(ee.toString()); ediv.push((lm1 / p).toString());
+    // gcd inverse hint: g = a^((l-1)/p) mod l ; sinv = (g-1)^{-1} mod l
+    const g = modpow(found.a, lm1 / p, found.l);
+    const gm1 = (g - 1n + found.l) % found.l;
+    sinv.push(modinv(gm1, found.l).toString());
+  } else { q.push("2"); e.push("0"); ediv.push("0"); sinv.push("0"); }
+}
+function modinv(x, m) { let [old_r, r] = [((x % m) + m) % m, m], [old_s, s] = [1n, 0n]; while (r !== 0n) { const qq = old_r / r; [old_r, r] = [r, old_r - qq * r]; [old_s, s] = [s, old_s - qq * s]; } return ((old_s % m) + m) % m; }
+const wit = { l2: lo2(found.l), a: found.a.toString(), F2: lo2(found.f), R2: lo2(found.r), q, e, ediv, sinv };
+fs.writeFileSync("build/pock_witness.json", JSON.stringify(wit, null, 2));
+console.log("wrote build/pock_witness.json (", found.distinct.length, "factors )");
