@@ -34,17 +34,23 @@ CPU=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | xargs || echo unknown
 RAM_GB=$(awk '/MemTotal/{printf "%.0f",$2/1024/1024}' /proc/meminfo); CORES=$(nproc)
 echo "CPU=$CPU | RAM=${RAM_GB}GB | cores=$CORES"
 [ "$RAM_GB" -lt 100 ] && echo "WARNING: <100GB RAM — setup may OOM (needs ~74GB)."
-
-# 0. bake N from prod_modulus.txt (must exist)
 [ -f prod_modulus.txt ] || { echo "ERROR: create prod_modulus.txt with the canonical RSA modulus first"; exit 1; }
-echo "--- bake N ---"; node bake_n.js
+run_as_root() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
+}
+run_as_root_preserve_env() {
+  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo -E "$@"; fi
+}
 
 # 1. deps (idempotent) — Node 20, build tools, circom 2.2.3, snarkjs, rapidsnark
-if ! command -v node >/dev/null; then curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -; sudo apt-get install -y nodejs; fi
-sudo apt-get update -y && sudo apt-get install -y build-essential cmake libgmp-dev libsodium-dev nasm curl m4 git
+if ! command -v node >/dev/null; then curl -fsSL https://deb.nodesource.com/setup_20.x | run_as_root_preserve_env bash -; run_as_root apt-get install -y nodejs; fi
+run_as_root apt-get update -y && run_as_root apt-get install -y build-essential cmake libgmp-dev libsodium-dev nasm curl m4 git
 if ! command -v circom >/dev/null; then
-  curl -fL https://github.com/iden3/circom/releases/download/v2.2.3/circom-linux-amd64 -o /tmp/circom && sudo install -m 0755 /tmp/circom /usr/local/bin/circom
+  curl -fL https://github.com/iden3/circom/releases/download/v2.2.3/circom-linux-amd64 -o /tmp/circom && run_as_root install -m 0755 /tmp/circom /usr/local/bin/circom
 fi
+
+# 0. bake N from prod_modulus.txt (after node is available)
+echo "--- bake N ---"; node bake_n.js
 echo "circom: $(circom --version)"
 [ -d node_modules/snarkjs ] || npm install
 SNARK="node node_modules/.bin/snarkjs"
