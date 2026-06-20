@@ -29,8 +29,16 @@ function randBig(bits) { const x = BigInt("0x" + crypto.randomBytes(bits / 8).to
 function limbs32(x) { const out = []; let v = x; for (let i = 0; i < 32; i++) { out.push((v & mask64).toString()); v >>= 64n; } return out; }
 function be(x, nbytes) { const b = Buffer.alloc(nbytes); let v = x; for (let i = nbytes - 1; i >= 0; i--) { b[i] = Number(v & 0xffn); v >>= 8n; } return b; }
 
-// N = random 2048-bit odd; u random < N.
-const N = randBig(2048) | 1n;
+// N: PROD=1 reads the baked modulus (build/prod_n_limbs.json) and the fixture omits N
+// from the input (the prod circuit has N as a constant, not an input). Else random 2048-bit.
+const PROD = !!process.env.PROD;
+let N;
+if (PROD) {
+  const limbs = require("./build/prod_n_limbs.json").N.map(BigInt);
+  N = 0n; for (let i = 31; i >= 0; i--) N = (N << 64n) | limbs[i];
+} else {
+  N = randBig(2048) | 1n;
+}
 const u = (randBig(2048) % N) | 1n;
 
 // y = u^(2^T) mod N via T squarings (matches the VDF definition).
@@ -62,7 +70,8 @@ const pi = modpow(u, Q, N);
 const lhs = (modpow(pi, l, N) * modpow(u, r, N)) % N;
 if (lhs !== y % N) { console.error("FIXTURE BROKEN: pi^l*u^r != y"); process.exit(1); }
 
-const input = { commit: commit.toString(), nonce: nonce.toString(), u: limbs32(u), y: limbs32(y), pi: limbs32(pi), N: limbs32(N) };
+const input = { commit: commit.toString(), nonce: nonce.toString(), u: limbs32(u), y: limbs32(y), pi: limbs32(pi) };
+if (!PROD) input.N = limbs32(N);   // prod circuit bakes N as a constant
 fs.mkdirSync("build", { recursive: true });
 fs.writeFileSync("build/ws_input.json", JSON.stringify(input, null, 2));
 console.log("OK: nonce =", nonce.toString(), " l prime (128b) ; pi^l*u^r==y mod N verified");
