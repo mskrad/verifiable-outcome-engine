@@ -8,6 +8,9 @@ use solana_bn254::prelude::{
 };
 
 mod generated_ours;
+mod generated_prod;
+#[allow(dead_code)] // wired into the combined seal instruction in the next step
+mod pocklington;
 
 declare_id!("6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu");
 
@@ -38,6 +41,17 @@ pub mod unicorn_spike {
     /// Explicit 64-public-input negative path.
     pub fn verify_groth16_ours_tampered(_ctx: Context<VerifyGroth16>) -> Result<()> {
         verify_ours(true)
+    }
+
+    /// PRODUCTION A' circuit: Groth16 verify of the 2-public-input (commit, nonce) VK.
+    /// This is the headline on-chain verify CU for Unicorn-G production.
+    pub fn verify_groth16_prod(_ctx: Context<VerifyGroth16>) -> Result<()> {
+        verify_prod(false)
+    }
+
+    /// Explicit 2-public-input negative path.
+    pub fn verify_groth16_prod_tampered(_ctx: Context<VerifyGroth16>) -> Result<()> {
+        verify_prod(true)
     }
 }
 
@@ -93,6 +107,27 @@ fn verify_ours(tamper: bool) -> Result<()> {
         &proof_c,
     )?;
     msg!("groth16 ours verify OK");
+    Ok(())
+}
+
+#[inline(always)]
+fn verify_prod(tamper: bool) -> Result<()> {
+    let mut proof_c = generated_prod::PROOF_C;
+    if tamper {
+        proof_c[63] ^= 1;
+    }
+    verify_raw(
+        &generated_prod::VK_ALPHA_G1,
+        &generated_prod::VK_BETA_G2,
+        &generated_prod::VK_GAMMA_G2,
+        &generated_prod::VK_DELTA_G2,
+        &generated_prod::IC,
+        &generated_prod::PUBLIC_INPUTS,
+        &generated_prod::PROOF_A_NEG,
+        &generated_prod::PROOF_B,
+        &proof_c,
+    )?;
+    msg!("groth16 prod verify OK");
     Ok(())
 }
 
