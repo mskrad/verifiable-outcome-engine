@@ -9,25 +9,44 @@
 
 const MASK64: u128 = 0xFFFF_FFFF_FFFF_FFFF;
 
-/// 128x128 -> 256-bit product as (hi, lo), via 64-bit limbs (overflow-safe).
+/// 128x128 -> 256-bit product as (hi, lo). Uses 32-bit limbs so every partial product is a
+/// native u64 multiply (u32*u32 < 2^64) — BPF has no 64x64->128 instruction, so the old
+/// 64-bit-limb version compiled each partial to a __multi3 libcall (~100x the cost). Columns
+/// accumulate in u128 (cheap adds), then 32-bit carry propagation reassembles the result.
 fn mul128(a: u128, b: u128) -> (u128, u128) {
-    let (a0, a1) = (a & MASK64, a >> 64);
-    let (b0, b1) = (b & MASK64, b >> 64);
-    let p00 = a0 * b0;
-    let p01 = a0 * b1;
-    let p10 = a1 * b0;
-    let p11 = a1 * b1;
-
-    let c0 = p00 & MASK64;
-    let mut carry = (p00 >> 64) + (p01 & MASK64) + (p10 & MASK64);
-    let c1 = carry & MASK64;
-    carry = (carry >> 64) + (p01 >> 64) + (p10 >> 64) + (p11 & MASK64);
-    let c2 = carry & MASK64;
-    carry = (carry >> 64) + (p11 >> 64);
-    let c3 = carry & MASK64;
-
-    let lo = c0 | (c1 << 64);
-    let hi = c2 | (c3 << 64);
+    let a = [
+        (a & 0xFFFF_FFFF) as u64,
+        ((a >> 32) & 0xFFFF_FFFF) as u64,
+        ((a >> 64) & 0xFFFF_FFFF) as u64,
+        ((a >> 96) & 0xFFFF_FFFF) as u64,
+    ];
+    let b = [
+        (b & 0xFFFF_FFFF) as u64,
+        ((b >> 32) & 0xFFFF_FFFF) as u64,
+        ((b >> 64) & 0xFFFF_FFFF) as u64,
+        ((b >> 96) & 0xFFFF_FFFF) as u64,
+    ];
+    let mut col = [0u128; 8];
+    let mut i = 0;
+    while i < 4 {
+        let mut j = 0;
+        while j < 4 {
+            col[i + j] += (a[i] * b[j]) as u128; // u32*u32 -> u64 native, then u128 add
+            j += 1;
+        }
+        i += 1;
+    }
+    let mut out = [0u64; 8];
+    let mut carry: u128 = 0;
+    let mut k = 0;
+    while k < 8 {
+        let cur = col[k] + carry;
+        out[k] = (cur as u64) & 0xFFFF_FFFF;
+        carry = cur >> 32;
+        k += 1;
+    }
+    let lo = out[0] as u128 | (out[1] as u128) << 32 | (out[2] as u128) << 64 | (out[3] as u128) << 96;
+    let hi = out[4] as u128 | (out[5] as u128) << 32 | (out[6] as u128) << 64 | (out[7] as u128) << 96;
     (hi, lo)
 }
 

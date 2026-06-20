@@ -48,6 +48,9 @@ function smoothPart(lm1) {
   return { f, distinct };
 }
 
+// Minimise the number of DISTINCT prime factors (each factor = one extra 128-bit modexp
+// on-chain). Prime powers (esp. 2^a) give many bits of F per single factor, so the best l
+// has few distinct primes. Scan the whole budget and keep the certifiable l with fewest.
 let primes = 0, scanned = 0, found = null;
 const t0 = Date.now();
 for (let nonce = 0; nonce < MAX; nonce++) {
@@ -57,16 +60,18 @@ for (let nonce = 0; nonce < MAX; nonce++) {
   primes++;
   const lm1 = l - 1n;
   const { f, distinct } = smoothPart(lm1);
-  if (f * f > l && distinct.length <= 8) {       // F > sqrt(l), fits cert array
-    // find a base a satisfying Pocklington
-    let a = 0n;
-    for (const cand of [2n,3n,5n,7n,11n,13n,17n,19n,23n]) {
-      if (modpow(cand, lm1, l) !== 1n) continue;
-      let ok = true;
-      for (const q of distinct) { const g = modpow(cand, lm1 / q, l); if (gcd((g + l - 1n) % l, l) !== 1n) { ok = false; break; } }
-      if (ok) { a = cand; break; }
-    }
-    if (a !== 0n) { found = { nonce, l, f, r: lm1 / f, a, distinct }; break; }
+  if (!(f * f > l) || distinct.length > 8) continue;        // need F > sqrt(l), fits array
+  if (found && distinct.length >= found.distinct.length) continue; // only keep improvements
+  let a = 0n;
+  for (const cand of [2n,3n,5n,7n,11n,13n,17n,19n,23n]) {
+    if (modpow(cand, lm1, l) !== 1n) continue;
+    let ok = true;
+    for (const q of distinct) { const g = modpow(cand, lm1 / q, l); if (gcd((g + l - 1n) % l, l) !== 1n) { ok = false; break; } }
+    if (ok) { a = cand; break; }
+  }
+  if (a !== 0n) {
+    found = { nonce, l, f, r: lm1 / f, a, distinct };
+    if (distinct.length <= 4) break; // 4 distinct is already excellent (<=5 modexp)
   }
 }
 const dt = ((Date.now() - t0) / 1000).toFixed(1);
