@@ -1,14 +1,24 @@
-# Unicorn-G circuit spike — Phase 1 + 1b (gate measurement)
+# Unicorn-G spike — feasibility (Phase 1/1b/2) → production build (B1–B4)
 
-Single entry point for the Unicorn-G prover-cost spike. Goal: **decide whether
-Unicorn-G is buildable at acceptable prover cost** before investing in it — by
-building the real circuit and measuring it, not estimating.
+Single entry point for the Unicorn-G track: a full-unbiasability entropy source =
+Unicorn/Wesolowski-VDF with a Groth16-verified delay proof. Started as a prover-cost
+gate; now a measured production build.
 
-**Verdict: FEASIBLE (with live numbers).** Per-draw proof ≈ 39 s / 11 GB; one-time
-setup ≈ 2h47m / 72 GB per circuit. Biggest technical risk retired.
+**Status 2026-06-20 — production pipeline proven end-to-end LIVE:**
+| Stage | Result |
+|---|---|
+| Sound circuit (A′) `wesolowski_sound_prod` | 14,922,595 constraints, 2 public (commit, nonce), N baked; valid→OK / tamper→Assert |
+| Prover (box) | setup 3:24:33 / 83.8 GB (one-time); rapidsnark prove **39.35 s** / 12.6 GB (per-draw) |
+| **On-chain Groth16 verify (devnet)** | **82,733 CU net** (2.4× under 200k); tamper→reject |
+| Pocklington primality (off-chain) | verifier + 8 tests; certifiable-l grind ~10⁵ nonces ≈ seconds ≪ proof |
+| ⚠️ On-chain Pocklington | naive u128 modmul > 1.4M CU → needs Montgomery modmul (open) |
 
-Context: `agent-instructions/hub-memory/UNICORN_G_DOSSIER.md` (§U2) and
-`agent-instructions/hub-memory/tasks/PROTOCOL-INFRA-014-ARCH.md` (§10 build order).
+Decisions locked: **RSA + Groth16** (class-group parked), **A′** (l-binding in circuit +
+primality on-chain), RSA modulus **phased** (devnet = RSA-2048 Challenge, mainnet = MPC).
+
+Context: `agent-instructions/hub-memory/UNICORN_G_DOSSIER.md` and
+`agent-instructions/hub-memory/tasks/PROTOCOL-INFRA-014-PRODUCTION-BUILD.md` (master plan).
+Results: `RESULTS_phase{1,1b,2,3,4}.json`.
 
 ---
 
