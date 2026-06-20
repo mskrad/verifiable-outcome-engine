@@ -15,3 +15,7 @@ prod_modulus.txt
 circuits/prod_n.circom
 circuit_prod.zkey
 README.md
+PHASE1B_RUNBOOK.md
+PHASE3_SETUP_RUNBOOK.md
+RESULTS_phase*.json
+vk_prod.json
