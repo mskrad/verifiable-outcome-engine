@@ -1,18 +1,24 @@
 {
-  "phase": "Unicorn-G B4 — production on-chain Groth16 verify (A', 2 public inputs)",
+  "phase": "Unicorn-G B4 — production on-chain integration (A')",
   "date": "2026-06-20",
   "cluster": "devnet",
   "program_id": "6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu",
   "circuit": "wesolowski_sound_prod (14,922,595 constraints, RSA-2048 baked)",
-  "public_inputs": ["commit", "nonce"],
-  "vk": "vk_prod.json (groth16/bn128, nPublic=2, IC=3)",
-  "upgrade_signature": "2gHQPQD7PMxJqu2B58HkUFA5Y3y7bEtwMTPKRUMXG97PefduEPTm16u9K4sDHbFU84zGsXtApRT8Tdg7iC4y75JD",
-  "cu": {
-    "baseline": 695,
-    "verify_groth16_prod": 83428,
-    "net_verifier": 82733
+  "groth16_verify": {
+    "public_inputs": ["commit", "nonce"],
+    "cu": { "baseline": 695, "verify_groth16_prod": 83428, "net_verifier": 82733 },
+    "target_cu": 200000,
+    "tampered": "FAIL (VerifyFailed) as expected",
+    "verdict": "PASS — 82,733 CU net live, 2.4x under target"
   },
-  "target_cu": 200000,
-  "tampered": "FAIL (AnchorError VerifyFailed 0x1770) — rejects as expected",
-  "verdict": "PASS — production A' verify = 82,733 CU net live, 2.4x under the 200k target"
+  "pocklington_offchain": {
+    "verifier": "pocklington.rs, 8 unit tests pass (incl. prime-power factorization, composites rejected)",
+    "grind_for_certifiable_l": "~93,315 nonces (~2,110 primes) scanned in 2.8s for l prime + l-1 smooth (factors <= 2^16, F > sqrt l, <=8 distinct). Grind ~10^5 hashes ~= seconds, << 39s proof — NOT a bottleneck."
+  },
+  "pocklington_onchain": {
+    "status": "EXCEEDS BUDGET — naive binary u128 mulmod (128 iters/mul) x ~9 modexp(128-bit exp) > 1,400,000 CU (Solana max). Logic correct; on-chain cost is the issue.",
+    "fix": "Montgomery/Barrett 128-bit modmul (constant-work per mul). Projected ~100-150k CU for the full Pocklington -> combined seal ~200-250k CU (needs a CU-budget request, standard). Bounded follow-up.",
+    "verdict": "on-chain primality NOT yet chain-ready; identified the exact optimization"
+  },
+  "overall": "Headline production verify LIVE (82,733 CU). Full seal needs the Montgomery modmul for the on-chain Pocklington step before it is chain-ready."
 }

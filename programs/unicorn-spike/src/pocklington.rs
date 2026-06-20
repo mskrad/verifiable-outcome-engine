@@ -109,24 +109,24 @@ pub fn pocklington_verify(c: &PocklingtonCert) -> bool {
         Some(p) if p == lm1 => {}
         _ => return false,
     }
-    // 2. f == product(factors), each factor prime; f > sqrt(l) i.e. f*f > l.
-    let mut prod: u128 = 1;
+    // 2. f is FULLY factored over the listed DISTINCT primes (handles prime powers in l-1):
+    //    every listed q is prime and divides f, and dividing f by all of them leaves 1.
     let n = c.n_factors as usize;
     if n == 0 || n > c.factors.len() {
         return false;
     }
+    let mut tmp = c.f;
     for i in 0..n {
         let q = c.factors[i];
-        if q < 2 || !is_prime_trial(q) {
+        if q < 2 || !is_prime_trial(q) || c.f % q != 0 {
             return false;
         }
-        match prod.checked_mul(q) {
-            Some(p) => prod = p,
-            None => return false, // f <= l-1 < 2^128, so an honest product never overflows
+        while tmp % q == 0 {
+            tmp /= q;
         }
     }
-    if prod != c.f {
-        return false;
+    if tmp != 1 {
+        return false; // f has a prime factor not in the list -> not fully factored
     }
     // f > sqrt(l): if f*f overflows u128 then f > 2^64 >= sqrt(l) (l < 2^128) -> true.
     match c.f.checked_mul(c.f) {
@@ -161,18 +161,23 @@ pub fn pocklington_verify(c: &PocklingtonCert) -> bool {
 mod tests {
     use super::*;
 
-    fn cert(l: u128, a: u128, factors: &[u128]) -> PocklingtonCert {
-        // build f = product of given prime factors of l-1; r = (l-1)/f
+    // build cert from DISTINCT primes: f = product of q^v_q(l-1) over the listed primes.
+    fn cert(l: u128, a: u128, distinct: &[u128]) -> PocklingtonCert {
+        let lm1 = l - 1;
         let mut f: u128 = 1;
-        for &q in factors {
-            f *= q;
+        for &q in distinct {
+            let mut t = lm1;
+            while t % q == 0 {
+                f *= q;
+                t /= q;
+            }
         }
-        assert_eq!((l - 1) % f, 0, "f must divide l-1");
+        assert_eq!(lm1 % f, 0, "f must divide l-1");
         let mut fa = [0u128; 8];
-        for (i, &q) in factors.iter().enumerate() {
+        for (i, &q) in distinct.iter().enumerate() {
             fa[i] = q;
         }
-        PocklingtonCert { l, f, r: (l - 1) / f, a, factors: fa, n_factors: factors.len() as u8 }
+        PocklingtonCert { l, f, r: lm1 / f, a, factors: fa, n_factors: distinct.len() as u8 }
     }
 
     #[test]
@@ -209,15 +214,15 @@ mod tests {
         // 4294967310 = 2*3*5*11*13*... compute: 4294967310 = 2 × 3 × 5 × 143165577 ... messy.
         // Keep this test to the small deterministic one above; full 128-bit covered in JS gen.
         let p: u128 = 2147483647; // Mersenne prime 2^31-1
-        // p-1 = 2147483646 = 2 × 3 × 3 × 7 × 11 × 31 × 151 × 331
-        let c = cert(p, 7, &[2, 3, 3, 7, 11, 31, 151, 331]);
+        // p-1 = 2147483646 = 2 × 3^2 × 7 × 11 × 31 × 151 × 331 (distinct primes below)
+        let c = cert(p, 7, &[2, 3, 7, 11, 31, 151, 331]);
         assert!(pocklington_verify(&c));
     }
 
     #[test]
     fn rejects_composite() {
-        // l = 221 = 13*17 (composite). l-1 = 220 = 2*2*5*11. A valid-looking F but Fermat fails.
-        let c = cert(221, 2, &[2, 2, 5, 11]);
+        // l = 221 = 13*17 (composite). l-1 = 220 = 2^2*5*11. A valid-looking F but Fermat fails.
+        let c = cert(221, 2, &[2, 5, 11]);
         assert!(!pocklington_verify(&c));
     }
 
@@ -232,16 +237,15 @@ mod tests {
     #[test]
     fn rejects_composite_factor() {
         // pass a composite (9) as a "prime factor" -> is_prime_trial rejects.
-        // l = 19, l-1 = 18 = 2*9 (9 composite). F=18>sqrt(19). Must reject on factor primality.
+        // l = 19, l-1 = 18 = 2*3^2; pass 9 (composite) as a "prime" -> reject on factor primality.
         let c = cert(19, 2, &[2, 9]);
         assert!(!pocklington_verify(&c));
     }
 
     #[test]
     fn rejects_small_f() {
-        // F <= sqrt(l): l=101 (prime), l-1=100=2^2*5^2; use only F=2*2=4 < sqrt(101)≈10 -> reject.
-        let mut c = cert(101, 2, &[2, 2]);
-        c.r = 25; // 4*25=100 ok, but F=4 <= sqrt(101)
+        // F <= sqrt(l): l=101 (prime), l-1=100=2^2*5^2; list only {2} -> F=4 < sqrt(101)≈10 -> reject.
+        let c = cert(101, 2, &[2]); // f=4, r=25 (computed); f*f=16 <= 101
         assert!(!pocklington_verify(&c));
     }
 }

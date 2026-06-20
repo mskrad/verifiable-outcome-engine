@@ -9,8 +9,8 @@ use solana_bn254::prelude::{
 
 mod generated_ours;
 mod generated_prod;
-#[allow(dead_code)] // wired into the combined seal instruction in the next step
 mod pocklington;
+mod generated_cert;
 
 declare_id!("6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu");
 
@@ -52,6 +52,17 @@ pub mod unicorn_spike {
     /// Explicit 2-public-input negative path.
     pub fn verify_groth16_prod_tampered(_ctx: Context<VerifyGroth16>) -> Result<()> {
         verify_prod(true)
+    }
+
+    /// On-chain Pocklington primality check of a real 128-bit certifiable l (A' soundness).
+    /// Net CU = this - baseline; adds on top of the Groth16 verify in the full seal.
+    pub fn verify_pocklington_prod(_ctx: Context<VerifyGroth16>) -> Result<()> {
+        require!(
+            pocklington::pocklington_verify(&generated_cert::CERT),
+            UnicornError::VerifyFailed
+        );
+        msg!("pocklington verify OK");
+        Ok(())
     }
 }
 
