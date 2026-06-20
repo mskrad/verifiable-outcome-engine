@@ -13,3 +13,4 @@ rapidsnark/
 # RESULTS_phase1b.json is the (small) evidence artifact — keep it tracked.
 prod_modulus.txt
 circuits/prod_n.circom
+circuit_prod.zkey
