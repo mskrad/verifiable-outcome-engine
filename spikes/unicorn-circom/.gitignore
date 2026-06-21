@@ -21,3 +21,8 @@ RESULTS_phase*.json
 vk_prod.json
 out/
 BOX_SETUP.md
+prod_n.circom
+proof_prod.json
+public_prod.json
+wa_input_prod.json
+phase3_prod_logs/
