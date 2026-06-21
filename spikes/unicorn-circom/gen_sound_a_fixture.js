@@ -67,14 +67,20 @@ const Q = (TWO_T - r) / l;
 const pi = modpow(u, Q, N);
 if ((modpow(pi, l, N) * modpow(u, r, N)) % N !== y % N) { console.error("VDF check failed"); process.exit(1); }
 
-const q = [], e = [], ediv = [], sinv = [];
+const PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251];
+const q = [], e = [], ediv = [], sinv = [], quo = [];
+let Fcap = 1n;
 for (let i = 0; i < 8; i++) {
   if (i < found.dist.length) { const p = found.dist[i]; let ee = 0n, t = lm1; while (t % p === 0n) { ee++; t /= p; }
-    q.push(p.toString()); e.push(ee.toString()); ediv.push((lm1 / p).toString());
+    if (ee > 64n) ee = 64n;
+    q.push(p.toString()); e.push(ee.toString()); ediv.push((lm1 / p).toString()); Fcap *= p ** ee;
     const g = modpow(a, lm1 / p, l); sinv.push(lo2(modinv((g - 1n + l) % l, l))); }
   else { q.push("2"); e.push("0"); ediv.push("0"); sinv.push(["0", "0"]); }
+  const qi = BigInt(q[i]); quo.push(PRIMES.map((pp) => (qi / BigInt(pp)).toString()));
 }
+const Rcap = lm1 / Fcap;
+if (!(Fcap * Fcap > l)) { console.error("capped F <= sqrt(l)"); process.exit(1); }
 const input = { commit: commit.toString(), nonce: nonce.toString(), u: limbs32(u), y: limbs32(y), pi: limbs32(pi),
-  pa: a.toString(), F2: lo2(found.f), R2: lo2(found.r), q, e, ediv, sinv };
+  pa: a.toString(), F2: lo2(Fcap), R2: lo2(Rcap), q, e, ediv, sinv, quo };
 fs.writeFileSync("build/wa_input.json", JSON.stringify(input, null, 2));
 console.log(`OK: nonce=${nonce}, l prime+certifiable (${found.dist.length} factors), pi^l*u^r==y. wrote build/wa_input.json`);

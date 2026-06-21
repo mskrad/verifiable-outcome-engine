@@ -1,5 +1,5 @@
 pragma circom 2.0.0;
-include "wesolowski_verify.circom";
+include "modexp_shamir.circom";
 include "hash_to_l.circom";
 include "small_modexp.circom";
 include "prod_n.circom";
@@ -26,6 +26,7 @@ template WesolowskiSoundA(EXPBITS_L, EXPBITS_T, T) {
     signal input e[8];
     signal input ediv[8];
     signal input sinv[8][2];
+    signal input quo[8][54];
 
     var Nc[32] = PROD_N();
 
@@ -57,6 +58,7 @@ template WesolowskiSoundA(EXPBITS_L, EXPBITS_T, T) {
         pv.ediv[i] <== ediv[i];
         pv.sinv[i][0] <== sinv[i][0];
         pv.sinv[i][1] <== sinv[i][1];
+        for (var j = 0; j < 54; j++) { pv.quo[i][j] <== quo[i][j]; }
     }
 
     signal lf;
@@ -72,7 +74,7 @@ template WesolowskiSoundA(EXPBITS_L, EXPBITS_T, T) {
     rf <== me.out[0] + me.out[1] * 18446744073709551616;
 
     // 5. Wesolowski: pi^l * u^r == y mod N
-    component wv = WesolowskiVerify(EXPBITS_L);
+    component wv = WesolowskiVerifyShamir(EXPBITS_L);
     for (var i = 0; i < 32; i++) {
         wv.u[i] <== u[i];
         wv.y[i] <== y[i];
