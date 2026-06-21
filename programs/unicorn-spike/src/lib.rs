@@ -12,6 +12,7 @@ mod generated_prod;
 mod mont;
 mod pocklington;
 mod generated_cert;
+mod generated_uy;
 
 declare_id!("6k6MHbkUFjK7BK6BxT4CRfdvHE9w9YzxBLFqSXDtvPUu");
 
@@ -64,6 +65,19 @@ pub mod unicorn_spike {
         );
         msg!("pocklington verify OK");
         Ok(())
+    }
+
+    /// Combined seal (B4d): recompute commit = low253(SHA256(u||y)) ON-CHAIN from the embedded
+    /// (u,y), then Groth16-verify with public=[commit]. Closes the entropy binding — a tampered
+    /// y changes commit and the proof no longer verifies. (u is embedded here; in the protocol it
+    /// is derived from slot_hashes.) Full seal CU = SHA256(512B) + the 1-pub Groth16 verify.
+    pub fn seal_unicorn(_ctx: Context<VerifyGroth16>) -> Result<()> {
+        seal_inner(false)
+    }
+
+    /// Tampered y → commit changes → verify must fail (proves y is bound through commit).
+    pub fn seal_unicorn_tampered(_ctx: Context<VerifyGroth16>) -> Result<()> {
+        seal_inner(true)
     }
 }
 
@@ -140,6 +154,42 @@ fn verify_prod(tamper: bool) -> Result<()> {
         &proof_c,
     )?;
     msg!("groth16 prod verify OK");
+    Ok(())
+}
+
+/// commit = low253( SHA256( u-limbs || y-limbs ) ): each u64 limb big-endian, limb order 0..31,
+/// u then y (512 bytes); keep the low 253 bits of the 256-bit big-endian digest. Matches the
+/// circom binding (cross-checked against the box fixture).
+fn unicorn_commit(u: &[u64; 32], y: &[u64; 32]) -> [u8; 32] {
+    let mut pre = [0u8; 512];
+    let mut o = 0;
+    for &v in u.iter() { pre[o..o + 8].copy_from_slice(&v.to_be_bytes()); o += 8; }
+    for &v in y.iter() { pre[o..o + 8].copy_from_slice(&v.to_be_bytes()); o += 8; }
+    let mut c = solana_sha256_hasher::hashv(&[&pre]).to_bytes();
+    c[0] &= 0x1F; // clear the top 3 bits of the 256-bit big-endian digest -> low 253 bits
+    c
+}
+
+#[inline(always)]
+fn seal_inner(tamper: bool) -> Result<()> {
+    let mut y = generated_uy::Y;
+    if tamper {
+        y[0] ^= 1;
+    }
+    let commit = unicorn_commit(&generated_uy::U, &y);
+    let public = [commit];
+    verify_raw(
+        &generated_prod::VK_ALPHA_G1,
+        &generated_prod::VK_BETA_G2,
+        &generated_prod::VK_GAMMA_G2,
+        &generated_prod::VK_DELTA_G2,
+        &generated_prod::IC,
+        &public,
+        &generated_prod::PROOF_A_NEG,
+        &generated_prod::PROOF_B,
+        &generated_prod::PROOF_C,
+    )?;
+    msg!("seal_unicorn OK");
     Ok(())
 }
 
