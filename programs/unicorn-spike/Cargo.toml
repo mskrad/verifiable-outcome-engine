@@ -1,0 +1,33 @@
+[package]
+name = "unicorn-spike"
+version = "0.1.0"
+description = "Unicorn-G Spike U1 — live CU probe for on-chain Groth16 verify (alt_bn128). Isolated, non-canonical, throwaway."
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+name = "unicorn_spike"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = "0.32.1"
+# Official alt_bn128 syscall wrappers (correct ABI per active SBPF version). The raw
+# hand-rolled extern tripped SBPFv3 "max BPF to BPF call depth" on Agave 4. Edition2024
+# is fine now (platform-tools v1.53 ships rustc 1.89).
+solana-bn254 = "2.2"
+# SHA256 via the official sol_sha256 syscall wrapper (anchor's solana_program no longer
+# re-exports `hash`; the split crate does). Used for on-chain commit = SHA256(u||y).
+solana-sha256-hasher = "2.3"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

@@ -1,0 +1,28 @@
+# Build artifacts and large binaries — measurement outputs, not source.
+build/
+node_modules/
+*.ptau
+*.r1cs
+*.zkey
+*.wtns
+*.wasm
+# Keep: circuits/*.circom, gen_fixture.js, run_slope.sh, RESULTS_phase1.json,
+#       package.json, package-lock.json
+phase1b/
+rapidsnark/
+# RESULTS_phase1b.json is the (small) evidence artifact — keep it tracked.
+prod_modulus.txt
+circuits/prod_n.circom
+circuit_prod.zkey
+README.md
+PHASE1B_RUNBOOK.md
+PHASE3_SETUP_RUNBOOK.md
+RESULTS_phase*.json
+vk_prod.json
+out/
+BOX_SETUP.md
+prod_n.circom
+proof_prod.json
+public_prod.json
+wa_input_prod.json
+phase3_prod_logs/
