@@ -22,7 +22,7 @@ set -euo pipefail
 SPIKE_DIR="$(cd "$(dirname "$0")" && pwd)"; cd "$SPIKE_DIR"
 mkdir -p build phase3
 CIRCUIT=wesolowski_sound_A
-PTAU_POW="${PTAU_POW:-24}"             # 2^24 covers ~14.9M
+PTAU_POW="${PTAU_POW:-24}"             # 2^24 covers 12.5M
 PTAU="build/pot${PTAU_POW}.ptau"
 TIME=/usr/bin/time
 HEAP_MB=$(awk '/MemTotal/{printf "%d",$2/1024*0.85}' /proc/meminfo)
@@ -33,7 +33,7 @@ echo "=== PHASE3 setup $(date -u +%FT%TZ) circuit=$CIRCUIT ptau=2^$PTAU_POW ==="
 CPU=$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | xargs || echo unknown)
 RAM_GB=$(awk '/MemTotal/{printf "%.0f",$2/1024/1024}' /proc/meminfo); CORES=$(nproc)
 echo "CPU=$CPU | RAM=${RAM_GB}GB | cores=$CORES"
-[ "$RAM_GB" -lt 100 ] && echo "WARNING: <100GB RAM — setup may OOM (needs ~74GB)."
+[ "$RAM_GB" -lt 100 ] && echo "WARNING: <100GB RAM — setup may OOM (needs ~70GB)."
 [ -f prod_modulus.txt ] || { echo "ERROR: create prod_modulus.txt with the canonical RSA modulus first"; exit 1; }
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
@@ -79,7 +79,7 @@ node gen_sound_a_fixture.js
 node "build/${CIRCUIT}_js/generate_witness.js" "build/${CIRCUIT}_js/$CIRCUIT.wasm" build/wa_input.json build/witness.wtns
 
 # 4. groth16 setup -> zkey + VK (the deliverables), measured
-echo "--- groth16 setup (timed; ~3h, ~74GB) ---"
+echo "--- groth16 setup (timed; ~3h, ~70GB) ---"
 $TIME -v $SNARK groth16 setup "build/$CIRCUIT.r1cs" "$PTAU" build/circuit_0.zkey 2> phase3/time_setup.txt
 $SNARK zkey contribute build/circuit_0.zkey build/circuit.zkey --name="phase3-$(date -u +%FT%TZ)" -e="$(head -c64 /dev/urandom | base64)" >/dev/null
 $SNARK zkey export verificationkey build/circuit.zkey build/vk.json >/dev/null
