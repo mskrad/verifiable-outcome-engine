@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 
 const BOUND = 1 << 16;          // on-chain trial-division stays cheap for factors <= 2^16
-const commit = BigInt(require("./public_prod.json")[0]); // realistic commit from the box run
+const commit = 0x123456789abcdef0fedcba9876543210aabbccddeeff00112233445566778n; // fixed test commit (< 2^253)
 const MAX = parseInt(process.env.MAX || "300000", 10);
 
 // sieve primes <= BOUND

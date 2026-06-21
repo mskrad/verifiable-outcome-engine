@@ -19,3 +19,5 @@ PHASE1B_RUNBOOK.md
 PHASE3_SETUP_RUNBOOK.md
 RESULTS_phase*.json
 vk_prod.json
+out/
+BOX_SETUP.md
