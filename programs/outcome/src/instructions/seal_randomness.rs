@@ -4,7 +4,7 @@ use crate::{
     errors::OutcomeError,
     events::{OutcomeResolveStartedV1, RngV2Sealed},
     instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_PREPARED, RNG_V2_STATUS_SEALED},
-    math::rng_v2,
+    math::{rng_v2, unicorn_g},
     state::outcome_config::OutcomeConfig,
 };
 
@@ -51,6 +51,10 @@ pub fn handler(ctx: Context<SealRandomness>, args: SealRandomnessArgs) -> Result
     require!(
         state.runtime_id == args.runtime_id && state.resolve_id == args.resolve_id,
         OutcomeError::InvalidRngV2State
+    );
+    require!(
+        state.entropy_source == unicorn_g::ENTROPY_SOURCE_SLOT_HASH,
+        OutcomeError::InvalidEntropySource
     );
 
     let clock = Clock::get()?;
@@ -123,6 +127,7 @@ pub fn handler(ctx: Context<SealRandomness>, args: SealRandomnessArgs) -> Result
         slot_hashes: state.slot_hashes,
         bounty_lamports: bounty,
         sealed_at_slot: clock.slot,
+        entropy_source: state.entropy_source,
     });
 
     Ok(())

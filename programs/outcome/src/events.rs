@@ -89,6 +89,7 @@ pub struct RngV2Prepared {
     pub bounty_lamports: u64,
     pub fee_snapshot: u64,
     pub attest_deadline_slot: u64,
+    pub entropy_source: u8,
 }
 
 #[event]
@@ -115,6 +116,7 @@ pub struct OutcomeResolvedV4 {
     pub operator_commit_hash: [u8; 32],
     pub operator_reveal_len: u8,
     pub operator_reveal: [u8; 32],
+    pub entropy_source: u8,
 }
 
 #[event]
@@ -126,6 +128,39 @@ pub struct RngV2Sealed {
     pub randomness: [u8; 32],
     pub resolved_slots: [u64; 3],
     pub slot_hashes: [[u8; 32]; 3],
+    pub bounty_lamports: u64,
+    pub sealed_at_slot: u64,
+    pub entropy_source: u8,
+}
+
+#[event]
+pub struct UnicornGConfigInitialized {
+    pub admin: Pubkey,
+    pub enabled: bool,
+    pub rsa_modulus_id: [u8; 32],
+    pub delay_t: u64,
+    pub delay_slots: u64,
+}
+
+#[event]
+pub struct UnicornGConfigUpdated {
+    pub admin: Pubkey,
+    pub enabled: bool,
+    pub rsa_modulus_id: [u8; 32],
+    pub delay_t: u64,
+    pub delay_slots: u64,
+}
+
+#[event]
+pub struct RngV2UnicornSealed {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub sealer: Pubkey,
+    pub actor: Pubkey,
+    pub commit: [u8; 32],
+    pub u_hash: [u8; 32],
+    pub y_hash: [u8; 32],
+    pub randomness: [u8; 32],
     pub bounty_lamports: u64,
     pub sealed_at_slot: u64,
 }

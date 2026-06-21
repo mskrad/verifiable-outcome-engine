@@ -12,37 +12,43 @@ use instructions::attest_winners::{AttestWinners, AttestWinnersArgs};
 use instructions::claim_sortition_ticket::{ClaimSortitionTicket, ClaimSortitionTicketArgs};
 use instructions::close_sortition_ticket::{CloseSortitionTicket, CloseSortitionTicketArgs};
 use instructions::create_sortition_draw::{CreateSortitionDraw, CreateSortitionDrawArgs};
-use instructions::init_sortition_economics::{
-    InitSortitionEconomics, InitSortitionEconomicsArgs,
-};
-use instructions::register_sortition_ticket_paid::RegisterSortitionTicketPaid;
-use instructions::sweep_sortition_tickets::{SweepSortitionTickets, SweepSortitionTicketsArgs};
 use instructions::expire_rng_v2::{ExpireRngV2, ExpireRngV2Args};
 use instructions::expire_sealed_rng_v2::{ExpireSealedRngV2, ExpireSealedRngV2Args};
 use instructions::finalize_compiled_artifact::FinalizeCompiledArtifact;
 use instructions::init_compiled_artifact_chunk::{
     InitCompiledArtifactChunk, InitCompiledArtifactChunkArgs,
 };
+use instructions::init_sortition_economics::{InitSortitionEconomics, InitSortitionEconomicsArgs};
 use instructions::initialize_outcome_config::{
     InitializeOutcomeConfig, InitializeOutcomeConfigArgs,
 };
 use instructions::initialize_program_config::{
     InitializeProgramConfig, InitializeProgramConfigArgs,
 };
+use instructions::initialize_unicorn_g_config::{
+    InitializeUnicornGConfig, InitializeUnicornGConfigArgs,
+};
 use instructions::prepare_rng_v2::{PrepareRngV2, PrepareRngV2Args};
+use instructions::prepare_rng_v2_unicorn::PrepareRngV2Unicorn;
 use instructions::recover_program_config_admin::{
     RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
 };
-use instructions::register_sortition_ticket::{RegisterSortitionTicket, RegisterSortitionTicketArgs};
 use instructions::refresh_master_seed::{RefreshMasterSeed, RefreshMasterSeedArgs};
+use instructions::register_sortition_ticket::{
+    RegisterSortitionTicket, RegisterSortitionTicketArgs,
+};
+use instructions::register_sortition_ticket_paid::RegisterSortitionTicketPaid;
 use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
 use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121Args};
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
 use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
+use instructions::seal_randomness_unicorn::{SealRandomnessUnicorn, SealRandomnessUnicornArgs};
 use instructions::seal_sortition_draw::{SealSortitionDraw, SealSortitionDrawArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
+use instructions::set_unicorn_g_config::{SetUnicornGConfig, SetUnicornGConfigArgs};
 use instructions::submit_compiled_artifact::{SubmitCompiledArtifact, SubmitCompiledArtifactArgs};
+use instructions::sweep_sortition_tickets::{SweepSortitionTickets, SweepSortitionTicketsArgs};
 use instructions::write_compiled_artifact_chunk::{
     WriteCompiledArtifactChunk, WriteCompiledArtifactChunkArgs,
 };
@@ -72,6 +78,20 @@ pub mod outcome {
         args: RecoverProgramConfigAdminArgs,
     ) -> Result<()> {
         instructions::recover_program_config_admin::handler(ctx, args)
+    }
+
+    pub fn initialize_unicorn_g_config(
+        ctx: Context<InitializeUnicornGConfig>,
+        args: InitializeUnicornGConfigArgs,
+    ) -> Result<()> {
+        instructions::initialize_unicorn_g_config::handler(ctx, args)
+    }
+
+    pub fn set_unicorn_g_config(
+        ctx: Context<SetUnicornGConfig>,
+        args: SetUnicornGConfigArgs,
+    ) -> Result<()> {
+        instructions::set_unicorn_g_config::handler(ctx, args)
     }
 
     pub fn submit_compiled_artifact(
@@ -142,11 +162,22 @@ pub mod outcome {
         instructions::prepare_rng_v2::handler(ctx, args)
     }
 
-    pub fn seal_randomness(
-        ctx: Context<SealRandomness>,
-        args: SealRandomnessArgs,
+    pub fn prepare_rng_v2_unicorn(
+        ctx: Context<PrepareRngV2Unicorn>,
+        args: PrepareRngV2Args,
     ) -> Result<()> {
+        instructions::prepare_rng_v2_unicorn::handler(ctx, args)
+    }
+
+    pub fn seal_randomness(ctx: Context<SealRandomness>, args: SealRandomnessArgs) -> Result<()> {
         instructions::seal_randomness::handler(ctx, args)
+    }
+
+    pub fn seal_randomness_unicorn(
+        ctx: Context<SealRandomnessUnicorn>,
+        args: SealRandomnessUnicornArgs,
+    ) -> Result<()> {
+        instructions::seal_randomness_unicorn::handler(ctx, args)
     }
 
     pub fn attest_winners(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
@@ -238,6 +269,12 @@ mod __client_accounts_set_program_config {
 mod __client_accounts_recover_program_config_admin {
     pub use crate::instructions::recover_program_config_admin::__client_accounts_recover_program_config_admin::*;
 }
+mod __client_accounts_initialize_unicorn_g_config {
+    pub use crate::instructions::initialize_unicorn_g_config::__client_accounts_initialize_unicorn_g_config::*;
+}
+mod __client_accounts_set_unicorn_g_config {
+    pub use crate::instructions::set_unicorn_g_config::__client_accounts_set_unicorn_g_config::*;
+}
 mod __client_accounts_submit_compiled_artifact {
     pub use crate::instructions::submit_compiled_artifact::__client_accounts_submit_compiled_artifact::*;
 }
@@ -271,8 +308,14 @@ mod __client_accounts_resolve_outcome_v121 {
 mod __client_accounts_prepare_rng_v2 {
     pub use crate::instructions::prepare_rng_v2::__client_accounts_prepare_rng_v2::*;
 }
+mod __client_accounts_prepare_rng_v2_unicorn {
+    pub use crate::instructions::prepare_rng_v2_unicorn::__client_accounts_prepare_rng_v2_unicorn::*;
+}
 mod __client_accounts_seal_randomness {
     pub use crate::instructions::seal_randomness::__client_accounts_seal_randomness::*;
+}
+mod __client_accounts_seal_randomness_unicorn {
+    pub use crate::instructions::seal_randomness_unicorn::__client_accounts_seal_randomness_unicorn::*;
 }
 mod __client_accounts_attest_winners {
     pub use crate::instructions::attest_winners::__client_accounts_attest_winners::*;

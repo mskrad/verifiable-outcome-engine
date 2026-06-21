@@ -68,6 +68,12 @@ pub enum OutcomeError {
     RngV2AttestDeadlineNotReached,
     #[msg("RNG v2 input below snapshotted protocol fee")]
     RngV2InputBelowFee,
+    #[msg("Invalid entropy source")]
+    InvalidEntropySource,
+    #[msg("Invalid Unicorn-G config")]
+    InvalidUnicornGConfig,
+    #[msg("Invalid Unicorn-G proof")]
+    InvalidUnicornGProof,
     #[msg("Invalid sortition draw")]
     InvalidSortitionDraw,
     #[msg("Invalid sortition status")]

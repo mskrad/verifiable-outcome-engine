@@ -5,10 +5,9 @@ use crate::{
     errors::OutcomeError,
     events::RngV2Prepared,
     instructions::compiled_artifact_chunks::load_blob_from_remaining,
-    math::{compiled_outcome_v1, rng_v2},
+    math::{compiled_outcome_v1, rng_v2, unicorn_g},
     state::{
-        approved_outcome_artifact::ApprovedOutcomeArtifact,
-        outcome_config::OutcomeConfig,
+        approved_outcome_artifact::ApprovedOutcomeArtifact, outcome_config::OutcomeConfig,
         program_config::ProgramConfig,
     },
 };
@@ -39,10 +38,11 @@ pub struct RngV2State {
     pub slot_hashes: [[u8; 32]; 3],
     pub bump: u8,
     // --- Outcome Standard v1.3.2 (Tier 0) additive fields, carved from reserved(32) ---
-    pub bounty_lamports: u64,       // 8 — bounty held on this PDA, paid to sealer / slashed on expire
-    pub fee_snapshot: u64,          // 8 — protocol fee captured at prepare (charged at attest)
-    pub attest_deadline_slot: u64,  // 8 — after this slot a SEALED draw may be expire_sealed'd
-    pub reserved: [u8; 8],
+    pub bounty_lamports: u64, // 8 — bounty held on this PDA, paid to sealer / slashed on expire
+    pub fee_snapshot: u64,    // 8 — protocol fee captured at prepare (charged at attest)
+    pub attest_deadline_slot: u64, // 8 — after this slot a SEALED draw may be expire_sealed'd
+    pub entropy_source: u8,   // 1 — 0=SLOT_HASH, 1=UNICORN_G
+    pub reserved: [u8; 7],
 }
 
 impl RngV2State {
@@ -67,7 +67,8 @@ impl RngV2State {
         + 8
         + 8
         + 8
-        + 8;
+        + 1
+        + 7;
 }
 
 fn sha256(bytes: &[u8]) -> [u8; 32] {
@@ -234,7 +235,8 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
     state.bounty_lamports = args.bounty_lamports;
     state.fee_snapshot = fee_snapshot;
     state.attest_deadline_slot = attest_deadline_slot;
-    state.reserved = [0u8; 8];
+    state.entropy_source = unicorn_g::ENTROPY_SOURCE_SLOT_HASH;
+    state.reserved = [0u8; 7];
 
     config.next_resolve_id = config
         .next_resolve_id
@@ -255,6 +257,7 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
         bounty_lamports: args.bounty_lamports,
         fee_snapshot,
         attest_deadline_slot,
+        entropy_source: state.entropy_source,
     });
 
     Ok(())

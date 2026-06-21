@@ -802,6 +802,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "sha2",
+ "solana-bn254",
  "solana-sha256-hasher",
 ]
 
@@ -1728,6 +1729,7 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "solana-bn254",
+ "solana-sha256-hasher",
 ]
 
 [[package]]

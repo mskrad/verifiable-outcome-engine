@@ -6,10 +6,9 @@ use crate::{
     events::{OutcomeResolvedV4, RngV2Attested},
     instructions::compiled_artifact_chunks::load_blob_from_remaining,
     instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_SEALED, RNG_V2_STATUS_SETTLED},
-    math::{compiled_outcome_v1, rng_v2},
+    math::{compiled_outcome_v1, rng_v2, unicorn_g},
     state::{
-        approved_outcome_artifact::ApprovedOutcomeArtifact,
-        outcome_config::OutcomeConfig,
+        approved_outcome_artifact::ApprovedOutcomeArtifact, outcome_config::OutcomeConfig,
         program_config::ProgramConfig,
     },
 };
@@ -46,9 +45,10 @@ pub struct OutcomeResolutionV4 {
     pub operator_reveal: [u8; 32],
     pub bump: u8,
     // --- Outcome Standard v1.3.2 (Tier 0) additive fields, carved from reserved(29) ---
-    pub protocol_revision: u8,   // 1
-    pub bounty_lamports: u64,    // 8
-    pub reserved: [u8; 20],
+    pub protocol_revision: u8, // 1
+    pub bounty_lamports: u64,  // 8
+    pub entropy_source: u8,    // 1
+    pub reserved: [u8; 19],
 }
 
 impl OutcomeResolutionV4 {
@@ -79,7 +79,8 @@ impl OutcomeResolutionV4 {
         + 1
         + 1
         + 8
-        + 20;
+        + 1
+        + 19;
 }
 
 fn sha256(bytes: &[u8]) -> [u8; 32] {
@@ -163,7 +164,9 @@ fn validate_primary_outcome_id(outcome_id_len: u8, outcome_id: &[u8]) -> Result<
     );
     let canonical = &outcome_id[..outcome_id_len as usize];
     require!(
-        canonical.iter().all(|byte| byte.is_ascii() && !byte.is_ascii_control()),
+        canonical
+            .iter()
+            .all(|byte| byte.is_ascii() && !byte.is_ascii_control()),
         OutcomeError::InvalidOutcomeId
     );
     require!(
@@ -263,20 +266,26 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
     );
     validate_primary_outcome_id(args.outcome_id_len, &args.outcome_id)?;
 
-    // Randomness was determined at seal; recompute it deterministically from the
-    // slot evidence persisted on-chain (no SlotHashes sysvar needed here).
-    let seed = rng_v2::derive_seed(
-        &state.runtime_id,
-        state.resolve_id,
-        &state.compiled_artifact_hash,
-        &state.snapshot_hash,
-        &state.resolved_slots,
-        &state.slot_hashes,
-        state.operator_commit_present,
-        &state.operator_commit_hash,
-    );
-    let randomness =
-        rng_v2::derive_randomness(&seed, &state.runtime_id, state.resolve_id, &state.actor);
+    // Randomness was determined at seal. SLOT_HASH draws recompute it from persisted
+    // SlotHashes evidence; Unicorn-G draws persist the y-derived randomness in the
+    // third evidence slot until B7 moves to a dedicated replay layout.
+    let randomness = match state.entropy_source {
+        unicorn_g::ENTROPY_SOURCE_SLOT_HASH => {
+            let seed = rng_v2::derive_seed(
+                &state.runtime_id,
+                state.resolve_id,
+                &state.compiled_artifact_hash,
+                &state.snapshot_hash,
+                &state.resolved_slots,
+                &state.slot_hashes,
+                state.operator_commit_present,
+                &state.operator_commit_hash,
+            );
+            rng_v2::derive_randomness(&seed, &state.runtime_id, state.resolve_id, &state.actor)
+        }
+        unicorn_g::ENTROPY_SOURCE_UNICORN_G => state.slot_hashes[2],
+        _ => return err!(OutcomeError::InvalidEntropySource),
+    };
 
     let (total_output_lamports, effect_count, effects_digest) =
         compiled_outcome_v1::synthetic_effects_digest_v4(
@@ -350,7 +359,8 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
     resolution.bump = ctx.bumps.outcome_resolution;
     resolution.protocol_revision = PROTOCOL_REVISION_V1_3_2;
     resolution.bounty_lamports = state.bounty_lamports;
-    resolution.reserved = [0u8; 20];
+    resolution.entropy_source = state.entropy_source;
+    resolution.reserved = [0u8; 19];
 
     state.status = RNG_V2_STATUS_SETTLED;
 
@@ -377,6 +387,7 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
         operator_commit_hash: state.operator_commit_hash,
         operator_reveal_len: state.operator_reveal_len,
         operator_reveal: state.operator_reveal,
+        entropy_source: state.entropy_source,
     });
     emit!(RngV2Attested {
         runtime_id: state.runtime_id,
