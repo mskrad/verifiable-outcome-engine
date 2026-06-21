@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Unicorn-G PHASE 3 (B3) — Groth16 trusted setup for the PRODUCTION sound circuit
-# (wesolowski_sound_prod, ~14.92M constraints, N baked as a constant). Produces the
-# deliverables for on-chain integration (B4): the verifying key + proving key.
+# Unicorn-G PHASE 3 (B3) — Groth16 trusted setup for the SOUND option-A circuit
+# (wesolowski_sound_A, ~12.51M constraints, in-circuit Pocklington, 1 public input = commit,
+# N baked). Produces the deliverables for on-chain integration: the verifying key + proving key.
 #
 # Prereq on this box: the canonical RSA modulus baked in. Put the modulus decimal in
 # prod_modulus.txt BEFORE running (devnet = RSA-2048 Challenge number from RSA Labs):
 #     echo "<canonical RSA-2048 decimal>" > prod_modulus.txt
 # bake_n.js validates it (2048-bit, odd, no small factors) and prints rsa_modulus_id.
 #
-# Target box: Ubuntu 22.04/24.04, >=128 GB RAM (setup peaks ~74 GB at 14.9M; 64 GB OOMs),
-# NVMe, 16+ cores. Same class as Phase 1b (AMD EPYC 9754 / 128 GB / 16 vCPU). ~3h wall.
+# Target box: Ubuntu 22.04/24.04, >=96 GB RAM (setup peaks ~70 GB at 12.5M; the 126 GB box
+# fits comfortably), NVMe, 16+ cores (AMD EPYC class). ~3h wall.
 # GPU not used. Run as a user with sudo.
 #
 # Deliverables copied back (then DESTROY the box):
@@ -21,7 +21,7 @@
 set -euo pipefail
 SPIKE_DIR="$(cd "$(dirname "$0")" && pwd)"; cd "$SPIKE_DIR"
 mkdir -p build phase3
-CIRCUIT=wesolowski_sound_prod
+CIRCUIT=wesolowski_sound_A
 PTAU_POW="${PTAU_POW:-24}"             # 2^24 covers ~14.9M
 PTAU="build/pot${PTAU_POW}.ptau"
 TIME=/usr/bin/time
@@ -75,8 +75,8 @@ echo "--- compile $CIRCUIT ---"
 $TIME -v circom "circuits/$CIRCUIT.circom" --r1cs --wasm --O2 -o build -l circuits -l node_modules > phase3/compile_out.txt 2> phase3/time_compile.txt
 NC=$(grep -m1 'non-linear constraints' phase3/compile_out.txt | grep -oE '[0-9]+'); echo "constraints=$NC"
 echo "--- fixture (PROD) + witness ---"
-PROD=1 node gen_sound_fixture.js
-node "build/${CIRCUIT}_js/generate_witness.js" "build/${CIRCUIT}_js/$CIRCUIT.wasm" build/ws_input.json build/witness.wtns
+node gen_sound_a_fixture.js
+node "build/${CIRCUIT}_js/generate_witness.js" "build/${CIRCUIT}_js/$CIRCUIT.wasm" build/wa_input.json build/witness.wtns
 
 # 4. groth16 setup -> zkey + VK (the deliverables), measured
 echo "--- groth16 setup (timed; ~3h, ~74GB) ---"
@@ -99,7 +99,7 @@ const wall=s=>{const m=f(s).match(/wall clock\)[^\n]*?:\s*([0-9.:]+)\s*$/m);retu
 const rss=s=>{const m=f(s).match(/Maximum resident set size[^:]*:\s*(\d+)/i);return m?+(+m[1]/1024/1024).toFixed(2):null};
 const out={phase:"Unicorn-G PHASE3 (B3) — production setup",date:new Date().toISOString(),
  machine:{cpu:process.env.CPU,ram_gb:+process.env.RAM_GB,cores:+process.env.CORES},
- circuit:"wesolowski_sound_prod",constraints:+process.env.NC,public_inputs:2,ptau_pow:+process.env.PTAU_POW,
+ circuit:"wesolowski_sound_A",constraints:+process.env.NC,public_inputs:1,ptau_pow:+process.env.PTAU_POW,
  rsa_modulus_id:process.env.RID,
  zkey_setup:{wall:wall("phase3/time_setup.txt"),peak_rss_gb:rss("phase3/time_setup.txt"),note:"ONE-TIME per circuit"},
  prove_rapidsnark:{wall:wall("phase3/time_prove.txt"),peak_rss_gb:rss("phase3/time_prove.txt"),note:"per-draw"},
