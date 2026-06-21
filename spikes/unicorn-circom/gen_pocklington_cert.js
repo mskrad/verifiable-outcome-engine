@@ -102,19 +102,25 @@ console.log("wrote programs/unicorn-spike/src/generated_cert.rs");
 const mask64 = (1n << 64n) - 1n;
 const lm1 = found.l - 1n;
 const lo2 = (x) => [(x & mask64).toString(), ((x >> 64n) & mask64).toString()];
-const q = [], e = [], ediv = [], sinv = [];
+const PRIMES = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,191,193,197,199,211,223,227,229,233,239,241,251];
+function modinv(x, m) { let [old_r, r] = [((x % m) + m) % m, m], [old_s, s] = [1n, 0n]; while (r !== 0n) { const qq = old_r / r; [old_r, r] = [r, old_r - qq * r]; [old_s, s] = [s, old_s - qq * s]; } return ((old_s % m) + m) % m; }
+const q = [], e = [], ediv = [], sinv = [], quo = [];
+let Fcap = 1n;
 for (let i = 0; i < 8; i++) {
   if (i < found.distinct.length) {
     const p = found.distinct[i];
     let ee = 0n, t = lm1; while (t % p === 0n) { ee++; t /= p; }
+    if (ee > 64n) ee = 64n;                  // EMAX cap
     q.push(p.toString()); e.push(ee.toString()); ediv.push((lm1 / p).toString());
-    // gcd inverse hint: g = a^((l-1)/p) mod l ; sinv = (g-1)^{-1} mod l
+    Fcap *= p ** ee;
     const g = modpow(found.a, lm1 / p, found.l);
-    const gm1 = (g - 1n + found.l) % found.l;
-    sinv.push(modinv(gm1, found.l).toString());
+    sinv.push(modinv((g - 1n + found.l) % found.l, found.l).toString());
   } else { q.push("2"); e.push("0"); ediv.push("0"); sinv.push("0"); }
+  const qi = BigInt(q[i]);
+  quo.push(PRIMES.map((pp) => (qi / BigInt(pp)).toString()));
 }
-function modinv(x, m) { let [old_r, r] = [((x % m) + m) % m, m], [old_s, s] = [1n, 0n]; while (r !== 0n) { const qq = old_r / r; [old_r, r] = [r, old_r - qq * r]; [old_s, s] = [s, old_s - qq * s]; } return ((old_s % m) + m) % m; }
-const wit = { l2: lo2(found.l), a: found.a.toString(), F2: lo2(found.f), R2: lo2(found.r), q, e, ediv, sinv };
+const Rcap = lm1 / Fcap;
+if (!(Fcap * Fcap > found.l)) { console.error("capped F <= sqrt(l) — pick another l"); process.exit(1); }
+const wit = { l2: lo2(found.l), a: found.a.toString(), F2: lo2(Fcap), R2: lo2(Rcap), q, e, ediv, sinv, quo };
 fs.writeFileSync("build/pock_witness.json", JSON.stringify(wit, null, 2));
-console.log("wrote build/pock_witness.json (", found.distinct.length, "factors )");
+console.log("wrote build/pock_witness.json (", found.distinct.length, "factors, F bits", Fcap.toString(2).length, ")");
