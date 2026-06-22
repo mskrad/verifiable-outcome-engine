@@ -37,6 +37,11 @@
       "id": "adapters_package",
       "status": "accepted",
       "summary": "Adapter evidence remains docs-only and is not exported as public code."
+    },
+    {
+      "id": "unicorn_g_b8_isolated_devnet",
+      "status": "accepted_bounded_isolated_devnet_non_canonical",
+      "summary": "Unicorn-G entropy source (global-omega / RngV2State) end-to-end on ISOLATED non-canonical devnet 6QtLot... only: SlotHashes-derived u, Groth16-verified y, seal + attest + wrong-proof rejection. NOT canonical, NOT mainnet, NOT production, NO sortition rollout. Details under isolated_devnet_unicorn_g_b8."
     }
   ],
   "accepted_source_of_truth_files": [
@@ -66,11 +71,67 @@
     "scripts/replay_verify.ts",
     "scripts/resolve_operator.ts"
   ],
+  "isolated_devnet_unicorn_g_b8": {
+    "status": "accepted_bounded",
+    "task_id": "PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE",
+    "scope": "global-omega / RngV2State Unicorn-G entropy path on isolated non-canonical devnet only",
+    "isolated_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+    "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "overclaim_guards": {
+      "canonical_deploy": false,
+      "canonical_mutation": false,
+      "mainnet_readiness": false,
+      "production_rollout": false,
+      "sortition_rollout": false
+    },
+    "seal": {
+      "signature": "4aKtC13JeN73bg9j2kycqSwAhocPipdhWgDYdYQvgygheAS1qvmK5uvsBAGEsxvUdRWuyJTh6fo7spFTDYbDSGQC",
+      "compute_units": 247476,
+      "randomness_hex": "939e8494fb7696f6a18bcab57a8e87e2c7935e91987e60ea209a60f8555a73c9"
+    },
+    "attest": {
+      "signature": "45RCc4Xd9Sdyr3q1VmurJ2D2QvTUcj8zR63u42iPyw8mBqXnv4umKXqNJ2fRz2NNYfd3cu8o2wBUhyZETqHUNaeD",
+      "compute_units": 61466,
+      "outcome_resolution": "4eg6mKzS2LSLDsDUZnwPu35nE7dmUrCYzqqNuUkrrzyr",
+      "winner": "p_0"
+    },
+    "wrong_proof_rejection": {
+      "error": "InvalidUnicornGProof",
+      "error_number": 6035,
+      "simulation_compute_units": 143069
+    },
+    "localnet_full_e2e": {
+      "seal_compute_units": 209226,
+      "prove_wall_s": 37.4,
+      "prove_peak_rss_gb": 4.3,
+      "tampered_y_rejected": true
+    },
+    "canonical_unchanged_after_attest": {
+      "authority": "8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA",
+      "last_deployed_slot": 459318657,
+      "data_length": 608488
+    },
+    "artifacts": [
+      "artifacts/protocol_infra_014_b8_devnet_evidence_summary.json",
+      "artifacts/protocol_infra_014_b8_unicorn_g_replay.json",
+      "artifacts/protocol_infra_014_b8_attest_devnet.json",
+      "artifacts/protocol_infra_014_b8_wrong_proof_replay.json",
+      "artifacts/protocol_infra_014_b8_wrong_proof_rejection.json",
+      "artifacts/protocol_infra_014_b8_localnet_e2e.json"
+    ],
+    "local_gates": {
+      "cargo_test_p_outcome": "PASS 31/31",
+      "anchor_build": "PASS",
+      "npx_tsc_no_emit": "PASS",
+      "git_diff_check": "PASS"
+    }
+  },
   "notes": [
     "This repository is the standalone hackathon repo and the reviewer/runtime flow runs from repo root.",
     "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
     "Legacy compiled spec and metrics appendix files are not part of the active standalone runtime surface.",
     "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows.",
-    "The current canonical evidence set is program 9tEram... with Raffle, Rewards Selection, Trading Competition, and Prediction Market active signatures."
+    "The current canonical evidence set is program 9tEram... with Raffle, Rewards Selection, Trading Competition, and Prediction Market active signatures.",
+    "Unicorn-G B8 evidence (isolated_devnet_unicorn_g_b8) is on the isolated non-canonical program 6QtLot... only; it is not part of the canonical blessed signature set and makes no mainnet/production/sortition claim."
   ]
 }

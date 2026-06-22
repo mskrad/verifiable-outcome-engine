@@ -69,6 +69,52 @@ It does not require:
 - localnet historical sample signatures
 - adapters code
 
+## 6b) Unicorn-G entropy source — isolated devnet evidence (bounded, non-canonical)
+
+Status: accepted for the bounded isolated devnet `global-omega` / `RngV2State` Unicorn-G path only (`PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE`).
+
+What this is: an alternative on-chain entropy source for `outcome` draws. With `entropy_source = UNICORN_G`, the program derives the RNG v2 input `u` on-chain from frozen `RngV2State` + `SlotHashes`, verifies a VDF output `y` through an embedded Groth16 proof, and seals randomness from `y`. The existing `SLOT_HASH` path is unchanged and remains the default; `seal_randomness` still rejects `UNICORN_G` draws.
+
+Scope guards — what this evidence does NOT claim:
+
+- No canonical deploy. Canonical `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F` is not mutated or promoted.
+- No mainnet readiness. No mainnet RSA ceremony / mainnet modulus.
+- No production rollout claim.
+- No sortition rollout. Evidence covers the global-omega / `RngV2State` path only.
+
+Isolated program (non-canonical): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
+
+End-to-end isolated devnet cycle completed: `prepare -> SlotHashes-derived u replay -> proof -> seal -> attest`.
+
+Accepted evidence:
+
+- Seal: `4aKtC13JeN73bg9j2kycqSwAhocPipdhWgDYdYQvgygheAS1qvmK5uvsBAGEsxvUdRWuyJTh6fo7spFTDYbDSGQC` — CU `247476` — randomness `939e8494fb7696f6a18bcab57a8e87e2c7935e91987e60ea209a60f8555a73c9`
+- Attest: `45RCc4Xd9Sdyr3q1VmurJ2D2QvTUcj8zR63u42iPyw8mBqXnv4umKXqNJ2fRz2NNYfd3cu8o2wBUhyZETqHUNaeD` — CU `61466` — outcome resolution `4eg6mKzS2LSLDsDUZnwPu35nE7dmUrCYzqqNuUkrrzyr` — winner `p_0`
+- Wrong-proof rejection: `InvalidUnicornGProof (6035)` — simulation CU `143069`
+- Reinforcing negatives: replay of a valid proof against an already-SEALED state → `InvalidRngV2Status (6022)`; independent fresh-draw tampered-`y` on a real proof → `InvalidUnicornGProof (6035)` (pairing check)
+- Localnet full E2E (incl. tampered-`y` rejection): seal CU `209226`, prover `37.4s` / `4.3 GB` peak RSS
+- Canonical unchanged after attest: `9tEram...` authority `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA`, last deployed slot `459318657`, data length `608488`
+
+Evidence artifacts:
+
+- `artifacts/protocol_infra_014_b8_devnet_evidence_summary.json` (index)
+- `artifacts/protocol_infra_014_b8_unicorn_g_replay.json`
+- `artifacts/protocol_infra_014_b8_attest_devnet.json`
+- `artifacts/protocol_infra_014_b8_wrong_proof_replay.json`
+- `artifacts/protocol_infra_014_b8_wrong_proof_rejection.json`
+- `artifacts/protocol_infra_014_b8_localnet_e2e.json`
+
+Read-only verification (no mutation):
+
+```bash
+solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F --url https://api.devnet.solana.com
+solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B --url https://api.devnet.solana.com
+```
+
+Expected canonical authority `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA`, last deployed slot `459318657`.
+
+Local gates recorded with this evidence: `cargo test -p outcome` (`31/31`), `anchor build`, `npx tsc --noEmit`, `git diff --check`.
+
 ## 7) Program upgrade authority
 
 The canonical devnet program upgrade authority is the Squads vault PDA controlled by the hackathon multisig:
