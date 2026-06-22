@@ -1,10 +1,10 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::sysvar};
 
 use crate::{
     errors::OutcomeError,
     events::{OutcomeResolveStartedV1, RngV2Sealed, RngV2UnicornSealed},
     instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_PREPARED, RNG_V2_STATUS_SEALED},
-    math::unicorn_g,
+    math::{rng_v2, unicorn_g},
     state::{
         outcome_config::OutcomeConfig,
         unicorn_g::{UnicornGConfig, UNICORN_G_DEVNET_RSA_MODULUS_ID},
@@ -15,7 +15,6 @@ use crate::{
 pub struct SealRandomnessUnicornArgs {
     pub runtime_id: [u8; 16],
     pub resolve_id: u64,
-    pub u: [u64; 32],
     pub y: [u64; 32],
     pub proof_a_neg: [u8; 64],
     pub proof_b: [u8; 128],
@@ -43,6 +42,8 @@ pub struct SealRandomnessUnicorn<'info> {
         bump = rng_v2_state.bump
     )]
     pub rng_v2_state: Box<Account<'info, RngV2State>>,
+    /// CHECK: validated manually as the SlotHashes sysvar account.
+    pub slot_hashes: AccountInfo<'info>,
 }
 
 pub fn handler(ctx: Context<SealRandomnessUnicorn>, args: SealRandomnessUnicornArgs) -> Result<()> {
@@ -76,11 +77,33 @@ pub fn handler(ctx: Context<SealRandomnessUnicorn>, args: SealRandomnessUnicornA
         clock.slot <= state.expiry_slot,
         OutcomeError::RngV2SettlementWindowExpired
     );
+    require_keys_eq!(
+        ctx.accounts.slot_hashes.key(),
+        sysvar::slot_hashes::ID,
+        OutcomeError::InvalidSlotHashesSysvar
+    );
 
-    let commit = unicorn_g::commit(&args.u, &args.y);
+    let slot_hashes_data = ctx.accounts.slot_hashes.try_borrow_data()?;
+    let (resolved_slots, slot_hashes) =
+        rng_v2::resolve_slot_hashes(&slot_hashes_data, &state.target_slots)?;
+    drop(slot_hashes_data);
+
+    let seed = rng_v2::derive_seed(
+        &state.runtime_id,
+        state.resolve_id,
+        &state.compiled_artifact_hash,
+        &state.snapshot_hash,
+        &resolved_slots,
+        &slot_hashes,
+        state.operator_commit_present,
+        &state.operator_commit_hash,
+    );
+    let u = unicorn_g::derive_u_from_seed(&seed);
+
+    let commit = unicorn_g::commit(&u, &args.y);
     unicorn_g::verify_unicorn_proof(commit, &args.proof_a_neg, &args.proof_b, &args.proof_c)?;
 
-    let u_hash = unicorn_g::hash_limb_bytes(&args.u);
+    let u_hash = unicorn_g::hash_limb_bytes(&u);
     let y_hash = unicorn_g::hash_limb_bytes(&args.y);
     let randomness =
         unicorn_g::derive_randomness(&args.y, &state.runtime_id, state.resolve_id, &state.actor);
@@ -99,9 +122,9 @@ pub fn handler(ctx: Context<SealRandomnessUnicorn>, args: SealRandomnessUnicornA
             .ok_or(OutcomeError::MathOverflow)?;
     }
 
-    state.resolved_slots = [0u64; 3];
-    // Step 1 uses these fields as Unicorn-G evidence slots without increasing account size:
-    // [0]=commit, [1]=y_hash, [2]=randomness. SlotHashes-derived u lands in a later B7 step.
+    state.resolved_slots = resolved_slots;
+    // Unicorn-G evidence slots without increasing account size:
+    // [0]=commit, [1]=y_hash, [2]=randomness. The u_hash is emitted for replay.
     state.slot_hashes = [commit, y_hash, randomness];
     state.status = RNG_V2_STATUS_SEALED;
 
@@ -128,6 +151,8 @@ pub fn handler(ctx: Context<SealRandomnessUnicorn>, args: SealRandomnessUnicornA
         resolve_id: state.resolve_id,
         sealer: ctx.accounts.sealer.key(),
         actor: state.actor,
+        resolved_slots,
+        resolved_slot_hashes: slot_hashes,
         commit,
         u_hash,
         y_hash,

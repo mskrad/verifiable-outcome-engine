@@ -157,6 +157,8 @@ pub struct RngV2UnicornSealed {
     pub resolve_id: u64,
     pub sealer: Pubkey,
     pub actor: Pubkey,
+    pub resolved_slots: [u64; 3],
+    pub resolved_slot_hashes: [[u8; 32]; 3],
     pub commit: [u8; 32],
     pub u_hash: [u8; 32],
     pub y_hash: [u8; 32],
