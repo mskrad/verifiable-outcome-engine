@@ -270,3 +270,15 @@ pub struct SortitionTicketClosed {
     pub refunded_lamports: u64,
     pub skim_lamports: u64,
 }
+
+#[event]
+pub struct ConditionsResolvedV1 {
+    pub runtime_id: [u8; 16],
+    pub operator: Pubkey,
+    pub compiled_artifact_hash: [u8; 32],
+    pub entrant_count: u32,
+    pub winner_count: u16,
+    pub winning_score_sum: u128,
+    pub winners_digest: [u8; 32],
+    pub facts_ref_root: [u8; 32],
+}

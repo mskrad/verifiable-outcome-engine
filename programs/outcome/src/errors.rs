@@ -112,4 +112,6 @@ pub enum OutcomeError {
     SortitionPaidRegistrationRequired,
     #[msg("Sortition economics must be set before the first registration")]
     SortitionEconomicsAfterRegistration,
+    #[msg("Invalid conditions artifact")]
+    InvalidConditionsArtifact,
 }

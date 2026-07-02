@@ -21,6 +21,7 @@ pub mod register_sortition_ticket;
 pub mod register_sortition_ticket_paid;
 pub mod resolve_outcome;
 pub mod resolve_outcome_v121;
+pub mod resolve_conditions;
 pub mod resolve_outcome_v4;
 pub mod review_compiled_artifact;
 pub mod seal_randomness;

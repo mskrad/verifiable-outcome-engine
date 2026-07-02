@@ -9,6 +9,7 @@ pub mod state;
 use instructions::admin_pause::AdminPause;
 use instructions::admin_withdraw::AdminWithdraw;
 use instructions::attest_winners::{AttestWinners, AttestWinnersArgs};
+use instructions::resolve_conditions::{ResolveConditions, ResolveConditionsArgs};
 use instructions::claim_sortition_ticket::{ClaimSortitionTicket, ClaimSortitionTicketArgs};
 use instructions::close_sortition_ticket::{CloseSortitionTicket, CloseSortitionTicketArgs};
 use instructions::create_sortition_draw::{CreateSortitionDraw, CreateSortitionDrawArgs};
@@ -184,6 +185,13 @@ pub mod outcome {
         instructions::attest_winners::handler(ctx, args)
     }
 
+    pub fn resolve_conditions(
+        ctx: Context<ResolveConditions>,
+        args: ResolveConditionsArgs,
+    ) -> Result<()> {
+        instructions::resolve_conditions::handler(ctx, args)
+    }
+
     pub fn expire_rng_v2(ctx: Context<ExpireRngV2>, args: ExpireRngV2Args) -> Result<()> {
         instructions::expire_rng_v2::handler(ctx, args)
     }
@@ -317,6 +325,11 @@ mod __client_accounts_seal_randomness {
 mod __client_accounts_seal_randomness_unicorn {
     pub use crate::instructions::seal_randomness_unicorn::__client_accounts_seal_randomness_unicorn::*;
 }
+mod __client_accounts_resolve_conditions {
+    pub use crate::instructions::resolve_conditions::__client_accounts_resolve_conditions::*;
+}
+
+#[allow(unused_imports)]
 mod __client_accounts_attest_winners {
     pub use crate::instructions::attest_winners::__client_accounts_attest_winners::*;
 }
