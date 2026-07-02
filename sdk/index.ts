@@ -43,6 +43,9 @@ export {
   MAX_COMPOSITE_FIELDS,
 } from "./composite_rank_desc.js";
 export { verifyOutcome } from "./verify.js";
+// OddSol `conditions` mode (fc7/fv9): isolated devnet partner integration, non-canonical.
+// Fixed-point slip scoring + slip_hash + artifact build/parse/replay. See PROTOCOL-INFRA-016.
+export * from "./conditions.js";
 // Sortition-by-claim (v1.4.0) + economics (v1.4.1) builders. Canonical protocol
 // path on the devnet program 9tEram…; replay-by-signature stays the default
 // resolution path. See README "Resolution Paths".
