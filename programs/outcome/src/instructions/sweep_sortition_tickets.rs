@@ -52,8 +52,8 @@ pub fn handler<'info>(
         OutcomeError::SortitionCloseTooEarly
     );
 
-    let skim_bps: u64 = if ctx.accounts.sortition_draw.fee_mode & SORTITION_FEE_CLOSE_SKIM != 0 {
-        ctx.accounts.sortition_draw.close_skim_bps as u64
+    let skim_bps: u16 = if ctx.accounts.sortition_draw.fee_mode & SORTITION_FEE_CLOSE_SKIM != 0 {
+        ctx.accounts.sortition_draw.close_skim_bps
     } else {
         0
     };
@@ -87,12 +87,8 @@ pub fn handler<'info>(
         require!(owner_ai.key() == owner_key, OutcomeError::Unauthorized);
 
         let rent = ticket_ai.lamports();
-        let skim = (rent as u128)
-            .checked_mul(skim_bps as u128)
-            .ok_or(OutcomeError::MathOverflow)?
-            .checked_div(10_000)
-            .ok_or(OutcomeError::MathOverflow)? as u64;
-        let refund = rent - skim;
+        // close_split guarantees refund + skim == rent (unit-tested in state::sortition).
+        let (refund, skim) = crate::state::sortition::close_split(rent, skim_bps);
 
         // Manual close: drain the ticket, credit owner + treasury, zero the data
         // so the closed account cannot be reinterpreted within this transaction.

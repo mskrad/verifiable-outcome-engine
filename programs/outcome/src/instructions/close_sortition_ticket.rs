@@ -61,19 +61,16 @@ pub fn handler(ctx: Context<CloseSortitionTicket>, args: CloseSortitionTicketArg
         OutcomeError::SortitionCloseTooEarly
     );
 
-    let skim_bps: u64 = if draw.fee_mode & SORTITION_FEE_CLOSE_SKIM != 0 {
-        draw.close_skim_bps as u64
+    let skim_bps: u16 = if draw.fee_mode & SORTITION_FEE_CLOSE_SKIM != 0 {
+        draw.close_skim_bps
     } else {
         0
     };
 
     let ticket_ai = ctx.accounts.ticket_commit.to_account_info();
     let rent = ticket_ai.lamports();
-    let skim = (rent as u128)
-        .checked_mul(skim_bps as u128)
-        .ok_or(OutcomeError::MathOverflow)?
-        .checked_div(10_000)
-        .ok_or(OutcomeError::MathOverflow)? as u64;
+    // close_split guarantees refund + skim == rent (unit-tested in state::sortition).
+    let (refund, skim) = crate::state::sortition::close_split(rent, skim_bps);
 
     // Manually skim to treasury; Anchor `close = owner` transfers the remainder
     // (rent - skim) to the owner and zeroes the account on exit.
@@ -86,7 +83,7 @@ pub fn handler(ctx: Context<CloseSortitionTicket>, args: CloseSortitionTicketArg
         draw_id: args.draw_id,
         ticket_id: args.ticket_id,
         owner: ctx.accounts.owner.key(),
-        refunded_lamports: rent - skim,
+        refunded_lamports: refund,
         skim_lamports: skim,
     });
 
