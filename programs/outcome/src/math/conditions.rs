@@ -70,7 +70,9 @@ pub struct EntryCommit {
 }
 
 /// A single proven fact: `stat_key = period*1000 + base` (base 1 = P1 goals, 2 = P2 goals).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// `period` is derivable as `stat_key / 1000` and is deliberately NOT committed (single source
+/// of truth with `LegCommit.stat_key_*`).
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ScoreStat {
     pub stat_key: u32,
     pub value: i32,
@@ -284,6 +286,129 @@ pub fn winning_score_sum(entrants: &[RankedEntrant]) -> u128 {
         .sum()
 }
 
+// ---------------------------------------------------------------------------------------
+// fc7 / fv9 resolution artifact (locked with OddSol).
+//
+// Layout (borsh, LE): magic b"W3O1" ‖ format_version(u16) ‖ formula_code(u8) ‖ winners_mode(u8)
+//   ‖ fixtures: Vec<ConditionsFixture> ‖ entrants: Vec<ConditionsEntrant>.
+// Facts join legs by stat_key EQUALITY (not index); each leg picks its fixture via a parallel
+// `fixture_index` into `fixtures`. `LegCommit` / `slip_hash` are untouched (no re-hash).
+// `event_stat_root` is the verbatim TxLINE facts-ref anchor (VRE binds, does not re-verify).
+// ---------------------------------------------------------------------------------------
+
+pub const CONDITIONS_MAGIC: [u8; 4] = *b"W3O1";
+/// Winners = every settled `all_hit` slip; payout is pro-rata over them (OddSol side).
+pub const WINNERS_MODE_ALL_HIT_PRORATA: u8 = 0;
+
+/// One committed fixture (match) with its proven stats and facts-ref anchor.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ConditionsFixture {
+    pub fixture_id: u32,
+    pub event_stat_root: [u8; 32],
+    pub stats: Vec<ScoreStat>,
+}
+
+/// One committed entrant: identity + tie-break key + slip legs, each pointing at a fixture.
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ConditionsEntrant {
+    pub wallet: [u8; 32],
+    pub tier: u64,
+    pub entered_at: i64,
+    pub legs: Vec<LegCommit>,
+    /// Parallel to `legs`: index into the artifact `fixtures` for each leg.
+    pub fixture_index: Vec<u16>,
+}
+
+impl ConditionsEntrant {
+    /// Recompute this entrant's `slip_hash` from the committed legs (not trusted from input).
+    pub fn slip_hash(&self) -> [u8; 32] {
+        slip_hash(self.wallet, self.tier, &self.legs)
+    }
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq, Eq)]
+pub struct ConditionsArtifact {
+    pub magic: [u8; 4],
+    pub format_version: u16,
+    pub formula_code: u8,
+    pub winners_mode: u8,
+    pub fixtures: Vec<ConditionsFixture>,
+    pub entrants: Vec<ConditionsEntrant>,
+}
+
+impl ConditionsArtifact {
+    pub fn new(fixtures: Vec<ConditionsFixture>, entrants: Vec<ConditionsEntrant>) -> Self {
+        Self {
+            magic: CONDITIONS_MAGIC,
+            format_version: FORMAT_VERSION_CONDITIONS,
+            formula_code: FORMULA_CODE_CONDITIONS,
+            winners_mode: WINNERS_MODE_ALL_HIT_PRORATA,
+            fixtures,
+            entrants,
+        }
+    }
+
+    /// Serialize to the fc7 byte artifact.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.try_to_vec().unwrap_or_default()
+    }
+
+    /// Parse an fc7 byte artifact, validating the header.
+    pub fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        let a = Self::deserialize(&mut &bytes[..]).ok()?;
+        if a.magic == CONDITIONS_MAGIC
+            && a.format_version == FORMAT_VERSION_CONDITIONS
+            && a.formula_code == FORMULA_CODE_CONDITIONS
+        {
+            Some(a)
+        } else {
+            None
+        }
+    }
+
+    /// Structural validity: every entrant's `fixture_index` is parallel to `legs`, in range,
+    /// leg count within bounds, and legs structurally valid.
+    pub fn validate(&self) -> bool {
+        let nfix = self.fixtures.len();
+        self.entrants.iter().all(|e| {
+            e.legs.len() == e.fixture_index.len()
+                && e.legs.len() <= MAX_LEGS
+                && e.fixture_index.iter().all(|&i| (i as usize) < nfix)
+                && e.legs.iter().all(validate_leg)
+        })
+    }
+}
+
+/// Replay core: recompute every entrant's `S` from the committed artifact (facts joined per
+/// leg via `fixture_index`), then rank the round. This is what the verifier compares to the
+/// on-chain resolution for MATCH.
+pub fn resolve_conditions_artifact(artifact: &ConditionsArtifact) -> Vec<RankedEntrant> {
+    let mut ranked = Vec::with_capacity(artifact.entrants.len());
+    for e in &artifact.entrants {
+        let facts_by_leg: Vec<&[ScoreStat]> = e
+            .fixture_index
+            .iter()
+            .map(|&fi| {
+                artifact
+                    .fixtures
+                    .get(fi as usize)
+                    .map(|f| f.stats.as_slice())
+                    .unwrap_or(&[])
+            })
+            .collect();
+        let score = score_slip(&e.legs, &facts_by_leg);
+        ranked.push(RankedEntrant {
+            wallet: e.wallet,
+            entered_at: e.entered_at,
+            score_fixed: score.score_fixed,
+            all_hit: score.all_hit,
+            void_count: score.void_count,
+            settled: score.settled,
+        });
+    }
+    rank_round(ranked)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -434,6 +559,64 @@ mod tests {
         let ranked = rank_round(vec![mk(0x03), mk(0x01), mk(0x02)]);
         let order: Vec<u8> = ranked.iter().map(|r| r.wallet[0]).collect();
         assert_eq!(order, vec![0x01, 0x02, 0x03]);
+    }
+
+    #[test]
+    fn fc7_roundtrip_and_resolve() {
+        // Shared fixtures: F1 (P1=2,P2=0), F2 (P1=1,P2=1).
+        let fixtures = vec![
+            ConditionsFixture { fixture_id: 1, event_stat_root: [0x11; 32], stats: vec![ScoreStat { stat_key: 1, value: 2 }, ScoreStat { stat_key: 2, value: 0 }] },
+            ConditionsFixture { fixture_id: 2, event_stat_root: [0x22; 32], stats: vec![ScoreStat { stat_key: 1, value: 1 }, ScoreStat { stat_key: 2, value: 1 }] },
+        ];
+        // A: home(F1) + under@2.5(F2) → all_hit, S=39775.
+        let a = ConditionsEntrant {
+            wallet: [0x0a; 32], tier: 50, entered_at: 100,
+            legs: vec![disc(1, 2, OP_SUBTRACT, CMP_GT, 0, 2150), tot(CMP_LT, 5, 1850)],
+            fixture_index: vec![0, 1],
+        };
+        // B: home(F1) + under@2.0(F2) → void push on leg2 → all_hit, S=21500.
+        let b = ConditionsEntrant {
+            wallet: [0x0b; 32], tier: 50, entered_at: 200,
+            legs: vec![disc(1, 2, OP_SUBTRACT, CMP_GT, 0, 2150), tot(CMP_LT, 4, 1850)],
+            fixture_index: vec![0, 1],
+        };
+        let artifact = ConditionsArtifact::new(fixtures, vec![b.clone(), a.clone()]);
+        assert!(artifact.validate());
+
+        // Byte roundtrip.
+        let bytes = artifact.to_bytes();
+        assert_eq!(&bytes[0..4], b"W3O1");
+        let parsed = ConditionsArtifact::from_bytes(&bytes).expect("parse");
+        assert_eq!(parsed, artifact);
+
+        // Replay: recompute S + ranking from committed bytes.
+        let ranked = resolve_conditions_artifact(&parsed);
+        assert_eq!(ranked.len(), 2);
+        // A (S=39775) ranks before B (S=21500); both winners.
+        assert_eq!(ranked[0].wallet[0], 0x0a);
+        assert_eq!(ranked[0].score_fixed, 39_775);
+        assert!(ranked[0].all_hit);
+        assert_eq!(ranked[1].wallet[0], 0x0b);
+        assert_eq!(ranked[1].score_fixed, 21_500);
+        assert_eq!(ranked[1].void_count, 1);
+        assert_eq!(winning_score_sum(&ranked), (39_775 + 21_500) as u128);
+    }
+
+    #[test]
+    fn fc7_validate_rejects_bad_input() {
+        let fixtures = vec![ConditionsFixture { fixture_id: 1, event_stat_root: [0; 32], stats: vec![] }];
+        // fixture_index out of range.
+        let bad_idx = ConditionsArtifact::new(
+            fixtures.clone(),
+            vec![ConditionsEntrant { wallet: [1; 32], tier: 10, entered_at: 0, legs: vec![tot(CMP_LT, 5, 1850)], fixture_index: vec![9] }],
+        );
+        assert!(!bad_idx.validate());
+        // legs / fixture_index length mismatch.
+        let bad_len = ConditionsArtifact::new(
+            fixtures,
+            vec![ConditionsEntrant { wallet: [1; 32], tier: 10, entered_at: 0, legs: vec![tot(CMP_LT, 5, 1850)], fixture_index: vec![0, 0] }],
+        );
+        assert!(!bad_len.validate());
     }
 
     #[test]
