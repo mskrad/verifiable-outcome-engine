@@ -87,6 +87,7 @@ programs/outcome/src/math/*
 !programs/outcome/src/math/mod.rs
 !programs/outcome/src/math/compiled_outcome_v1.rs
 !programs/outcome/src/math/composite_rank_desc.rs
+!programs/outcome/src/math/conditions.rs
 !programs/outcome/src/math/mod.rs
 !programs/outcome/src/math/rng_v1.rs
 !programs/outcome/src/math/rng_v2.rs
