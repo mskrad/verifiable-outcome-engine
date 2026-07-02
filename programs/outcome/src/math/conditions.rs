@@ -248,6 +248,42 @@ pub fn slip_hash(wallet: [u8; 32], tier: u64, legs: &[LegCommit]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
+/// One entrant's resolved result, ready for round ranking.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RankedEntrant {
+    pub wallet: [u8; 32],
+    /// On-chain `Entry.entered_at` (unix seconds) — tie-break after score.
+    pub entered_at: i64,
+    pub score_fixed: u64,
+    pub all_hit: bool,
+    pub void_count: u32,
+    pub settled: bool,
+}
+
+/// Rank a round for the resolution artifact. Winners (`all_hit`) come first, ordered by
+/// `score_fixed` desc, then `entered_at` asc, then `wallet` asc (fully deterministic).
+/// Non-winners follow in the same tie-break order. Payout is pro-rata over the winners
+/// (`net * S_i / ΣS`) and is executed by OddSol — VRE only proves per-entrant S + ranking.
+pub fn rank_round(mut entrants: Vec<RankedEntrant>) -> Vec<RankedEntrant> {
+    entrants.sort_by(|a, b| {
+        b.all_hit
+            .cmp(&a.all_hit) // winners (true) first
+            .then(b.score_fixed.cmp(&a.score_fixed)) // S desc
+            .then(a.entered_at.cmp(&b.entered_at)) // entered_at asc
+            .then(a.wallet.cmp(&b.wallet)) // wallet asc
+    });
+    entrants
+}
+
+/// Sum of winning scores (`ΣS` over `all_hit` entrants) — the pro-rata denominator OddSol uses.
+pub fn winning_score_sum(entrants: &[RankedEntrant]) -> u128 {
+    entrants
+        .iter()
+        .filter(|e| e.all_hit)
+        .map(|e| e.score_fixed as u128)
+        .sum()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -360,6 +396,44 @@ mod tests {
             0x1d, 0xaa, 0xea, 0xf6,
         ];
         assert_eq!(h, expected);
+    }
+
+    #[test]
+    fn rank_round_tie_break() {
+        let w = |b: u8| -> [u8; 32] { [b; 32] };
+        let e = |wb: u8, at: i64, s: u64, hit: bool| RankedEntrant {
+            wallet: w(wb),
+            entered_at: at,
+            score_fixed: s,
+            all_hit: hit,
+            void_count: 0,
+            settled: true,
+        };
+        // A,B tie on S=39775; A entered earlier → A before B. C higher S → first. D miss → last.
+        let c = e(0x0c, 500, 55_500, true);
+        let a = e(0x0a, 100, 39_775, true);
+        let b = e(0x0b, 200, 39_775, true);
+        let d = e(0x0d, 50, 0, false);
+        let ranked = rank_round(vec![b, d, a, c]);
+        let order: Vec<u8> = ranked.iter().map(|r| r.wallet[0]).collect();
+        assert_eq!(order, vec![0x0c, 0x0a, 0x0b, 0x0d]); // C, A, B, then miss D
+        assert_eq!(winning_score_sum(&ranked), (55_500 + 39_775 + 39_775) as u128);
+    }
+
+    #[test]
+    fn rank_round_wallet_tie_break() {
+        // Same S and same entered_at → wallet asc.
+        let mk = |wb: u8| RankedEntrant {
+            wallet: [wb; 32],
+            entered_at: 100,
+            score_fixed: 20_000,
+            all_hit: true,
+            void_count: 0,
+            settled: true,
+        };
+        let ranked = rank_round(vec![mk(0x03), mk(0x01), mk(0x02)]);
+        let order: Vec<u8> = ranked.iter().map(|r| r.wallet[0]).collect();
+        assert_eq!(order, vec![0x01, 0x02, 0x03]);
     }
 
     #[test]
