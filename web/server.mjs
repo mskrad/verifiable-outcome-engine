@@ -38,6 +38,11 @@ const CORS_API_PATHS = new Set([
   "/api/partner/snapshot/init",
   "/api/partner/snapshot/chunk",
   "/api/partner/snapshot/finalize",
+  // sortition (canonical resolution path)
+  "/api/partner/sortition/draw",
+  "/api/partner/sortition/register",
+  "/api/partner/sortition/seal",
+  "/api/partner/sortition/claim",
 ]);
 const JSON_BODY_LIMIT_BYTES = Number(process.env.JSON_BODY_LIMIT_BYTES || 16_384);
 const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
@@ -110,6 +115,7 @@ let resolveInlinePromise;
 let verifyOutcomePromise;
 let snapshotHelpersPromise;
 let artifactBuilderPromise;
+let sortitionOpsPromise;
 let swigOperatorConfig;
 let vanishConfig;
 let partnerConfig;
@@ -466,6 +472,34 @@ async function loadArtifactBuilder() {
     });
   }
   return artifactBuilderPromise;
+}
+
+// sortition (v1.4.0/v1.4.1) inline ops — canonical resolution path.
+// Defaults to the canonical program id (overridable via SORTITION_PROGRAM_ID).
+async function loadSortitionOps() {
+  ensureTsSdkRuntime();
+  if (!sortitionOpsPromise) {
+    sortitionOpsPromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "sortition.ts")).href
+    ).then((module) => {
+      const required = [
+        "createSortitionClient",
+        "sortitionCreateDrawInline",
+        "sortitionRegisterTicketInline",
+        "sortitionSealDrawInline",
+        "sortitionClaimTicketInline",
+        "SORTITION_PROGRAM_ID",
+        "SORTITION_MATURITY",
+      ];
+      for (const name of required) {
+        if (module[name] === undefined) {
+          throw new Error(`sortition export not found: ${name}`);
+        }
+      }
+      return module;
+    });
+  }
+  return sortitionOpsPromise;
 }
 
 async function fetchResolutions(limit, opts = {}) {
@@ -2348,6 +2382,165 @@ async function fetchTimeline({
   };
 }
 
+// --- sortition partner routes (canonical protocol path) ----------------------
+// Build/transact against the canonical program id (overridable via env). Every
+// response carries a `maturity` field. The default resolution path stays
+// replay-by-signature; sortition is an alternative canonical path.
+
+const SORTITION_MATURITY_NOTE = "canonical-devnet; default resolution path is replay-by-signature";
+
+function sortitionProgramId(sortitionModule) {
+  return (
+    String(process.env.SORTITION_PROGRAM_ID || "").trim() ||
+    sortitionModule.SORTITION_PROGRAM_ID
+  );
+}
+
+function sortitionOperatorWalletPath() {
+  return (
+    process.env.SORTITION_OPERATOR_WALLET ||
+    process.env.LIVE_RAFFLE_WALLET ||
+    process.env.ANCHOR_WALLET ||
+    ""
+  );
+}
+
+function buildSortitionClient(sortitionModule) {
+  const programId = sortitionProgramId(sortitionModule);
+  const walletPath = sortitionOperatorWalletPath();
+  if (!walletPath) {
+    throw httpError(
+      503,
+      "Sortition operator not configured (set SORTITION_OPERATOR_WALLET)"
+    );
+  }
+  const rpcUrl = resolveRpcUrl(
+    process.env.SORTITION_RPC_URL || process.env.LIVE_RAFFLE_RPC_URL || defaultRpc()
+  );
+  return sortitionModule.createSortitionClient({ rpcUrl, walletPath, programId });
+}
+
+function sortitionHexBytes(value, byteLen, label) {
+  const hex = String(value || "").trim().replace(/^0x/, "");
+  if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length !== byteLen * 2) {
+    throw httpError(400, `${label} must be ${byteLen} bytes hex`);
+  }
+  return Buffer.from(hex, "hex");
+}
+
+function sortitionBoundedSlots(value, label, fallback) {
+  if (value === undefined) return fallback;
+  if (!Number.isInteger(value) || value < 1 || value > 1_000_000) {
+    throw httpError(400, `${label} must be an integer 1–1000000`);
+  }
+  return value;
+}
+
+async function handlePartnerSortitionDraw(req, res) {
+  requirePartnerApiKey(req, "/api/partner/sortition/draw");
+  const body = await readJsonBody(req);
+  const sortition = await loadSortitionOps();
+  const client = buildSortitionClient(sortition);
+  const drawId = sortitionHexBytes(body.draw_id, 16, "draw_id");
+  const threshold = sortitionHexBytes(body.threshold, 32, "threshold");
+  const registrationDurationSlots = sortitionBoundedSlots(
+    body.registration_duration_slots,
+    "registration_duration_slots",
+    60
+  );
+  const claimDurationSlots = sortitionBoundedSlots(
+    body.claim_duration_slots,
+    "claim_duration_slots",
+    120
+  );
+  const unclaimedRule = body.unclaimed_rule === undefined ? 0 : body.unclaimed_rule;
+  if (!Number.isInteger(unclaimedRule) || unclaimedRule < 0 || unclaimedRule > 255) {
+    throw httpError(400, "unclaimed_rule must be a byte 0–255");
+  }
+  const result = await sortition.sortitionCreateDrawInline(client, {
+    drawId,
+    threshold,
+    registrationDurationSlots,
+    claimDurationSlots,
+    unclaimedRule,
+  });
+  json(res, 200, {
+    ok: true,
+    maturity: result.maturity,
+    maturity_note: SORTITION_MATURITY_NOTE,
+    program_id: client.programId.toBase58(),
+    draw_id: drawId.toString("hex"),
+    draw_pda: result.drawPda,
+    signature: result.signature,
+  });
+}
+
+async function handlePartnerSortitionRegister(req, res) {
+  requirePartnerApiKey(req, "/api/partner/sortition/register");
+  const body = await readJsonBody(req);
+  const sortition = await loadSortitionOps();
+  const client = buildSortitionClient(sortition);
+  const drawId = sortitionHexBytes(body.draw_id, 16, "draw_id");
+  const ticketId = sortitionHexBytes(body.ticket_id, 16, "ticket_id");
+  const commitment = sortitionHexBytes(body.commitment, 32, "commitment");
+  const result = await sortition.sortitionRegisterTicketInline(client, {
+    drawId,
+    ticketId,
+    commitment,
+  });
+  json(res, 200, {
+    ok: true,
+    maturity: result.maturity,
+    maturity_note: SORTITION_MATURITY_NOTE,
+    program_id: client.programId.toBase58(),
+    draw_id: drawId.toString("hex"),
+    ticket_id: ticketId.toString("hex"),
+    ticket_pda: result.ticketPda,
+    signature: result.signature,
+  });
+}
+
+async function handlePartnerSortitionSeal(req, res) {
+  requirePartnerApiKey(req, "/api/partner/sortition/seal");
+  const body = await readJsonBody(req);
+  const sortition = await loadSortitionOps();
+  const client = buildSortitionClient(sortition);
+  const drawId = sortitionHexBytes(body.draw_id, 16, "draw_id");
+  const result = await sortition.sortitionSealDrawInline(client, { drawId });
+  json(res, 200, {
+    ok: true,
+    maturity: result.maturity,
+    maturity_note: SORTITION_MATURITY_NOTE,
+    program_id: client.programId.toBase58(),
+    draw_id: drawId.toString("hex"),
+    signature: result.signature,
+  });
+}
+
+async function handlePartnerSortitionClaim(req, res) {
+  requirePartnerApiKey(req, "/api/partner/sortition/claim");
+  const body = await readJsonBody(req);
+  const sortition = await loadSortitionOps();
+  const client = buildSortitionClient(sortition);
+  const drawId = sortitionHexBytes(body.draw_id, 16, "draw_id");
+  const ticketId = sortitionHexBytes(body.ticket_id, 16, "ticket_id");
+  const secret = sortitionHexBytes(body.secret, 32, "secret");
+  const result = await sortition.sortitionClaimTicketInline(client, {
+    drawId,
+    ticketId,
+    secret,
+  });
+  json(res, 200, {
+    ok: true,
+    maturity: result.maturity,
+    maturity_note: SORTITION_MATURITY_NOTE,
+    program_id: client.programId.toBase58(),
+    draw_id: drawId.toString("hex"),
+    ticket_id: ticketId.toString("hex"),
+    signature: result.signature,
+  });
+}
+
 async function handleApi(req, res, pathname) {
   try {
     const corsEnabled = isCorsApiPath(pathname);
@@ -2551,6 +2744,27 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/partner/draw") {
       await handlePartnerDraw(req, res);
+      return;
+    }
+
+    // sortition routes (canonical resolution path)
+    if (req.method === "POST" && pathname === "/api/partner/sortition/draw") {
+      await handlePartnerSortitionDraw(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/sortition/register") {
+      await handlePartnerSortitionRegister(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/sortition/seal") {
+      await handlePartnerSortitionSeal(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/sortition/claim") {
+      await handlePartnerSortitionClaim(req, res);
       return;
     }
 

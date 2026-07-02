@@ -43,6 +43,51 @@ export {
   MAX_COMPOSITE_FIELDS,
 } from "./composite_rank_desc.js";
 export { verifyOutcome } from "./verify.js";
+// Sortition-by-claim (v1.4.0) + economics (v1.4.1) builders. Canonical protocol
+// path on the devnet program 9tEram…; replay-by-signature stays the default
+// resolution path. See README "Resolution Paths".
+export {
+  SORTITION_MATURITY,
+  UNICORN_G_MATURITY,
+  SORTITION_STANDARD_VERSION,
+  SORTITION_ECONOMICS_VERSION,
+  SORTITION_PROGRAM_ID,
+  CANONICAL_PROGRAM_ID,
+  SORTITION_FEE_ENTRY,
+  SORTITION_FEE_CLOSE_SKIM,
+  deriveSortitionDrawPda,
+  deriveSortitionTicketPda,
+  deriveProgramConfigPda,
+  sortitionCommitment,
+  sortitionWins,
+  sortitionThresholdFromProbability,
+  buildCreateSortitionDrawInstruction,
+  buildRegisterSortitionTicketInstruction,
+  buildRegisterSortitionTicketPaidInstruction,
+  buildSealSortitionDrawInstruction,
+  buildClaimSortitionTicketInstruction,
+  buildCloseSortitionTicketInstruction,
+  buildSweepSortitionTicketsInstruction,
+  buildInitSortitionEconomicsInstruction,
+  createSortitionClient,
+  loadSortitionKeypair,
+  sortitionCreateDrawInline,
+  sortitionRegisterTicketInline,
+  sortitionSealDrawInline,
+  sortitionClaimTicketInline,
+} from "./sortition.js";
+export type {
+  CreateSortitionDrawParams,
+  RegisterSortitionTicketParams,
+  RegisterSortitionTicketPaidParams,
+  SealSortitionDrawParams,
+  ClaimSortitionTicketParams,
+  CloseSortitionTicketParams,
+  SweepSortitionTicketsParams,
+  InitSortitionEconomicsParams,
+  SortitionClient,
+  SortitionClientConfig,
+} from "./sortition.js";
 export type {
   AirdropConfig,
   ArtifactConfig,

@@ -178,11 +178,7 @@
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">Upgrade authority</div>
-                <div class="spec-kv-value mono">Squads vault PDA 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA</div>
-              </div>
-              <div class="spec-kv">
-                <div class="spec-kv-label">Multisig</div>
-                <div class="spec-kv-value mono">7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ · Squads</div>
+                <div class="spec-kv-value">Single operator key (devnet). Mainnet governance decided separately.</div>
               </div>
             </div>
 
@@ -206,7 +202,7 @@
               <table class="spec-table">
                 <thead><tr><th>Layer</th><th>Mechanism</th><th>Address</th></tr></thead>
                 <tbody>
-                  <tr><td>Program upgrades</td><td>Squads governance plus vault PDA execution — proposals are approved via multisig, but the live program authority is the vault address.</td><td class="mono">8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA</td></tr>
+                  <tr><td>Program upgrades</td><td>Single operator upgrade key on devnet. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time.</td><td class="mono">devnet: single operator key</td></tr>
                   <tr><td>Operator signing</td><td>Swig smart wallet — delegated key scoped to VRE program with daily SOL spending cap. Master keypair kept offline.</td><td class="mono">Actor: E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</td></tr>
                 </tbody>
               </table>
@@ -215,20 +211,8 @@
             <h3>Swig — why it matters</h3>
             <p>The canonical operator runs as a Swig smart wallet actor. The hot delegate key is scoped to the VRE program only and carries a daily SOL spending cap — a compromised delegate cannot drain the treasury or invoke unrelated programs. The master keypair that controls the Swig wallet is kept offline. This means every live raffle on <span class="mono">/play</span> is signed by a key that has no broader permissions than running VRE.</p>
 
-            <h3>Live Governance Upgrade</h3>
-            <p>The upgrade authority is not just configured — it has been exercised on-chain. VRE was upgraded via the full Squads proposal flow on devnet: create → approve → execute.</p>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Step</th><th>Transaction</th></tr></thead>
-                <tbody>
-                  <tr><td>1. Vault tx create</td><td class="mono">48de7Cy…</td></tr>
-                  <tr><td>2. Proposal create</td><td class="mono">2dqUG4E…</td></tr>
-                  <tr><td>3. Proposal approve</td><td class="mono">5AuwR1b…</td></tr>
-                  <tr><td>4. Execute (upgrade)</td><td class="mono">2AKZBt5…</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p>Deployed at slot <span class="mono">459318657</span>. Upgrade authority remained <span class="mono">8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA</span> throughout — the Squads vault PDA, not any individual keypair. Evidence artifact: <span class="mono">artifacts/squads_upgrade_evidence.json</span>.</p>
+            <h3>Upgrade authority (devnet)</h3>
+            <p>On devnet the program upgrade authority is a single operator key — multisig governance is not used on devnet, as it added ceremony without protecting real value while the protocol iterates. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time and is not implied by the devnet setup.</p>
 
             <h3>Protocol Fee</h3>
             <p>Each <span class="mono">resolveOutcome</span> call may collect a protocol fee from the calling operator. The transfer happens before resolution; if the operator wallet cannot pay, the transaction fails and no outcome is recorded.</p>
@@ -661,11 +645,6 @@ curl https://verifiableoutcome.online/api/resolutions \
                 <thead><tr><th>Sponsor</th><th>Role</th><th>Integration</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td><strong>Squads</strong></td>
-                    <td>Multisig</td>
-                    <td>Program upgrade authority held by Squads vault PDA — proposals approved via multisig, executed on-chain</td>
-                  </tr>
-                  <tr>
                     <td><strong>Swig</strong></td>
                     <td>Operator</td>
                     <td>Delegated operator key scoped to VRE program with daily SOL cap — master keypair kept offline</td>
@@ -698,37 +677,37 @@ curl https://verifiableoutcome.online/api/resolutions \
                   <tr>
                     <td><strong>NanoCommando</strong></td>
                     <td>Game leaderboard verification</td>
-                    <td>Partner Draw API — rank_desc pre-commitment for GHOST tier leaderboard (planned post-hackathon)</td>
+                    <td>Partner Draw API — rank_desc pre-commitment for GHOST tier leaderboard (planned)</td>
                   </tr>
                   <tr>
                     <td><strong>GAS Grading</strong></td>
                     <td>Trading card giveaways &amp; pack breaks</td>
-                    <td>Partner Draw API — weighted_random draws and slot allocation (planned post-hackathon)</td>
+                    <td>Partner Draw API — weighted_random draws and slot allocation (planned)</td>
                   </tr>
                   <tr>
                     <td><strong>01 Pilot</strong></td>
                     <td>Agent bounty payout verification</td>
-                    <td>Partner Draw API — pre-committed task criteria before payout selection (planned post-hackathon)</td>
+                    <td>Partner Draw API — pre-committed task criteria before payout selection (planned)</td>
                   </tr>
                   <tr>
                     <td><strong>UZPROOF</strong></td>
                     <td>Sybil-filter + verifiable selection</td>
-                    <td>UZPROOF filters wallets → VRE selects winner on-chain — end-to-end sybil-proof draw (planned post-hackathon)</td>
+                    <td>UZPROOF filters wallets → VRE selects winner on-chain — end-to-end sybil-proof draw (planned)</td>
                   </tr>
                   <tr>
                     <td><strong>AlphaDex</strong></td>
                     <td>Trading competition leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard pre-commitment (planned post-hackathon)</td>
+                    <td>Partner Draw API — rank_desc leaderboard pre-commitment (planned)</td>
                   </tr>
                   <tr>
                     <td><strong>Zaebis.xyz</strong></td>
                     <td>Price prediction contests</td>
-                    <td>Partner Draw API — closest_to outcomes resolved on-chain (planned post-hackathon)</td>
+                    <td>Partner Draw API — closest_to outcomes resolved on-chain (planned)</td>
                   </tr>
                   <tr>
                     <td><strong>BharatFeed</strong></td>
                     <td>Equities leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard resolution (planned post-hackathon)</td>
+                    <td>Partner Draw API — rank_desc leaderboard resolution (planned)</td>
                   </tr>
                 </tbody>
               </table>

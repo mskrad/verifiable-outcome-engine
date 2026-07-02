@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VRE · Protocol Paths</title>
+  <meta name="description" content="Canonical resolution-path matrix and a sortition flow on the canonical devnet program." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .pp-banner {
+      position: sticky; top: 0; z-index: 50;
+      background: #3a2a00; color: #ffd479;
+      border-bottom: 1px solid #6b4f00;
+      padding: 10px 16px; font-size: 14px; text-align: center;
+      font-weight: 600;
+    }
+    .pp-wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 80px; }
+    .pp-wrap h1 { margin-top: 8px; }
+    table.pp-matrix { width: 100%; border-collapse: collapse; margin: 18px 0 28px; font-size: 14px; }
+    table.pp-matrix th, table.pp-matrix td { border: 1px solid rgba(255,255,255,0.14); padding: 8px 10px; text-align: left; vertical-align: top; }
+    table.pp-matrix th { background: rgba(255,255,255,0.05); }
+    .pp-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .pp-tag.canonical { background: #0f3d24; color: #5ef0a0; }
+    .pp-tag.isolated { background: #3a2a00; color: #ffd479; }
+    .pp-tag.research { background: #2a1a3d; color: #d4a0ff; }
+    .pp-card { border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 18px; margin: 18px 0; background: rgba(255,255,255,0.02); }
+    .pp-card h2 { margin-top: 0; }
+    .pp-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+    .pp-row label { display: flex; flex-direction: column; font-size: 12px; gap: 4px; flex: 1 1 220px; }
+    .pp-row input { padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: inherit; font-family: monospace; font-size: 12px; }
+    .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .pp-actions button { padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: inherit; cursor: pointer; font-weight: 600; }
+    .pp-actions button:hover { background: rgba(255,255,255,0.12); }
+    pre.pp-out { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12px; max-height: 320px; }
+    .pp-note { font-size: 13px; opacity: 0.85; }
+    a.pp-default { color: #5ef0a0; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="grain"></div>
+
+  <div class="pp-banner" role="alert">
+    Canonical protocol on devnet program <code>9tEram…</code>. Replay-by-signature is the
+    default path; sortition and Unicorn-G are canonical alternatives (Unicorn-G is opt-in).
+    Mainnet is a separate, later effort.
+  </div>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="VRE home">
+        <div class="nav-brand-mark"></div>
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/play"   data-nav="play">Demo</a></li>
+        <li><a href="/build"  data-nav="build">Build</a></li>
+        <li><a href="/verify" data-nav="verify">Verify</a></li>
+        <li><a href="/spec"   data-nav="spec">Spec</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="pp-wrap">
+    <h1>Resolution Paths</h1>
+    <p class="pp-note">
+      The default path is
+      <a class="pp-default" href="/verify">replay-by-signature</a>. The paths below are
+      canonical alternatives on the same program. See
+      <code>README.md</code> "Resolution Paths" and <code>RUNBOOK.md</code> §6b–§6c.
+    </p>
+
+    <table class="pp-matrix">
+      <thead>
+        <tr><th>Path</th><th>Version</th><th>Status</th><th>Program</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Replay-by-signature + global-Ω resolve</td>
+          <td>v1.3.2</td>
+          <td><span class="pp-tag canonical">canonical · default</span></td>
+          <td><code>9tEram…</code></td>
+        </tr>
+        <tr>
+          <td>Sortition-by-Claim</td>
+          <td>v1.4.0</td>
+          <td><span class="pp-tag canonical">canonical</span></td>
+          <td><code>9tEram…</code></td>
+        </tr>
+        <tr>
+          <td>Sortition economics</td>
+          <td>v1.4.1</td>
+          <td><span class="pp-tag canonical">canonical</span></td>
+          <td><code>9tEram…</code></td>
+        </tr>
+        <tr>
+          <td>Unicorn-G entropy source</td>
+          <td>B8</td>
+          <td><span class="pp-tag isolated">canonical · opt-in</span></td>
+          <td><code>9tEram…</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pp-card">
+      <h2>Sortition-by-Claim flow <span class="pp-tag canonical">canonical</span></h2>
+      <p class="pp-note">
+        Commit-reveal ticket draw against the canonical program. Requires a partner
+        API key and a server-side operator wallet. Every response is tagged
+        <code>maturity: "canonical-devnet"</code>. Replay-by-signature stays the default path.
+      </p>
+
+      <div class="pp-row">
+        <label>Partner API key
+          <input id="pp-key" type="password" placeholder="x-api-key" autocomplete="off" />
+        </label>
+        <label>Draw id (16-byte hex)
+          <input id="pp-draw" type="text" />
+        </label>
+        <label>Ticket id (16-byte hex)
+          <input id="pp-ticket" type="text" />
+        </label>
+      </div>
+      <div class="pp-row">
+        <label>Secret (32-byte hex)
+          <input id="pp-secret" type="text" />
+        </label>
+        <label>Threshold (32-byte hex)
+          <input id="pp-threshold" type="text" />
+        </label>
+        <label>Commitment (derived: sha256(secret‖ticket‖draw))
+          <input id="pp-commitment" type="text" readonly />
+        </label>
+      </div>
+
+      <div class="pp-actions">
+        <button id="pp-gen">Generate fixtures</button>
+        <button id="pp-create">1 · Create draw</button>
+        <button id="pp-register">2 · Register ticket</button>
+        <button id="pp-seal">3 · Seal draw</button>
+        <button id="pp-claim">4 · Claim ticket</button>
+      </div>
+
+      <h3>Response</h3>
+      <pre class="pp-out" id="pp-out">// canonical devnet — responses appear here</pre>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const out = $("pp-out");
+
+    function show(obj) {
+      out.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    function randHex(bytes) {
+      const a = new Uint8Array(bytes);
+      crypto.getRandomValues(a);
+      return [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function sha256Hex(...hexParts) {
+      const total = hexParts.reduce((n, h) => n + h.length / 2, 0);
+      const buf = new Uint8Array(total);
+      let off = 0;
+      for (const h of hexParts) {
+        for (let i = 0; i < h.length; i += 2) buf[off++] = parseInt(h.slice(i, i + 2), 16);
+      }
+      const digest = await crypto.subtle.digest("SHA-256", buf);
+      return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function refreshCommitment() {
+      const secret = $("pp-secret").value.trim();
+      const ticket = $("pp-ticket").value.trim();
+      const draw = $("pp-draw").value.trim();
+      if (secret.length === 64 && ticket.length === 32 && draw.length === 32) {
+        $("pp-commitment").value = await sha256Hex(secret, ticket, draw);
+      }
+    }
+
+    async function generate() {
+      $("pp-draw").value = randHex(16);
+      $("pp-ticket").value = randHex(16);
+      $("pp-secret").value = randHex(32);
+      // Permissive threshold (~10% win) for a visible demo: 0x1999... big-endian.
+      $("pp-threshold").value = "19" + "99".repeat(31);
+      await refreshCommitment();
+    }
+
+    async function post(path, body) {
+      const key = $("pp-key").value.trim();
+      if (!key) { show("Enter a partner API key first (sortition routes are partner-gated)."); return null; }
+      show("… requesting " + path);
+      try {
+        const res = await fetch(path, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-api-key": key },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({ ok: false, error: "non-JSON response" }));
+        show({ status: res.status, ...data });
+        return data;
+      } catch (err) {
+        show({ ok: false, error: String(err) });
+        return null;
+      }
+    }
+
+    $("pp-gen").onclick = generate;
+    for (const id of ["pp-secret", "pp-ticket", "pp-draw"]) $(id).oninput = refreshCommitment;
+
+    $("pp-create").onclick = () => post("/api/partner/sortition/draw", {
+      draw_id: $("pp-draw").value.trim(),
+      threshold: $("pp-threshold").value.trim(),
+    });
+    $("pp-register").onclick = async () => {
+      await refreshCommitment();
+      return post("/api/partner/sortition/register", {
+        draw_id: $("pp-draw").value.trim(),
+        ticket_id: $("pp-ticket").value.trim(),
+        commitment: $("pp-commitment").value.trim(),
+      });
+    };
+    $("pp-seal").onclick = () => post("/api/partner/sortition/seal", {
+      draw_id: $("pp-draw").value.trim(),
+    });
+    $("pp-claim").onclick = () => post("/api/partner/sortition/claim", {
+      draw_id: $("pp-draw").value.trim(),
+      ticket_id: $("pp-ticket").value.trim(),
+      secret: $("pp-secret").value.trim(),
+    });
+
+    generate();
+  </script>
+</body>
+</html>

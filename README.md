@@ -68,44 +68,61 @@ VRE replays a Solana outcome from a transaction signature plus public RPC data:
 Canonical devnet program id:
 
 - `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`
-- Upgrade authority: Squads vault PDA `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA` under multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` ([Squads](https://squads.xyz/multisig)).
+- Upgrade authority (devnet): a single operator key. Multisig governance is not
+  used on devnet — it added ceremony without protecting real value while the
+  protocol is still iterating.
 - Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
-- Governance upgrade executed on-chain: proposal created → approved → executed via Squads at slot `459318657`. Execute tx: [`2AKZBt5…`](https://explorer.solana.com/tx/2AKZBt5BgnujHyErKNweksMoxew6bGfQzzQCdha2GhHu81VPu7xSkZyTWEmN2RFn3T5P3UtxRicZG3PZ76JTEXrr?cluster=devnet). Evidence: `artifacts/squads_upgrade_evidence.json`.
+- Mainnet governance is decided separately at mainnet time (multisig / immutable /
+  timelock) — the devnet single-key simplification is **not** carried to mainnet.
 
-## Experimental Clean Line
+## Resolution Paths
 
-Current reviewer-facing canonical flow is still the devnet program above.
+The protocol carries several resolution paths, all canonical on the devnet program
+`9tEram…`. Replay-by-signature stays the **default** path; the others are canonical
+alternatives selected per draw.
 
-In parallel, the repository now carries a clean product-line experiment:
+| Path | Version | Status | What it is |
+|------|---------|--------|------------|
+| Replay-by-signature + global-Ω resolve | v1.3.2 | **canonical (default)** | Recompute an outcome locally from a tx signature; the default reviewer entry. |
+| Sortition-by-Claim | v1.4.0 | **canonical** | Commit-reveal ticket draw; winners self-claim against an on-chain threshold. |
+| Sortition economics | v1.4.1 | **canonical** | Optional entry fee / close-skim fee layer on a sortition draw. |
+| Unicorn-G entropy source | B8 | **canonical · opt-in** | Alternative global-Ω entropy: VDF output verified on-chain via embedded Groth16. |
 
-- `Outcome Standard V1.1`
-  - compact named-entry base
-  - product-facing versioning only
-  - internal `artifact_format_version=5` remains audit/debug metadata
-  - measured compact boundary:
-    - pass at `103` entries / `8185` bytes
-    - first overflow at `104` entries / `8264` bytes
-- `Outcome Standard V1.2`
-  - large/public scale extension
-  - product-facing replay uses `standard_version:"1.2"`
-  - internal scale marker `6` is metadata only
+Notes:
 
-Current evidence status:
+- All paths run on the one canonical program `9tEram…`; there is no separate isolated program.
+- The default entropy source is SlotHashes. **Unicorn-G is opt-in** (selected explicitly
+  per draw) and relies on a Groth16 trusted setup (devnet RSA modulus); a multi-party
+  ceremony is the path to a stronger setup before any mainnet use.
+- Mainnet is a separate, later effort; these statuses describe the canonical **devnet** protocol.
 
-- `V1.1` accepted on bounded local evidence
-- `V1.2` accepted on bounded local proof evidence
-- `V1.2` isolated devnet validation passed on isolated program
-  - `5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW`
-- `V1.2` Stage 1 expanded matrix passed `45/45`
-  - highest allowed conclusion: `strong isolated candidate: passed`
+Evidence for each path lives under `artifacts/public_evidence_summary.json` and is
+summarized in `RUNBOOK.md` §6b–§6c.
 
-Important boundary:
+### Resolution formats
 
-- this does **not** mean the isolated `V1.2` program is the new canonical line
-- this does **not** open active product live claim
-- canonical promotion and Stage 2 remain separate explicit follow-up decisions
+global-Ω resolve / replay supports the following committed formats:
 
-Reviewer-facing evidence remains the canonical public bundle:
+- `weighted_random` — weighted single- or multi-winner random selection
+- `rank_desc` / `rank_asc` — top (or bottom) by score
+- `closest_to` — nearest to a committed target value
+- `composite_rank_desc` — multi-field weighted composite score, ranked descending
+- `first_n` — first N entrants by registration order
+
+Engine × use-case × monetization mapping is documented in
+`agent-instructions/hub-memory/PRODUCT_MATRIX.md` (product SSOT).
+
+## Outcome Standards
+
+Two artifact standards are canonical:
+
+- `Outcome Standard V1.1` — compact named-entry base. Internal
+  `artifact_format_version=5` is audit/debug metadata. Measured compact boundary:
+  pass at `103` entries / `8185` bytes; first overflow at `104` entries / `8264` bytes.
+- `Outcome Standard V1.2` — large/public scale extension (Merkle snapshot). Product-facing
+  replay uses `standard_version:"1.2"`; internal scale marker `6` is metadata only.
+
+Reviewer-facing evidence bundle:
 
 - `artifacts/public_evidence_summary.json`
 - `artifacts/outcome_devnet_blessed_signatures.json`

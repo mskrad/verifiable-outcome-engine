@@ -47,6 +47,13 @@ Expected terminal lines:
 
 If devnet RPC is unavailable, retry later or use another active signature from `artifacts/outcome_devnet_blessed_signatures.json`.
 
+> **Resolution paths note.** This demo uses the default replay-by-signature + global-Ω
+> resolve path. The protocol also carries other canonical paths on the same program
+> `9tEram…`: Sortition-by-Claim (`v1.4.0`), sortition economics (`v1.4.1`), and the
+> Unicorn-G entropy source (B8, canonical opt-in — default entropy stays SlotHashes).
+> See `README.md` → "Resolution Paths" and `RUNBOOK.md` §6b–§6c. Mainnet is a separate,
+> later effort; these describe the canonical devnet protocol.
+
 ---
 
 ## Optional: Live Resolve Path

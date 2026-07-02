@@ -1,4 +1,4 @@
-# Runbook (Bounded Public Reviewer Flow)
+# Runbook (Public Reviewer Flow)
 
 ## 1) Install + launch
 
@@ -69,31 +69,29 @@ It does not require:
 - localnet historical sample signatures
 - adapters code
 
-## 6b) Unicorn-G entropy source — isolated devnet evidence (bounded, non-canonical)
+## 6b) Unicorn-G entropy source — canonical, opt-in
 
-Status: accepted for the bounded isolated devnet `global-omega` / `RngV2State` Unicorn-G path only (`PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE`).
+Status: canonical opt-in entropy path (`PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE`).
 
-What this is: an alternative on-chain entropy source for `outcome` draws. With `entropy_source = UNICORN_G`, the program derives the RNG v2 input `u` on-chain from frozen `RngV2State` + `SlotHashes`, verifies a VDF output `y` through an embedded Groth16 proof, and seals randomness from `y`. The existing `SLOT_HASH` path is unchanged and remains the default; `seal_randomness` still rejects `UNICORN_G` draws.
+What this is: an alternative on-chain entropy source for `outcome` draws. With `entropy_source = UNICORN_G`, the program derives the RNG v2 input `u` on-chain from frozen `RngV2State` + `SlotHashes`, verifies a VDF output `y` through an embedded Groth16 proof, and seals randomness from `y`. The `SLOT_HASH` path remains the **default**; Unicorn-G is selected explicitly per draw.
 
-Scope guards — what this evidence does NOT claim:
+Maturity notes:
 
-- No canonical deploy. Canonical `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F` is not mutated or promoted.
-- No mainnet readiness. No mainnet RSA ceremony / mainnet modulus.
-- No production rollout claim.
-- No sortition rollout. Evidence covers the global-omega / `RngV2State` path only.
+- **Opt-in, not default** — the default entropy source stays SlotHashes.
+- Relies on a Groth16 **trusted setup** (devnet RSA modulus). A multi-party ceremony is the path to a stronger setup before any mainnet use.
+- Mainnet is a separate, later effort; this describes the canonical **devnet** protocol.
 
-Isolated program (non-canonical): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
+Validation program (devnet): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` — the same code now carried by the canonical program `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`.
 
-End-to-end isolated devnet cycle completed: `prepare -> SlotHashes-derived u replay -> proof -> seal -> attest`.
+End-to-end devnet cycle completed: `prepare -> SlotHashes-derived u replay -> proof -> seal -> attest`.
 
-Accepted evidence:
+Evidence:
 
 - Seal: `4aKtC13JeN73bg9j2kycqSwAhocPipdhWgDYdYQvgygheAS1qvmK5uvsBAGEsxvUdRWuyJTh6fo7spFTDYbDSGQC` — CU `247476` — randomness `939e8494fb7696f6a18bcab57a8e87e2c7935e91987e60ea209a60f8555a73c9`
 - Attest: `45RCc4Xd9Sdyr3q1VmurJ2D2QvTUcj8zR63u42iPyw8mBqXnv4umKXqNJ2fRz2NNYfd3cu8o2wBUhyZETqHUNaeD` — CU `61466` — outcome resolution `4eg6mKzS2LSLDsDUZnwPu35nE7dmUrCYzqqNuUkrrzyr` — winner `p_0`
 - Wrong-proof rejection: `InvalidUnicornGProof (6035)` — simulation CU `143069`
 - Reinforcing negatives: replay of a valid proof against an already-SEALED state → `InvalidRngV2Status (6022)`; independent fresh-draw tampered-`y` on a real proof → `InvalidUnicornGProof (6035)` (pairing check)
 - Localnet full E2E (incl. tampered-`y` rejection): seal CU `209226`, prover `37.4s` / `4.3 GB` peak RSS
-- Canonical unchanged after attest: `9tEram...` authority `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA`, last deployed slot `459318657`, data length `608488`
 
 Evidence artifacts:
 
@@ -108,22 +106,56 @@ Read-only verification (no mutation):
 
 ```bash
 solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F --url https://api.devnet.solana.com
-solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B --url https://api.devnet.solana.com
 ```
-
-Expected canonical authority `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA`, last deployed slot `459318657`.
 
 Local gates recorded with this evidence: `cargo test -p outcome` (`31/31`), `anchor build`, `npx tsc --noEmit`, `git diff --check`.
 
+## 6c) Sortition-by-Claim + economics — canonical
+
+Status: canonical — Sortition-by-Claim `v1.4.0` (`PROTOCOL-INFRA-011`) and the sortition economics fee layer `v1.4.1` (`PROTOCOL-INFRA-013`).
+
+What this is: a commit-reveal ticket draw. Entrants register a `commitment = sha256(secret || ticket_id || draw_id)` before a deadline; the draw seals against three future `SlotHashes`-derived slots to fix `omega`; each entrant self-claims by revealing `secret`, and wins iff `sha256(secret || omega) < threshold`. `v1.4.1` adds an optional fee layer (`fee_mode` bitflags: flat `entry_fee_lamports` at register, `close_skim_bps` skim on close) carved from reserved bytes — byte-compatible with `1.4.0` draws (fee fields `0` = disabled).
+
+Notes:
+
+- Replay-by-signature stays the **default** resolution path; sortition is a canonical alternative.
+- Mainnet is a separate, later effort; this describes the canonical **devnet** protocol.
+
+Validation program (devnet): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` — the same code now carried by the canonical program `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`.
+
+Evidence (sortition `v1.4.0`, `PROTOCOL-INFRA-011`):
+
+- Lifecycle passed (create → register → seal → claim); `5/5` negative cases passed; claim CU below `10k`.
+- Statistical distribution over `200` draws / `100` tickets / threshold `0x1999…`: observed mean `9.7` winners vs binomial mean `10` (variance `8.76` vs `9.0`).
+- Self-bias / grinding probe recorded under `self_bias` (grind gain tracks the order-statistic heuristic, no anomalous advantage at `grind_k=0`).
+
+Evidence (economics `v1.4.1`, `PROTOCOL-INFRA-013`):
+
+- Positive path passed; `9/9` negative cases passed; dedicated treasury.
+- CU: `register_paid 18096`, `init_economics 5234`, `close 9643`, `sweep_2 18459`.
+
+Evidence artifacts:
+
+- `artifacts/protocol_infra_011_sortition_localnet.json`
+- `artifacts/protocol_infra_011_sortition_devnet.json`
+- `artifacts/protocol_infra_011_deep_tests.json`
+- `artifacts/protocol_infra_011_residual_tests.json`
+- `artifacts/protocol_infra_011_completion_tests.json`
+- `artifacts/protocol_infra_013_economics_localnet.json`
+- `artifacts/protocol_infra_013_economics_devnet.json`
+
+SDK / API exposure: sortition builders live in `sdk/sortition.ts` (re-exported from the package), and the partner API exposes `/api/partner/sortition/*` routes. Both default to the canonical program id and tag every response `maturity: "canonical-devnet"`. Replay-by-signature remains the default resolution path.
+
 ## 7) Program upgrade authority
 
-The canonical devnet program upgrade authority is the Squads vault PDA controlled by the hackathon multisig:
+On devnet the program upgrade authority is a single operator key. Multisig governance
+is not used on devnet — it added ceremony without protecting real value while the protocol
+iterates. ProgramConfig admin is intentionally separate from upgrade authority and is
+controlled by the configured operator path.
 
-- Program: `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`
-- Squads multisig: `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ`
-- Squads vault PDA / current upgrade authority: `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA`
-- Threshold: `1-of-1` for the hackathon devnet demo
-- Member: `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT`
+> **Mainnet governance is decided separately** (multisig / immutable / timelock). The devnet
+> single-key simplification is **not** carried to mainnet — there, who can upgrade the program
+> is part of the trust story and must be hardened before launch.
 
 Verify the current authority:
 
@@ -132,94 +164,42 @@ solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --url https://api.devnet.solana.com
 ```
 
-Expected authority:
+### How to upgrade the program (devnet, single key)
 
-```text
-Authority: 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA
-```
-
-Future upgrades should be proposed and approved through Squads governance, then executed after the multisig threshold is met. ProgramConfig admin is intentionally separate from upgrade authority and is controlled by the configured operator path.
-
-### How to upgrade the program via Squads
-
-**Step 1 — Build new program binary**
 ```bash
-anchor build
-# output: target/deploy/outcome.so
-```
+# 1) Build
+anchor build                                    # -> target/deploy/outcome.so
 
-**Step 2 — Write the buffer**
-
-Upload the new binary to a buffer account (does not affect the live program yet):
-```bash
-solana program write-buffer target/deploy/outcome.so \
-  --keypair ~/.config/solana/esjx.json \
-  --url https://api.devnet.solana.com
-# outputs: Buffer: <BUFFER_ADDRESS>
-```
-
-**Step 3 — Set buffer authority to the Squads vault PDA**
-
-The buffer must be owned by the Squads PDA before it can be used in a proposal:
-```bash
-solana program set-buffer-authority <BUFFER_ADDRESS> \
-  --new-buffer-authority 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA \
-  --keypair ~/.config/solana/esjx.json \
-  --url https://api.devnet.solana.com
-```
-
-**Step 4 — Create upgrade proposal via Squads CLI**
-```bash
-squads-multisig-cli program-upgrade \
-  --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
+# 2) Upgrade in place (authority = operator key)
+solana program deploy target/deploy/outcome.so \
   --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
-  --buffer <BUFFER_ADDRESS> \
-  --spill-address ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT \
-  --keypair ~/.config/solana/esjx.json \
+  --upgrade-authority ~/.config/solana/id.json \
   --url https://api.devnet.solana.com
-# outputs: Transaction index: <INDEX>
-```
 
-**Step 5 — Approve the proposal**
-```bash
-squads-multisig-cli transaction approve \
-  --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
-  --transaction-index <INDEX> \
-  --keypair ~/.config/solana/esjx.json \
-  --url https://api.devnet.solana.com
-```
-
-**Step 6 — Execute**
-```bash
-squads-multisig-cli transaction execute \
-  --multisig 7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ \
-  --transaction-index <INDEX> \
-  --keypair ~/.config/solana/esjx.json \
-  --url https://api.devnet.solana.com
-```
-
-**Step 7 — Verify**
-```bash
+# 3) Verify (Last Deployed In Slot should advance)
 solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
   --url https://api.devnet.solana.com
-# Authority should still be 8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA
-# Last Deployed In Slot should be updated
 ```
 
-### Alternatively — Squads web UI
+### One-time: drop the multisig (if the authority is still a Squads vault)
 
-Open https://squads.so/multisig and connect `esjx.json` wallet (devnet). The multisig `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` will appear in your dashboard. Create → Program Upgrade proposal, paste buffer address, approve, execute.
+If the upgrade authority is still the old Squads vault PDA, transfer it to the single
+operator key once (this final action goes through the multisig), then upgrades use the
+single-key flow above:
+
+```bash
+# Executed via the multisig: set-upgrade-authority -> <operator pubkey>
+solana program set-upgrade-authority 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+  --new-upgrade-authority <operator pubkey> \
+  --url https://api.devnet.solana.com
+```
 
 ### Key addresses
 
 | Name | Address |
 |---|---|
 | Program | `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F` |
-| Squads multisig PDA | `7jtA1fkZNrg7ZntGQtpXtAi9JxZEzgRjGRuGvdScZQqQ` |
-| Squads vault PDA / upgrade authority | `8o5a6hj22sEsmpsYTN8aM4GUwKGkR1YXKsgYQdiVkbgA` |
-| Member / operator key | `ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT` |
 | ProgramConfig admin | `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf` (Swig actor wallet, separate from upgrade authority) |
-| Evidence | `artifacts/squads_multisig_evidence.json` |
 
 ## 8) Swig operator setup
 
@@ -293,7 +273,7 @@ After a VRE draw, the operator can route the winner payout through [Vanish](http
 VANISH_API_KEY=<your-vanish-api-key>
 ```
 
-Obtain your API key from the [Vanish hackathon dashboard](https://core.vanish.trade) or by emailing Vanish.
+Obtain your API key from the [Vanish dashboard](https://core.vanish.trade) or by emailing Vanish.
 
 **Optional:**
 
@@ -337,41 +317,21 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 - `vanish_withdraw_tx` — Vanish → winner transfer
 - `mock: true` if run in mock mode
 
-## 9b) Experimental clean-line status
+## 9b) Outcome Standards status
 
-This repo now has two parallel tracks:
-
-- reviewer-facing canonical devnet flow
-  - canonical program: `9tEram...`
-  - current public reviewer/demo path
-- experimental clean product line
-  - `Outcome Standard V1.1`
-  - `Outcome Standard V1.2`
-
-Current clean-line status:
+Both artifact standards are canonical on `9tEram…`:
 
 - `Outcome Standard V1.1`
   - compact named-entry base
   - internal `artifact_format_version=5` is metadata only
-  - accepted boundary:
-    - pass at `103` entries / `8185` bytes
-    - first overflow at `104` entries / `8264` bytes
+  - boundary: pass at `103` entries / `8185` bytes; first overflow at `104` entries / `8264` bytes
 - `Outcome Standard V1.2`
-  - large/public scale extension
+  - large/public scale extension (Merkle snapshot)
   - product-facing replay uses `standard_version:"1.2"`
   - internal scale marker `6` is metadata only
-  - bounded isolated devnet validation passed on:
-    - isolated program `5xQ8ocTQmkWqFJEvsxACEK1nv1r2Vdj6SC3ZcW9t15pW`
   - Stage 1 expanded matrix passed `45/45`
-  - highest allowed conclusion so far:
-    - `strong isolated candidate: passed`
 
-Important boundary:
-
-- clean-line `V1.1 / V1.2` evidence does not automatically promote `5xQ8...` to canonical
-- canonical promotion remains a separate explicit task
-- Stage 2 broader non-local validation remains a separate explicit task
-- active product live claim is not opened by the current clean-line evidence
+Mainnet is a separate, later effort; the above describes the canonical devnet protocol.
 
 ## 10) Partner Draw API
 
@@ -380,7 +340,7 @@ Important boundary:
 Boundary note:
 
 - this section describes the current reviewer-facing canonical partner path
-- it is not the same thing as the experimental `Outcome Standard V1.1 / V1.2` clean line
+- it is not the same thing as the `Outcome Standard V1.1 / V1.2` artifact standards
 - clean-line canonical promotion is not yet accepted
 
 **Requirements:**
@@ -473,7 +433,7 @@ Small lists stay on `POST /api/partner/draw`. The additive snapshot flow is for 
 Boundary note:
 
 - this section documents the accepted snapshot/publication evidence track used in the current repo
-- the experimental clean large/public line is `Outcome Standard V1.2`
+- the large/public scale standard is `Outcome Standard V1.2`
 - `V1.2` reuses the scale/public evidence model conceptually, but is not yet the public canonical reviewer flow
 
 Threshold model:
@@ -488,7 +448,7 @@ Safety guardrail:
 - first pass is local-only by default
 - set `PARTNER_SNAPSHOT_RPC_URL` to a local validator such as `http://127.0.0.1:8899`
 - if you intentionally use a non-local RPC, you must also set `PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1` and point `PARTNER_SNAPSHOT_PROGRAM_ID` at a brand new isolated program id
-- current hackathon canonical program must not be used for this path
+- the canonical program must not be used for this path
 
 Session flow:
 

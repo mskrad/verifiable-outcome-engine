@@ -1,6 +1,6 @@
 {
   "name": "verifiable-outcome-sdk",
-  "version": "0.5.0",
+  "version": "0.7.0",
   "description": "On-chain proof of who won. Commit rules before the draw, anyone verifies from a transaction signature.",
   "license": "MIT",
   "keywords": [
@@ -42,6 +42,10 @@
     "dist/sdk/idl.d.ts",
     "dist/sdk/types.js",
     "dist/sdk/types.d.ts",
+    "dist/sdk/internals.js",
+    "dist/sdk/internals.d.ts",
+    "dist/sdk/sortition.js",
+    "dist/sdk/sortition.d.ts",
     "artifacts/outcome_idl.json",
     "README.md"
   ],
@@ -51,11 +55,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json && chmod +x dist/sdk/cli.js",
     "prepack": "yarn build",
-    "build:artifact": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/build_artifact.ts",
-    "metaplex:agent:mint": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/metaplex_register_agent.ts mint",
-    "metaplex:agent:verify": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/metaplex_register_agent.ts verify",
-    "replay": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/replay_verify.ts",
-    "resolve:operator": "TS_NODE_PROJECT=tsconfig.json ts-node --esm --transpile-only scripts/resolve_operator.ts",
+    "build:artifact": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/build_artifact.ts",
+    "metaplex:agent:mint": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/metaplex_register_agent.ts mint",
+    "metaplex:agent:verify": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/metaplex_register_agent.ts verify",
+    "replay": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/replay_verify.ts",
+    "resolve:operator": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/resolve_operator.ts",
     "swig:operator:create": "node scripts/create_swig_operator.mjs",
     "web": "node web/server.mjs"
   },

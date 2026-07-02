@@ -1,5 +1,5 @@
 {
-  "address": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "address": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
   "metadata": {
     "name": "outcome",
     "version": "0.1.0",
@@ -441,6 +441,308 @@
           "type": {
             "defined": {
               "name": "AttestWinnersArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "claim_sortition_ticket",
+      "discriminator": [
+        211,
+        44,
+        82,
+        85,
+        62,
+        1,
+        222,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "participant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ticket_commit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.ticket_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "ClaimSortitionTicketArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "close_sortition_ticket",
+      "discriminator": [
+        153,
+        187,
+        116,
+        171,
+        153,
+        203,
+        163,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ticket_commit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.ticket_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CloseSortitionTicketArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_sortition_draw",
+      "discriminator": [
+        34,
+        93,
+        252,
+        138,
+        225,
+        227,
+        198,
+        146
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateSortitionDrawArgs"
             }
           }
         }
@@ -981,6 +1283,66 @@
       ]
     },
     {
+      "name": "init_sortition_economics",
+      "discriminator": [
+        73,
+        65,
+        214,
+        131,
+        31,
+        194,
+        67,
+        85
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitSortitionEconomicsArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "initialize_outcome_config",
       "discriminator": [
         140,
@@ -1235,6 +1597,103 @@
       ]
     },
     {
+      "name": "initialize_unicorn_g_config",
+      "discriminator": [
+        226,
+        245,
+        244,
+        183,
+        249,
+        12,
+        177,
+        88
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "unicorn_g_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  105,
+                  99,
+                  111,
+                  114,
+                  110,
+                  95,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "InitializeUnicornGConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "prepare_rng_v2",
       "discriminator": [
         43,
@@ -1274,6 +1733,239 @@
                   114,
                   97,
                   109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.next_resolve_id",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "PrepareRngV2Args"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "prepare_rng_v2_unicorn",
+      "discriminator": [
+        105,
+        112,
+        232,
+        241,
+        83,
+        129,
+        37,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "unicorn_g_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  105,
+                  99,
+                  111,
+                  114,
+                  110,
+                  95,
+                  103,
                   95,
                   99,
                   111,
@@ -1600,6 +2292,248 @@
           "type": {
             "defined": {
               "name": "RefreshMasterSeedArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_sortition_ticket",
+      "discriminator": [
+        198,
+        251,
+        219,
+        22,
+        220,
+        119,
+        113,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "participant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ticket_commit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.ticket_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RegisterSortitionTicketArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_sortition_ticket_paid",
+      "discriminator": [
+        200,
+        68,
+        10,
+        249,
+        22,
+        220,
+        231,
+        45
+      ],
+      "accounts": [
+        {
+          "name": "participant",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ticket_commit",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  116,
+                  105,
+                  99,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.ticket_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RegisterSortitionTicketArgs"
             }
           }
         }
@@ -2465,6 +3399,194 @@
       ]
     },
     {
+      "name": "seal_randomness_unicorn",
+      "discriminator": [
+        105,
+        118,
+        61,
+        177,
+        113,
+        166,
+        6,
+        127
+      ],
+      "accounts": [
+        {
+          "name": "sealer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "outcome_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unicorn_g_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  105,
+                  99,
+                  111,
+                  114,
+                  110,
+                  95,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slot_hashes"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SealRandomnessUnicornArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "seal_sortition_draw",
+      "discriminator": [
+        118,
+        99,
+        117,
+        137,
+        110,
+        21,
+        107,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "sealer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "slot_hashes"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SealSortitionDrawArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "set_program_config",
       "discriminator": [
         239,
@@ -2523,6 +3645,98 @@
           "type": {
             "defined": {
               "name": "SetProgramConfigArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_unicorn_g_config",
+      "discriminator": [
+        152,
+        194,
+        179,
+        194,
+        246,
+        151,
+        4,
+        187
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "unicorn_g_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  105,
+                  99,
+                  111,
+                  114,
+                  110,
+                  95,
+                  103,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SetUnicornGConfigArgs"
             }
           }
         }
@@ -2599,6 +3813,104 @@
           "type": {
             "defined": {
               "name": "SubmitCompiledArtifactArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "sweep_sortition_tickets",
+      "discriminator": [
+        17,
+        190,
+        212,
+        113,
+        70,
+        100,
+        254,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "sortition_draw",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  111,
+                  114,
+                  116,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110,
+                  95,
+                  100,
+                  114,
+                  97,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.draw_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "treasury",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SweepSortitionTicketsArgs"
             }
           }
         }
@@ -2832,6 +4144,45 @@
         91,
         201
       ]
+    },
+    {
+      "name": "SortitionDraw",
+      "discriminator": [
+        49,
+        207,
+        172,
+        213,
+        167,
+        9,
+        79,
+        36
+      ]
+    },
+    {
+      "name": "TicketCommit",
+      "discriminator": [
+        126,
+        176,
+        221,
+        120,
+        165,
+        105,
+        232,
+        48
+      ]
+    },
+    {
+      "name": "UnicornGConfig",
+      "discriminator": [
+        163,
+        84,
+        33,
+        207,
+        85,
+        174,
+        88,
+        234
+      ]
     }
   ],
   "events": [
@@ -2989,6 +4340,136 @@
         7,
         117,
         68
+      ]
+    },
+    {
+      "name": "RngV2UnicornSealed",
+      "discriminator": [
+        185,
+        188,
+        133,
+        32,
+        27,
+        159,
+        219,
+        247
+      ]
+    },
+    {
+      "name": "SortitionClaimed",
+      "discriminator": [
+        233,
+        88,
+        83,
+        202,
+        114,
+        63,
+        161,
+        248
+      ]
+    },
+    {
+      "name": "SortitionDrawCreated",
+      "discriminator": [
+        253,
+        96,
+        11,
+        164,
+        201,
+        212,
+        83,
+        73
+      ]
+    },
+    {
+      "name": "SortitionEconomicsInitialized",
+      "discriminator": [
+        46,
+        28,
+        235,
+        93,
+        92,
+        240,
+        81,
+        202
+      ]
+    },
+    {
+      "name": "SortitionEntryFeePaid",
+      "discriminator": [
+        154,
+        110,
+        220,
+        176,
+        235,
+        237,
+        5,
+        100
+      ]
+    },
+    {
+      "name": "SortitionRegistered",
+      "discriminator": [
+        210,
+        247,
+        5,
+        165,
+        240,
+        146,
+        127,
+        116
+      ]
+    },
+    {
+      "name": "SortitionSealed",
+      "discriminator": [
+        106,
+        206,
+        90,
+        149,
+        253,
+        82,
+        5,
+        135
+      ]
+    },
+    {
+      "name": "SortitionTicketClosed",
+      "discriminator": [
+        69,
+        88,
+        164,
+        222,
+        184,
+        117,
+        231,
+        237
+      ]
+    },
+    {
+      "name": "UnicornGConfigInitialized",
+      "discriminator": [
+        227,
+        134,
+        69,
+        163,
+        78,
+        14,
+        140,
+        123
+      ]
+    },
+    {
+      "name": "UnicornGConfigUpdated",
+      "discriminator": [
+        242,
+        241,
+        38,
+        27,
+        213,
+        206,
+        209,
+        97
       ]
     }
   ],
@@ -3157,6 +4638,116 @@
       "code": 6032,
       "name": "RngV2InputBelowFee",
       "msg": "RNG v2 input below snapshotted protocol fee"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidEntropySource",
+      "msg": "Invalid entropy source"
+    },
+    {
+      "code": 6034,
+      "name": "InvalidUnicornGConfig",
+      "msg": "Invalid Unicorn-G config"
+    },
+    {
+      "code": 6035,
+      "name": "InvalidUnicornGProof",
+      "msg": "Invalid Unicorn-G proof"
+    },
+    {
+      "code": 6036,
+      "name": "InvalidSortitionDraw",
+      "msg": "Invalid sortition draw"
+    },
+    {
+      "code": 6037,
+      "name": "InvalidSortitionStatus",
+      "msg": "Invalid sortition status"
+    },
+    {
+      "code": 6038,
+      "name": "InvalidSortitionWindow",
+      "msg": "Invalid sortition window"
+    },
+    {
+      "code": 6039,
+      "name": "InvalidSortitionThreshold",
+      "msg": "Invalid sortition threshold"
+    },
+    {
+      "code": 6040,
+      "name": "InvalidSortitionCommitment",
+      "msg": "Invalid sortition commitment"
+    },
+    {
+      "code": 6041,
+      "name": "SortitionRegistrationOpen",
+      "msg": "Sortition registration is still open"
+    },
+    {
+      "code": 6042,
+      "name": "SortitionRegistrationClosed",
+      "msg": "Sortition registration is closed"
+    },
+    {
+      "code": 6043,
+      "name": "InvalidSortitionTicket",
+      "msg": "Invalid sortition ticket"
+    },
+    {
+      "code": 6044,
+      "name": "InvalidSortitionSecret",
+      "msg": "Invalid sortition secret"
+    },
+    {
+      "code": 6045,
+      "name": "SortitionPredicateNotMet",
+      "msg": "Sortition predicate not met"
+    },
+    {
+      "code": 6046,
+      "name": "SortitionAlreadyClaimed",
+      "msg": "Sortition ticket already claimed"
+    },
+    {
+      "code": 6047,
+      "name": "SortitionClaimWindowClosed",
+      "msg": "Sortition claim window is closed"
+    },
+    {
+      "code": 6048,
+      "name": "InvalidSortitionConfig",
+      "msg": "Invalid sortition config"
+    },
+    {
+      "code": 6049,
+      "name": "SortitionCloseTooEarly",
+      "msg": "Sortition ticket cannot be closed before the claim window ends"
+    },
+    {
+      "code": 6050,
+      "name": "InvalidSkimBps",
+      "msg": "Invalid close skim basis points"
+    },
+    {
+      "code": 6051,
+      "name": "InvalidEntryFee",
+      "msg": "Invalid entry fee"
+    },
+    {
+      "code": 6052,
+      "name": "SortitionEconomicsAlreadySet",
+      "msg": "Sortition economics already set for this draw"
+    },
+    {
+      "code": 6053,
+      "name": "SortitionPaidRegistrationRequired",
+      "msg": "This draw requires paid registration"
+    },
+    {
+      "code": 6054,
+      "name": "SortitionEconomicsAfterRegistration",
+      "msg": "Sortition economics must be set before the first registration"
     }
   ],
   "types": [
@@ -3339,6 +4930,105 @@
       }
     },
     {
+      "name": "ClaimSortitionTicketArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "secret",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseSortitionTicketArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateSortitionDrawArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "threshold",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "registration_duration_slots",
+            "type": "u64"
+          },
+          {
+            "name": "claim_duration_slots",
+            "type": "u64"
+          },
+          {
+            "name": "unclaimed_rule",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
       "name": "ExpireRngV2Args",
       "type": {
         "kind": "struct",
@@ -3402,6 +5092,35 @@
       }
     },
     {
+      "name": "InitSortitionEconomicsArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "fee_mode",
+            "type": "u8"
+          },
+          {
+            "name": "entry_fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "close_skim_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
       "name": "InitializeOutcomeConfigArgs",
       "type": {
         "kind": "struct",
@@ -3456,6 +5175,35 @@
           {
             "name": "treasury",
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitializeUnicornGConfigArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "rsa_modulus_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "delay_t",
+            "type": "u64"
+          },
+          {
+            "name": "delay_slots",
+            "type": "u64"
           }
         ]
       }
@@ -4022,11 +5770,15 @@
             "type": "u64"
           },
           {
+            "name": "entropy_source",
+            "type": "u8"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                20
+                19
               ]
             }
           }
@@ -4499,6 +6251,10 @@
                 32
               ]
             }
+          },
+          {
+            "name": "entropy_source",
+            "type": "u8"
           }
         ]
       }
@@ -4610,6 +6366,41 @@
           },
           {
             "name": "new_master_seed",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RegisterSortitionTicketArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "commitment",
             "type": {
               "array": [
                 "u8",
@@ -4946,6 +6737,10 @@
           {
             "name": "attest_deadline_slot",
             "type": "u64"
+          },
+          {
+            "name": "entropy_source",
+            "type": "u8"
           }
         ]
       }
@@ -5015,6 +6810,10 @@
           {
             "name": "sealed_at_slot",
             "type": "u64"
+          },
+          {
+            "name": "entropy_source",
+            "type": "u8"
           }
         ]
       }
@@ -5150,13 +6949,113 @@
             "type": "u64"
           },
           {
+            "name": "entropy_source",
+            "type": "u8"
+          },
+          {
             "name": "reserved",
             "type": {
               "array": [
                 "u8",
-                8
+                7
               ]
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RngV2UnicornSealed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "sealer",
+            "type": "pubkey"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "resolved_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "resolved_slot_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "commit",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "u_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "y_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "randomness",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "bounty_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "sealed_at_slot",
+            "type": "u64"
           }
         ]
       }
@@ -5178,6 +7077,80 @@
           {
             "name": "resolve_id",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SealRandomnessUnicornArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "y",
+            "type": {
+              "array": [
+                "u64",
+                32
+              ]
+            }
+          },
+          {
+            "name": "proof_a_neg",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "proof_b",
+            "type": {
+              "array": [
+                "u8",
+                128
+              ]
+            }
+          },
+          {
+            "name": "proof_c",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SealSortitionDrawArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
           }
         ]
       }
@@ -5207,6 +7180,500 @@
       }
     },
     {
+      "name": "SetUnicornGConfigArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "rsa_modulus_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "delay_t",
+            "type": "u64"
+          },
+          {
+            "name": "delay_slots",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "omega",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "predicate_digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "winners_count",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionDraw",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "standard_version",
+            "type": {
+              "array": [
+                "u8",
+                5
+              ]
+            }
+          },
+          {
+            "name": "threshold",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "registration_deadline",
+            "type": "u64"
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "registration_snapshot_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "type": "u8"
+          },
+          {
+            "name": "omega",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "resolved_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "slot_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "claim_deadline",
+            "type": "u64"
+          },
+          {
+            "name": "winners_count",
+            "type": "u64"
+          },
+          {
+            "name": "unclaimed_rule",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "fee_mode",
+            "type": "u8"
+          },
+          {
+            "name": "entry_fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "close_skim_bps",
+            "type": "u16"
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                20
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionDrawCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "standard_version",
+            "type": {
+              "array": [
+                "u8",
+                5
+              ]
+            }
+          },
+          {
+            "name": "threshold",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "registration_deadline",
+            "type": "u64"
+          },
+          {
+            "name": "claim_deadline",
+            "type": "u64"
+          },
+          {
+            "name": "unclaimed_rule",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionEconomicsInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "fee_mode",
+            "type": "u8"
+          },
+          {
+            "name": "entry_fee_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "close_skim_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionEntryFeePaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionRegistered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "registration_snapshot_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionSealed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "sealer",
+            "type": "pubkey"
+          },
+          {
+            "name": "omega",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "resolved_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "slot_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "registration_snapshot_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "sealed_at_slot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SortitionTicketClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "refunded_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "skim_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "SubmitCompiledArtifactArgs",
       "type": {
         "kind": "struct",
@@ -5227,6 +7694,191 @@
           {
             "name": "blob_len",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SweepSortitionTicketsArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TicketCommit",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "draw_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "ticket_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                30
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnicornGConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "rsa_modulus_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "delay_t",
+            "type": "u64"
+          },
+          {
+            "name": "delay_slots",
+            "type": "u64"
+          },
+          {
+            "name": "reserved",
+            "type": {
+              "array": [
+                "u8",
+                46
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnicornGConfigInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "rsa_modulus_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "delay_t",
+            "type": "u64"
+          },
+          {
+            "name": "delay_slots",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UnicornGConfigUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          },
+          {
+            "name": "rsa_modulus_id",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "delay_t",
+            "type": "u64"
+          },
+          {
+            "name": "delay_slots",
+            "type": "u64"
           }
         ]
       }
