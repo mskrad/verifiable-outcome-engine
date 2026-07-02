@@ -1,5 +1,9 @@
 # Runbook (Public Reviewer Flow)
 
+> Protocol version history and per-path mechanics (v1.3.2 → v1.4.0 → v1.4.1 → Unicorn-G,
+> canonical-promotion 2026-06-25) are in [`CHANGELOG.md`](CHANGELOG.md) and `README.md`
+> "Protocol Versions & Changelog".
+
 ## 1) Install + launch
 
 ```bash

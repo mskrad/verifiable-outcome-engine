@@ -86,6 +86,7 @@
             <li><a href="#partner-api">12 · Partner API</a></li>
             <li><a href="#w3o1-v3-layout">13 · W3O1 v3 Native Formula Layout</a></li>
             <li><a href="#use-cases">14 · Use Cases &amp; Integrations</a></li>
+            <li><a href="#resolution-paths">15 · Resolution Paths &amp; Versions</a></li>
           </ol>
           <div class="spec-toc-foot">
             <a class="btn btn-ghost btn-sm" href="/verify">Open verifier <span aria-hidden>→</span></a>
@@ -716,6 +717,70 @@ curl https://verifiableoutcome.online/api/resolutions \
             <div class="spec-meta-row" style="margin-top:18px;">
               <a class="btn btn-ghost btn-sm" href="/play">Try the demo →</a>
               <a class="btn btn-ghost btn-sm" href="/build">Integration guide →</a>
+            </div>
+          </section>
+
+          <section id="resolution-paths" class="spec-section">
+            <div class="spec-section-num">15</div>
+            <h2>Resolution Paths &amp; Versions</h2>
+            <p class="lead-sm">The protocol carries several resolution paths, all canonical on the one devnet program <span class="mono">9tEram…</span>. Replay-by-signature stays the <b>default</b>; the others are canonical alternatives selected per draw. Default entropy is SlotHashes — <b>Unicorn-G is opt-in</b>. On 2026-06-25 the whole protocol was promoted to this single canonical program (no separate isolated program).</p>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Version</th><th>Path</th><th>Task</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">v1.3.2</td><td>global-Ω resolve / replay-by-signature</td><td class="mono">—</td><td>canonical · default</td></tr>
+                  <tr><td class="mono">v1.4.0</td><td>Sortition-by-Claim</td><td class="mono">PROTOCOL-INFRA-011</td><td>canonical</td></tr>
+                  <tr><td class="mono">v1.4.1</td><td>Sortition economics (fee layer)</td><td class="mono">PROTOCOL-INFRA-013</td><td>canonical</td></tr>
+                  <tr><td class="mono">B8</td><td>Unicorn-G entropy source</td><td class="mono">PROTOCOL-INFRA-014-B8</td><td>canonical · opt-in</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>global-Ω resolve — two-phase settle (v1.3.x)</h3>
+            <p>The default path, and the biggest change after the hackathon. Earlier single-phase <span class="mono">rng_v2</span> resolutions (standard <span class="mono">1.2.1</span>) were replaced by the <b>v1.3.2 two-phase settle</b>, which separates <i>determining</i> the outcome from <i>recording</i> it:</p>
+            <ol class="spec-step-list">
+              <li><b>prepare</b> (<span class="mono">prepare_rng_v2</span>) — the operator opens a draw, posts a stake, and commits the target <i>future</i> slots.</li>
+              <li><b>seal</b> (<span class="mono">seal_randomness</span>, <b>permissionless</b>) — once the target slot window opens, anyone may seal. The outcome is <i>determined the moment this lands</i>, from future SlotHashes-derived entropy; the sealer earns a bounty. Validator slot rotation cannot abort an open draw.</li>
+              <li><b>attest</b> (<span class="mono">attest_winners</span>, allowlisted operator / attester) — records the official <span class="mono">OutcomeResolution</span>, reveals the operator secret for audit, charges the snapshotted protocol fee, and refunds the stake.</li>
+              <li><b>expire</b> (<span class="mono">expire_rng_v2</span>, permissionless) — a prepared-but-never-sealed draw refunds the stake to the operator and <b>slashes the bounty to the protocol treasury</b> (anti-regrind: every roll costs a bounty).</li>
+            </ol>
+            <p><b>Solves.</b> Producer last-look / last-revealer bias — the outcome is fixed by <i>future</i> SlotHashes unknown at prepare time — and abort resistance: permissionless seal plus expire-slash make aborting a disliked draw <i>costly</i>, not free. This is the "unpredictable + unabortable" guarantee.</p>
+            <p><b>Use case.</b> A single global winner (global-Ω) where the operator must be unable to re-roll or abort: raffles, airdrops, and prize draws run by an untrusted operator. Note: single-phase <span class="mono">resolve_outcome*</span> executes the SOL transfer directly; two-phase (seal → attest) and sortition are <i>attestation-only</i> (they prove the winner; payout is a separate step).</p>
+
+            <h3>Sortition-by-Claim (v1.4.0)</h3>
+            <p>A commit-reveal ticket draw. Entrants register a commitment <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> before a deadline; the draw seals against three future SlotHashes-derived slots to fix <span class="mono">omega</span>; each entrant self-claims by revealing <span class="mono">secret</span> and wins iff <span class="mono">sha256(secret ‖ omega) &lt; threshold</span>.</p>
+            <ul class="spec-rule-list">
+              <li><b>Lifecycle.</b> create → register → seal → claim; claim costs under <span class="mono">10k</span> CU.</li>
+              <li><b>Coverage.</b> 5/5 negative cases pass.</li>
+              <li><b>Distribution.</b> 200 draws · 100 tickets · expected 10 winners → observed mean <span class="mono">9.7</span>, variance <span class="mono">8.76</span> (binomial mean <span class="mono">10</span>, variance <span class="mono">9</span>).</li>
+            </ul>
+            <p><b>Solves.</b> Scale and operator cost. Winners <i>self-claim</i>, so the operator never pays per-winner compute or transactions; the future-slot seal keeps the draw unpredictable and unabortable at any entrant count.</p>
+            <p><b>Use case.</b> Large draws — thousands of entrants — where computing or paying out every winner on-chain from the operator side is too expensive: token airdrops, whitelist lotteries, mass reward selection.</p>
+
+            <h3>Sortition economics (v1.4.1)</h3>
+            <p>An optional fee layer on a sortition draw, byte-compatible with 1.4.0 draws (fee fields <span class="mono">0</span> = disabled). The <span class="mono">fee_mode</span> bitflags select a flat <span class="mono">entry_fee_lamports</span> charged at register and/or a <span class="mono">close_skim_bps</span> skim taken on close; the fields are carved from previously reserved bytes.</p>
+            <ul class="spec-rule-list">
+              <li><b>Rent conservation.</b> <span class="mono">close_split(rent, skim_bps)</span> guarantees <span class="mono">refund + skim == rent</span> by construction, into a dedicated treasury.</li>
+              <li><b>Coverage.</b> positive path OK; 9/9 negative cases pass.</li>
+              <li><b>CU.</b> register (paid) <span class="mono">18,096</span> · init economics <span class="mono">5,234</span> · close <span class="mono">9,643</span> · sweep(2) <span class="mono">18,459</span>.</li>
+            </ul>
+            <p><b>Solves.</b> Monetization without custody. An entry fee and/or a close-skim let an operator or partner earn from a draw while rent is conserved (<span class="mono">refund + skim == rent</span>) and funds route to a dedicated treasury — no pooled prize custody by the protocol.</p>
+            <p><b>Use case.</b> Recurring / daily draws run by a partner who wants a revenue share. Byte-compatible with 1.4.0, so an existing sortition draw opts in with fee fields set (or stays free with fields <span class="mono">0</span>).</p>
+
+            <h3>Unicorn-G entropy source (B8) — opt-in</h3>
+            <p>An alternative global-Ω entropy source: a VDF output <span class="mono">y</span> verified on-chain via an embedded Groth16 verifier and bound to the resolution commit. Default entropy stays SlotHashes; Unicorn-G is opt-in and relies on a Groth16 trusted setup (devnet RSA modulus) — a multi-party ceremony is the path to a stronger setup before any mainnet use.</p>
+            <ul class="spec-rule-list">
+              <li><b>Seal.</b> integrated on-chain Groth16 verify + commit binding: <span class="mono">247,476</span> CU. Attest: <span class="mono">61,466</span> CU.</li>
+              <li><b>Rejection.</b> a wrong proof fails as <span class="mono">InvalidUnicornGProof</span> (error <span class="mono">6035</span>), simulation <span class="mono">143,069</span> CU.</li>
+              <li><b>Localnet e2e.</b> seal <span class="mono">209,226</span> CU · prover wall <span class="mono">37.4 s</span> · peak RSS <span class="mono">4.3 GB</span> · tampered <span class="mono">y</span> rejected.</li>
+            </ul>
+            <p><b>Solves.</b> Residual entropy bias. SlotHashes alone still leaves a validator with some last-revealer influence over the seed; a VDF output verified on-chain removes it — even a colluding operator and validators cannot bias the outcome, only refuse to produce it.</p>
+            <p><b>Use case.</b> High-stakes global-Ω single-winner draws where SlotHashes-level entropy is not strong enough and cryptographic unbiasability is required. Opt-in, because it carries a trusted-setup dependency and a heavier off-chain prover.</p>
+
+            <p>Full history and measured numbers live in <span class="mono">CHANGELOG.md</span>; the reviewer-facing evidence bundle is <span class="mono">artifacts/public_evidence_summary.json</span>. Mainnet is a separate, later effort; these statuses describe the canonical <b>devnet</b> protocol.</p>
+
+            <div class="spec-meta-row" style="margin-top:18px;">
+              <a class="btn btn-ghost btn-sm" href="/protocol-paths">Open resolution paths →</a>
             </div>
           </section>
         </article>

@@ -112,6 +112,26 @@ global-Ω resolve / replay supports the following committed formats:
 Engine × use-case × monetization mapping is documented in
 `agent-instructions/hub-memory/PRODUCT_MATRIX.md` (product SSOT).
 
+## Protocol Versions & Changelog
+
+**What changed after the hackathon.** The hackathon baseline was `rng_v1`/`rng_v2` resolve with
+replay-by-signature over a set of blessed devnet signatures. Since then the protocol added
+three canonical paths — Sortition-by-Claim (`v1.4.0`), an optional sortition economics fee
+layer (`v1.4.1`), and the opt-in Unicorn-G entropy source (`B8`) — and on **2026-06-25** the
+whole protocol was **promoted to the single canonical devnet program** `9tEram…` (no separate
+isolated program). Replay-by-signature stays the default; default entropy stays SlotHashes.
+
+| Version | Path | Task | Status |
+|---------|------|------|--------|
+| v1.3.2 | global-Ω resolve / replay-by-signature | — | **canonical · default** |
+| v1.4.0 | Sortition-by-Claim | `PROTOCOL-INFRA-011` | **canonical** |
+| v1.4.1 | Sortition economics (fee layer) | `PROTOCOL-INFRA-013` | **canonical** |
+| B8 | Unicorn-G entropy source | `PROTOCOL-INFRA-014-B8` | **canonical · opt-in** |
+
+Full history, per-path mechanics, and measured numbers (CU, negatives, distribution) live in
+[`CHANGELOG.md`](CHANGELOG.md). Numbers are sourced from `artifacts/public_evidence_summary.json`.
+Mainnet is a separate, later effort; these statuses describe the canonical **devnet** protocol.
+
 ## Outcome Standards
 
 Two artifact standards are canonical:

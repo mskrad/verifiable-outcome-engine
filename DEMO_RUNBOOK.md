@@ -2,6 +2,8 @@
 
 Purpose: show Verifiable Outcome Engine against the current canonical devnet program, active blessed signatures, and native W3O1 v3 formulas.
 
+Protocol version history and per-path mechanics are in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## 1) Install
 
 ```bash
