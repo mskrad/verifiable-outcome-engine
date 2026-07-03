@@ -18,6 +18,8 @@ export const MAX_LEGS = 8;
 export const MIN_ODDS_MILLI = 1001;
 export const MAX_ODDS_MILLI = 1_000_000;
 export const WINNERS_MODE_ALL_HIT_PRORATA = 0;
+const U128_MAX = (1n << 128n) - 1n;
+const U64_MAX = (1n << 64n) - 1n;
 
 // Tag encodings (locked borsh layout).
 export const TERM_SINGLE = 0;
@@ -59,11 +61,14 @@ export type ConditionsArtifact = {
 };
 
 export type LegResult = "hit" | "miss" | "void" | "pending";
-export type SlipScore = { settled: boolean; allHit: boolean; voidCount: number; scoreFixed: number };
+// `scoreFixed` is a u64 fixed-point coefficient (×10000). Carried as bigint (NOT number) so it
+// stays byte-exact for the on-chain `winners_digest` (sha256 over score_fixed.to_le_bytes());
+// a `number` would lose precision above 2^53 and diverge from the Rust replay.
+export type SlipScore = { settled: boolean; allHit: boolean; voidCount: number; scoreFixed: bigint };
 export type RankedEntrant = {
   wallet: Buffer;
   enteredAt: bigint;
-  scoreFixed: number;
+  scoreFixed: bigint;
   allHit: boolean;
   voidCount: number;
   settled: boolean;
@@ -197,7 +202,10 @@ export function evalLeg(leg: LegCommit, facts: ScoreStat[]): LegResult {
   return hit ? "hit" : "miss";
 }
 
-export function coefficientFixed(oddsMilli: number[]): number | null {
+// Mirrors Rust `coefficient_fixed` byte-for-byte, including its rejection surface: returns null
+// on too-many-legs, out-of-band odds, u128 overflow of `product` OR `product*FIXED_SCALE(+denom/2)`,
+// or a result exceeding u64. Returns an exact bigint (no lossy Number()).
+export function coefficientFixed(oddsMilli: number[]): bigint | null {
   if (oddsMilli.length > MAX_LEGS) return null;
   let product = 1n;
   let denom = 1n;
@@ -206,8 +214,12 @@ export function coefficientFixed(oddsMilli: number[]): number | null {
     product *= BigInt(o);
     denom *= ODDS_SCALE;
   }
-  if (product > (1n << 128n) - 1n) return null;
-  return Number((product * FIXED_SCALE + denom / 2n) / denom);
+  if (product > U128_MAX) return null; // Rust: checked_mul accumulation on `product`
+  const numerator = product * FIXED_SCALE + denom / 2n;
+  if (numerator > U128_MAX) return null; // Rust: product.checked_mul(FIXED_SCALE)?.checked_add(..)?
+  const result = numerator / denom;
+  if (result > U64_MAX) return null; // Rust: u64::try_from(..).ok()
+  return result;
 }
 
 export function scoreSlip(legs: LegCommit[], factsByLeg: ScoreStat[][]): SlipScore {
@@ -221,17 +233,21 @@ export function scoreSlip(legs: LegCommit[], factsByLeg: ScoreStat[][]): SlipSco
       case "miss": effective.push(leg.oddsMilli); allHit = false; break;
     }
   });
+  // `?? 0n` mirrors Rust `unwrap_or(0)`. For a validated artifact this is unreachable (see
+  // `validateConditionsArtifact`, which rejects any slip whose worst-case coefficient overflows).
   const settledAllHit = settled && allHit;
-  const scoreFixed = settledAllHit ? (coefficientFixed(effective) ?? 0) : 0;
+  const scoreFixed = settledAllHit ? (coefficientFixed(effective) ?? 0n) : 0n;
   return { settled, allHit: settledAllHit, voidCount, scoreFixed };
 }
+
+function cmpBig(a: bigint, b: bigint): number { return a < b ? -1 : a > b ? 1 : 0; }
 
 export function rankRound(entrants: RankedEntrant[]): RankedEntrant[] {
   return [...entrants].sort((a, b) =>
     Number(b.allHit) - Number(a.allHit) ||
-    b.scoreFixed - a.scoreFixed ||
-    (a.enteredAt < b.enteredAt ? -1 : a.enteredAt > b.enteredAt ? 1 : 0) ||
-    a.wallet.compare(b.wallet));
+    cmpBig(b.scoreFixed, a.scoreFixed) || // S desc
+    cmpBig(a.enteredAt, b.enteredAt) ||   // entered_at asc
+    a.wallet.compare(b.wallet));          // wallet asc
 }
 
 /** Replay: recompute per-entrant S from the committed artifact, then rank. */
@@ -245,4 +261,63 @@ export function resolveConditionsArtifact(a: ConditionsArtifact): RankedEntrant[
     };
   });
   return rankRound(ranked);
+}
+
+// ---- structural validation (mirror conditions.rs `validate_leg` / `ConditionsArtifact::validate`) ----
+
+/** Structural validity of a leg (tags in range, odds within band). Mirrors Rust `validate_leg`. */
+export function validateLeg(l: LegCommit): boolean {
+  const okKind = l.termKind === TERM_SINGLE || l.termKind === TERM_BINARY;
+  const okOp = l.op === OP_NONE || l.op === OP_ADD || l.op === OP_SUBTRACT;
+  const okCmp = l.comparison === CMP_GT || l.comparison === CMP_LT || l.comparison === CMP_EQ;
+  const okSingle = l.termKind !== TERM_SINGLE || (l.op === OP_NONE && l.statKeyB === 0);
+  const okBinary = l.termKind !== TERM_BINARY || l.op !== OP_NONE;
+  const okOdds = l.oddsMilli >= MIN_ODDS_MILLI && l.oddsMilli <= MAX_ODDS_MILLI;
+  return okKind && okOp && okCmp && okSingle && okBinary && okOdds;
+}
+
+/**
+ * Structural + overflow validity. Mirrors Rust `ConditionsArtifact::validate`, including the
+ * overflow guard: an entrant is rejected unless its WORST-CASE coefficient (all legs hit,
+ * i.e. `coefficientFixed(all leg odds)`) is finite. Since void legs only shrink the product,
+ * a passing worst case guarantees every effective subset also fits — so `scoreSlip` never hits
+ * the `?? 0n` fallback (closes the "all_hit with S=0 on overflow" wart).
+ */
+export function validateConditionsArtifact(a: ConditionsArtifact): boolean {
+  const nfix = a.fixtures.length;
+  return a.entrants.every((e) =>
+    e.legs.length === e.fixtureIndex.length &&
+    e.legs.length <= MAX_LEGS &&
+    e.fixtureIndex.every((i) => i < nfix) &&
+    e.legs.every(validateLeg) &&
+    coefficientFixed(e.legs.map((l) => l.oddsMilli)) !== null);
+}
+
+// ---- attestation digests (mirror resolve_conditions.rs emit) ----
+
+/** ΣS over winning (all_hit) entrants — the pro-rata denominator (u128, exact bigint). */
+export function winningScoreSum(ranked: RankedEntrant[]): bigint {
+  return ranked.filter((r) => r.allHit).reduce((s, r) => s + r.scoreFixed, 0n);
+}
+
+/**
+ * `winners_digest = sha256(Σ wallet ‖ score_fixed_le_u64)` over ranked all_hit entrants, in
+ * ranked order. Byte-identical to `resolve_conditions.rs`. Pass the output of
+ * `resolveConditionsArtifact` (already ranked).
+ */
+export function winnersDigest(ranked: RankedEntrant[]): Buffer {
+  const h = crypto.createHash("sha256");
+  for (const r of ranked) {
+    if (!r.allHit) continue;
+    h.update(fixed32(r.wallet));
+    h.update(u64(r.scoreFixed));
+  }
+  return h.digest();
+}
+
+/** `facts_ref_root = sha256(Σ event_stat_root)` over fixtures in order. Mirrors on-chain. */
+export function factsRefRoot(a: ConditionsArtifact): Buffer {
+  const h = crypto.createHash("sha256");
+  for (const f of a.fixtures) h.update(fixed32(f.eventStatRoot));
+  return h.digest();
 }

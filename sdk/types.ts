@@ -10,7 +10,8 @@ export type ResolutionFormula =
 
 export type RuntimeResolutionFormula =
   | ResolutionFormula
-  | "composite_rank_desc";
+  | "composite_rank_desc"
+  | "conditions";
 
 export type CompositeNormalizationMode = "none" | "min_max";
 
@@ -350,6 +351,11 @@ export type VerifyResult = {
   proof_manifest_url?: string;
   publication_status?: SnapshotPublicationStatus;
   outcomes?: Array<{ id: string; weight: number; score?: number; order?: number }>;
+  // conditions (fc7/fv9) attestation fields — set only for resolution_formula === "conditions".
+  entrant_count?: number;
+  winning_score_sum?: string;
+  winners_digest?: string;
+  facts_ref_root?: string;
   resolve_id: string;
   compiled_artifact_hash: string;
   runtime_id: string;

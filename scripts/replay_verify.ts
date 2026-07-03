@@ -22,6 +22,10 @@ type ReplayOutput = {
   standard_version?: string;
   resolution_formula?: VerifyResult["resolution_formula"];
   target?: VerifyResult["target"];
+  entrant_count?: number;
+  winning_score_sum?: string;
+  winners_digest?: string;
+  facts_ref_root?: string;
   snapshot_hash?: string;
   snapshot_count?: number;
   snapshot_uri?: string;
@@ -84,6 +88,15 @@ function buildReplayOutput(
           target: result.target,
         }
       : {}),
+    ...(result.resolution_formula === "conditions"
+      ? {
+          entrant_count: result.entrant_count,
+          winners_count: result.winners_count,
+          winning_score_sum: result.winning_score_sum,
+          winners_digest: result.winners_digest,
+          facts_ref_root: result.facts_ref_root,
+        }
+      : {}),
     ...(result.snapshot_hash
       ? {
           snapshot_hash: result.snapshot_hash,
@@ -118,7 +131,15 @@ function printOutput(output: ReplayOutput, asJson: boolean): void {
   }
   if (output.resolution_formula) {
     console.log("resolution_formula  :", output.resolution_formula);
-    console.log("target              :", output.target);
+    if (output.resolution_formula === "conditions") {
+      console.log("entrant_count       :", output.entrant_count);
+      console.log("winners_count       :", output.winners_count);
+      console.log("winning_score_sum   :", output.winning_score_sum);
+      console.log("winners_digest      :", output.winners_digest);
+      console.log("facts_ref_root      :", output.facts_ref_root);
+    } else {
+      console.log("target              :", output.target);
+    }
   }
   if (output.snapshot_hash) {
     console.log("snapshot_hash       :", output.snapshot_hash);

@@ -366,8 +366,11 @@ impl ConditionsArtifact {
         }
     }
 
-    /// Structural validity: every entrant's `fixture_index` is parallel to `legs`, in range,
-    /// leg count within bounds, and legs structurally valid.
+    /// Structural + overflow validity: every entrant's `fixture_index` is parallel to `legs`, in
+    /// range, leg count within bounds, legs structurally valid, AND the entrant's worst-case
+    /// coefficient (all legs hit) is finite. Void legs only shrink the product, so a passing
+    /// worst case guarantees every effective subset also fits u64 — hence `score_slip`'s
+    /// `unwrap_or(0)` is unreachable for a validated artifact (no "all_hit with S=0 on overflow").
     pub fn validate(&self) -> bool {
         let nfix = self.fixtures.len();
         self.entrants.iter().all(|e| {
@@ -375,6 +378,10 @@ impl ConditionsArtifact {
                 && e.legs.len() <= MAX_LEGS
                 && e.fixture_index.iter().all(|&i| (i as usize) < nfix)
                 && e.legs.iter().all(validate_leg)
+                && {
+                    let odds: Vec<u64> = e.legs.iter().map(|l| l.odds_milli).collect();
+                    coefficient_fixed(&odds).is_some()
+                }
         })
     }
 }
@@ -632,5 +639,27 @@ mod tests {
         assert!(coefficient_fixed(&[2000; MAX_LEGS + 1]).is_none()); // too many legs
         assert!(validate_leg(&tot(CMP_LT, 5, 1850)));
         assert!(!validate_leg(&tot(CMP_LT, 5, 1000))); // odds below band
+    }
+
+    #[test]
+    fn coefficient_fixed_rejects_overflow() {
+        // 8 legs at max odds: product = 1e6^8 = 1e48 > u128::MAX → None (not a silent 0/wrap).
+        assert!(coefficient_fixed(&[MAX_ODDS_MILLI; MAX_LEGS]).is_none());
+    }
+
+    #[test]
+    fn fc7_validate_rejects_overflow() {
+        // A structurally-valid slip whose worst-case (all legs hit) coefficient overflows must be
+        // rejected by `validate` (M1/M2): otherwise on-chain would score it S=0 while a lossy
+        // off-chain scorer could return a huge value → replay MISMATCH.
+        let fixtures = vec![ConditionsFixture { fixture_id: 1, event_stat_root: [0; 32], stats: vec![] }];
+        let legs: Vec<LegCommit> =
+            (0..MAX_LEGS).map(|_| disc(1, 2, OP_SUBTRACT, CMP_GT, 0, MAX_ODDS_MILLI)).collect();
+        let fixture_index = vec![0u16; MAX_LEGS];
+        let art = ConditionsArtifact::new(
+            fixtures,
+            vec![ConditionsEntrant { wallet: [1; 32], tier: 0, entered_at: 0, legs, fixture_index }],
+        );
+        assert!(!art.validate());
     }
 }

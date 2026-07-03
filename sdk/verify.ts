@@ -29,6 +29,15 @@ import {
   parseCompositeRankDescArtifact,
   replayCompositeRankDescArtifact,
 } from "./composite_rank_desc.js";
+import {
+  parseConditionsArtifact,
+  resolveConditionsArtifact,
+  winnersDigest,
+  factsRefRoot,
+  winningScoreSum,
+  FORMAT_VERSION_CONDITIONS,
+  FORMULA_CODE_CONDITIONS,
+} from "./conditions.js";
 import type {
   RuntimeResolutionFormula,
   VerifyOutcomeOptions,
@@ -293,6 +302,13 @@ function readI64LE(buf: Buffer, offset: { value: number }): bigint {
   const value = buf.readBigInt64LE(offset.value);
   offset.value += 8;
   return value;
+}
+
+function readU128LE(buf: Buffer, offset: { value: number }): bigint {
+  const lo = buf.readBigUInt64LE(offset.value);
+  const hi = buf.readBigUInt64LE(offset.value + 8);
+  offset.value += 16;
+  return lo + (hi << 64n);
 }
 
 function readBytes(buf: Buffer, offset: { value: number }, len: number): Buffer {
@@ -641,6 +657,79 @@ function findOutcomeResolvedEvent(
     "ERR_EVENT_NOT_FOUND_FOR_PROGRAM",
     `OutcomeResolved event not found for program ${expectedProgramId}`
   );
+}
+
+// ---- conditions (fc7/fv9) attestation event ----
+
+type ConditionsResolvedEvent = {
+  runtimeId: Buffer;
+  operator: PublicKey;
+  compiledArtifactHash: Buffer;
+  entrantCount: number;
+  winnerCount: number;
+  winningScoreSum: bigint;
+  winnersDigest: Buffer;
+  factsRefRoot: Buffer;
+};
+
+function decodeConditionsResolvedV1(line: string): ConditionsResolvedEvent | null {
+  if (!line.startsWith("Program data: ")) return null;
+  const encoded = line.slice("Program data: ".length).trim();
+  const buf = Buffer.from(encoded, "base64");
+  const discriminator = anchorEventDiscriminator("ConditionsResolvedV1");
+  if (buf.length < 8 || !buf.subarray(0, 8).equals(discriminator)) return null;
+
+  const offset = { value: 8 };
+  const runtimeId = readBytes(buf, offset, 16);
+  const operator = new PublicKey(readBytes(buf, offset, 32));
+  const compiledArtifactHash = readBytes(buf, offset, 32);
+  const entrantCount = readU32LE(buf, offset);
+  const winnerCount = readU16LE(buf, offset);
+  const winningScoreSum = readU128LE(buf, offset);
+  const winnersDigestBytes = readBytes(buf, offset, 32);
+  const factsRefRoot = readBytes(buf, offset, 32);
+  return {
+    runtimeId,
+    operator,
+    compiledArtifactHash,
+    entrantCount,
+    winnerCount,
+    winningScoreSum,
+    winnersDigest: winnersDigestBytes,
+    factsRefRoot,
+  };
+}
+
+// Returns the first `ConditionsResolvedV1` event emitted by the expected program, or null if the
+// transaction has none under that program (so the caller can fall through to the OutcomeResolved
+// path). Program-id scoping mirrors `findOutcomeResolvedEvent`.
+function findConditionsResolvedEvent(
+  logs: string[],
+  expectedProgramId: string
+): ConditionsResolvedEvent | null {
+  const stack: string[] = [];
+  for (const line of logs) {
+    const invoke = parseProgramInvoke(line);
+    if (invoke) {
+      stack.push(invoke);
+      continue;
+    }
+    const finish = parseProgramFinish(line);
+    if (finish) {
+      for (let index = stack.length - 1; index >= 0; index -= 1) {
+        if (stack[index] === finish) {
+          stack.splice(index, 1);
+          break;
+        }
+      }
+      continue;
+    }
+    if (!line.startsWith("Program data: ")) continue;
+    if (stack.length === 0 || stack[stack.length - 1] !== expectedProgramId) continue;
+    const event = decodeConditionsResolvedV1(line);
+    if (event) return event;
+  }
+  return null;
 }
 
 async function fetchTransactionLogs(
@@ -1484,6 +1573,118 @@ function rngV2ResultFields(
   };
 }
 
+// Verify a `resolve_conditions` (fc7/fv9) attestation by replaying the committed artifact:
+// reconstruct the fc7 blob from its on-chain chunk accounts, recompute S + ranking + the two
+// digests via the conditions SDK, and compare to the emitted `ConditionsResolvedV1` event.
+async function verifyConditions(
+  connection: anchor.web3.Connection,
+  coder: any,
+  programId: PublicKey,
+  event: ConditionsResolvedEvent
+): Promise<VerifyResult> {
+  const runtimeIdHex = toHex(event.runtimeId);
+  const compiledArtifactHashHex = toHex(event.compiledArtifactHash);
+
+  // OutcomeConfig binds runtime_id → compiled_artifact_hash (same hash the event carries).
+  const outcomeConfigPda = deriveOutcomeConfigPda(programId, event.runtimeId);
+  const outcomeConfig = await fetchDecodedAccount(
+    connection,
+    coder,
+    outcomeConfigPda,
+    "OutcomeConfig",
+    "ERR_OUTCOME_CONFIG_NOT_FOUND"
+  );
+  const configHash = Buffer.from(
+    pick<number[]>(outcomeConfig, "compiled_artifact_hash", "compiledArtifactHash")
+  );
+  if (!configHash.equals(event.compiledArtifactHash)) {
+    mismatch("ERR_CONFIG_HASH_MISMATCH", "OutcomeConfig hash differs from event hash");
+  }
+
+  // Reconstruct + hash-verify the committed fc7 blob from its on-chain chunk accounts.
+  const approvedArtifactPda = deriveApprovedArtifactPda(programId, event.compiledArtifactHash);
+  const approvedArtifact = await fetchDecodedAccount(
+    connection,
+    coder,
+    approvedArtifactPda,
+    "ApprovedOutcomeArtifact",
+    "ERR_ARTIFACT_HEADER_NOT_FOUND"
+  );
+  const headerHash = Buffer.from(
+    pick<number[]>(approvedArtifact, "compiled_artifact_hash", "compiledArtifactHash")
+  );
+  if (!headerHash.equals(event.compiledArtifactHash)) {
+    mismatch("ERR_ARTIFACT_HASH_MISMATCH", "ApprovedOutcomeArtifact hash differs from event hash");
+  }
+  if (!Boolean(pick(approvedArtifact, "is_finalized", "isFinalized"))) {
+    mismatch("ERR_ARTIFACT_NOT_FINALIZED", "ApprovedOutcomeArtifact is not finalized");
+  }
+  const blob = await reconstructArtifactBlob(
+    connection,
+    coder,
+    programId,
+    event.compiledArtifactHash,
+    approvedArtifact
+  );
+  if (!sha256(blob).equals(event.compiledArtifactHash)) {
+    mismatch("ERR_ARTIFACT_HASH_MISMATCH", "Reconstructed fc7 blob hash differs from event hash");
+  }
+
+  // Parse fc7, replay, recompute the attestation, compare to the event.
+  let artifact: ReturnType<typeof parseConditionsArtifact>;
+  let ranked: ReturnType<typeof resolveConditionsArtifact>;
+  try {
+    artifact = parseConditionsArtifact(blob);
+    ranked = resolveConditionsArtifact(artifact);
+  } catch (error) {
+    mismatch("ERR_REPLAY_UNHANDLED", error instanceof Error ? error.message : String(error));
+  }
+  if (
+    artifact.formatVersion !== FORMAT_VERSION_CONDITIONS ||
+    artifact.formulaCode !== FORMULA_CODE_CONDITIONS
+  ) {
+    mismatch("ERR_ARTIFACT_FORMAT_VERSION_MISMATCH", "Artifact is not fc7/fv9 conditions");
+  }
+
+  const winners = ranked.filter((r) => r.allHit);
+  const recomputedSum = winningScoreSum(ranked);
+  const recomputedWinnersDigest = winnersDigest(ranked);
+  const recomputedFactsRoot = factsRefRoot(artifact);
+
+  if (artifact.entrants.length !== event.entrantCount) {
+    mismatch("ERR_CONDITIONS_ENTRANT_COUNT_MISMATCH", "Entrant count differs between artifact and event");
+  }
+  if (winners.length !== event.winnerCount) {
+    mismatch("ERR_WINNER_COUNT_MISMATCH", "Winner count differs between replay and event");
+  }
+  if (recomputedSum !== event.winningScoreSum) {
+    mismatch("ERR_CONDITIONS_SCORE_SUM_MISMATCH", "Winning score sum differs between replay and event");
+  }
+  if (!recomputedWinnersDigest.equals(event.winnersDigest)) {
+    mismatch("ERR_CONDITIONS_WINNERS_DIGEST_MISMATCH", "Winners digest differs between replay and event");
+  }
+  if (!recomputedFactsRoot.equals(event.factsRefRoot)) {
+    mismatch("ERR_CONDITIONS_FACTS_ROOT_MISMATCH", "Facts-ref root differs between replay and event");
+  }
+
+  return {
+    status: "MATCH",
+    reason: "OK",
+    outcome_id: winners.length > 0 ? new PublicKey(winners[0].wallet).toBase58() : "",
+    resolution_formula: "conditions",
+    winners_count: winners.length,
+    entrant_count: artifact.entrants.length,
+    winning_score_sum: recomputedSum.toString(),
+    winners_digest: recomputedWinnersDigest.toString("hex"),
+    facts_ref_root: recomputedFactsRoot.toString("hex"),
+    outcomes: [],
+    resolve_id: "",
+    compiled_artifact_hash: compiledArtifactHashHex,
+    runtime_id: runtimeIdHex,
+    program_id: programId.toBase58(),
+  };
+}
+
 async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promise<VerifyResult> {
   const programId = new PublicKey(opts.programId);
   const connection = new anchor.web3.Connection(opts.rpcUrl, { commitment: "confirmed" });
@@ -1491,6 +1692,14 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   const coder = new anchor.BorshCoder(rawIdl as anchor.Idl);
 
   const logs = await fetchTransactionLogs(connection, opts.signature);
+
+  // conditions (fc7/fv9) resolutions emit ConditionsResolvedV1 (no OutcomeResolution account) —
+  // branch to the dedicated replay before the OutcomeResolved path (which would not find its event).
+  const conditionsEvent = findConditionsResolvedEvent(logs, programId.toBase58());
+  if (conditionsEvent) {
+    return await verifyConditions(connection, coder, programId, conditionsEvent);
+  }
+
   const event = findOutcomeResolvedEvent(logs, programId.toBase58());
 
   const runtimeIdHex = toHex(event.runtimeId);

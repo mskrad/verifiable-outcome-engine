@@ -47,7 +47,8 @@ pub fn handler(
             || args.format_version == FORMAT_VERSION_V5
             || args.format_version == FORMAT_VERSION_V8_COMPOSITE_RANK_DESC
             || args.format_version == FORMAT_VERSION_V1_2_SCALE
-            || args.format_version == FORMAT_VERSION_V1_2_1_SCALE,
+            || args.format_version == FORMAT_VERSION_V1_2_1_SCALE
+            || args.format_version == crate::math::conditions::FORMAT_VERSION_CONDITIONS,
         OutcomeError::InvalidCompiledArtifactFormat
     );
     require!(

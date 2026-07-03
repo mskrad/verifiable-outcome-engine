@@ -6,7 +6,8 @@
 import fs from "fs";
 import {
   buildConditionsArtifact, parseConditionsArtifact, resolveConditionsArtifact,
-  scoreSlip, slipHash, NO_LINE, OP_ADD, OP_SUBTRACT, CMP_GT, CMP_LT, CMP_EQ, TERM_BINARY,
+  scoreSlip, slipHash, coefficientFixed, validateConditionsArtifact,
+  NO_LINE, OP_ADD, OP_SUBTRACT, CMP_GT, CMP_LT, CMP_EQ, TERM_BINARY, MAX_ODDS_MILLI, MAX_LEGS,
   type LegCommit, type ScoreStat, type ConditionsFixture, type ConditionsEntrant,
 } from "../sdk/conditions.js";
 
@@ -45,7 +46,7 @@ for (const x of V) {
   const factsByLeg = x.legs.map((l: any) => (x.facts[l.fixtureId] ?? []).map((s: any): ScoreStat => ({ statKey: s.statKey, value: s.value })));
   const s = scoreSlip(legs, factsByLeg);
   const e = x.expected;
-  const ok = s.settled === e.settled && s.allHit === e.allHit && s.voidCount === e.voidCount && s.scoreFixed === e.scoreFixed;
+  const ok = s.settled === e.settled && s.allHit === e.allHit && s.voidCount === e.voidCount && s.scoreFixed === BigInt(e.scoreFixed);
   check(`score ${x.name}`, ok, `S=${s.scoreFixed} (exp ${e.scoreFixed})`);
 }
 
@@ -75,8 +76,20 @@ check("artifact magic W3O1", bytes.subarray(0, 4).toString() === "W3O1");
 const parsed = parseConditionsArtifact(bytes);
 check("artifact roundtrip re-encode", buildConditionsArtifact(parsed.fixtures, parsed.entrants).equals(bytes));
 const ranked = resolveConditionsArtifact(parsed);
-const okResolve = ranked[0].wallet[0] === 0x0a && ranked[0].scoreFixed === 39775 && ranked[1].wallet[0] === 0x0b && ranked[1].scoreFixed === 21500 && ranked[1].voidCount === 1;
+const okResolve = ranked[0].wallet[0] === 0x0a && ranked[0].scoreFixed === 39775n && ranked[1].wallet[0] === 0x0b && ranked[1].scoreFixed === 21500n && ranked[1].voidCount === 1;
 check("artifact resolve + rank", okResolve, `[${ranked.map((r) => `${r.wallet[0].toString(16)}:${r.scoreFixed}`).join(", ")}]`);
+
+// 4) overflow rejection parity (M1/M2): worst-case coefficient must be null, and an artifact
+//    carrying such a slip must fail validate — mirrors Rust `coefficient_fixed`=None / `validate`=false.
+check("coefficientFixed overflow → null", coefficientFixed(new Array(MAX_LEGS).fill(MAX_ODDS_MILLI)) === null);
+const ovfLeg: LegCommit = { termKind: TERM_BINARY, statKeyA: 1, statKeyB: 2, op: OP_SUBTRACT, comparison: CMP_GT, threshold: 0, lineX2: NO_LINE, oddsMilli: MAX_ODDS_MILLI };
+const ovfArtifact = {
+  formatVersion: parsed.formatVersion, formulaCode: parsed.formulaCode, winnersMode: parsed.winnersMode,
+  fixtures: [{ fixtureId: 1, eventStatRoot: Buffer.alloc(32), stats: [] as ScoreStat[] }],
+  entrants: [{ wallet: Buffer.alloc(32, 1), tier: 0n, enteredAt: 0n, legs: new Array(MAX_LEGS).fill(ovfLeg), fixtureIndex: new Array(MAX_LEGS).fill(0) }],
+};
+check("validate rejects overflow slip", validateConditionsArtifact(ovfArtifact) === false);
+check("validate accepts normal artifact", validateConditionsArtifact(parsed) === true);
 
 // golden artifact hex (cross-checked against Rust to_bytes)
 console.log("\nARTIFACT_HEX=" + bytes.toString("hex"));
