@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { PublicKey } from "@solana/web3.js";
 
 export const DEFAULT_PROGRAM_ID =
-  "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+  "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 export const DEFAULT_RPC_URL =
   process.env.ANCHOR_PROVIDER_URL ?? process.env.SOLANA_RPC_URL ?? "";
 export const CHUNK_SIZE = 1024;

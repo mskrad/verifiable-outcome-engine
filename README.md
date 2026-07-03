@@ -28,7 +28,7 @@ Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
 The **verification SDK** is open for integration — use it to build artifacts,
 verify outcomes, and replay results from chain data.
 
-The **Solana program** (`9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`) runs
+The **Solana program** (`6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`) runs
 on a protocol fee model: each `resolveOutcome` call pays a small fee to the
 VRE treasury.
 
@@ -67,7 +67,7 @@ VRE replays a Solana outcome from a transaction signature plus public RPC data:
 
 Canonical devnet program id:
 
-- `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`
+- `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
 - Upgrade authority (devnet): a single operator key. Multisig governance is not
   used on devnet — it added ceremony without protecting real value while the
   protocol is still iterating.
@@ -78,7 +78,7 @@ Canonical devnet program id:
 ## Resolution Paths
 
 The protocol carries several resolution paths, all canonical on the devnet program
-`9tEram…`. Replay-by-signature stays the **default** path; the others are canonical
+`6QtLot…`. Replay-by-signature stays the **default** path; the others are canonical
 alternatives selected per draw.
 
 | Path | Version | Status | What it is |
@@ -90,7 +90,7 @@ alternatives selected per draw.
 
 Notes:
 
-- All paths run on the one canonical program `9tEram…`; there is no separate isolated program.
+- All paths run on the one canonical program `6QtLot…`; there is no separate isolated program.
 - The default entropy source is SlotHashes. **Unicorn-G is opt-in** (selected explicitly
   per draw) and relies on a Groth16 trusted setup (devnet RSA modulus); a multi-party
   ceremony is the path to a stronger setup before any mainnet use.
@@ -118,7 +118,7 @@ Engine × use-case × monetization mapping is documented in
 replay-by-signature over a set of blessed devnet signatures. Since then the protocol added
 three canonical paths — Sortition-by-Claim (`v1.4.0`), an optional sortition economics fee
 layer (`v1.4.1`), and the opt-in Unicorn-G entropy source (`B8`) — and on **2026-06-25** the
-whole protocol was **promoted to the single canonical devnet program** `9tEram…` (no separate
+whole protocol was **promoted to the single canonical devnet program** `6QtLot…` (no separate
 isolated program). Replay-by-signature stays the default; default entropy stays SlotHashes.
 
 | Version | Path | Task | Status |
@@ -178,7 +178,7 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
   --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
 
 More included signatures:
@@ -298,7 +298,7 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 ANCHOR_WALLET=~/.config/solana/id.json \
 yarn -s resolve:operator \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --json
 ```
 
@@ -308,7 +308,7 @@ Output includes `signature`. Pass it to the verifier:
 yarn -s replay \
   --sig <signature from above> \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
 
 Expected: `verification_result : MATCH` / `verification_reason : OK`

@@ -23,7 +23,7 @@ import type { ResolutionFormula } from "../dist/sdk/types.js";
 
 const DEFAULT_RPC_URL = "https://api.devnet.solana.com";
 const DEFAULT_WALLET_PATH = "~/.config/solana/id.json";
-const CANONICAL_PROGRAM_ID = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+const CANONICAL_PROGRAM_ID = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey(
   "BPFLoaderUpgradeab1e11111111111111111111111"
 );

@@ -1,6 +1,6 @@
 use std::{env, fs, path::PathBuf};
 
-const DEFAULT_PROGRAM_ID: &str = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+const DEFAULT_PROGRAM_ID: &str = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 
 fn main() {
     let program_id =

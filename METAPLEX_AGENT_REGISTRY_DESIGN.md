@@ -21,7 +21,7 @@ The integration must not change Rust/Anchor outcome semantics, must not add LLM-
   - `https://verifiableoutcome.online/verify`
   - `https://verifiableoutcome.online/api/replay`
   - `https://verifiableoutcome.online/play`
-- VRE canonical devnet program ID is `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`.
+- VRE canonical devnet program ID is `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
 
 Sources:
 - https://www.metaplex.com/docs/agents/mint-agent
@@ -111,7 +111,7 @@ JSON:
     },
     {
       "trait_type": "Program ID",
-      "value": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+      "value": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
     },
     {
       "trait_type": "Verification Mode",
@@ -317,7 +317,7 @@ Engineer must produce `artifacts/metaplex_agent_registry_evidence.json` with:
       "status": "MATCH/OK for blessed signature"
     }
   ],
-  "vre_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+  "vre_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
   "verified_at": "<ISO-8601 timestamp>"
 }
 ```
@@ -370,7 +370,7 @@ VRE checks:
 yarn -s replay \
   --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
 
 ## 13. Acceptance Mapping

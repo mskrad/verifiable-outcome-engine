@@ -1,7 +1,7 @@
 # Changelog
 
 Protocol version history for the Verifiable Outcome Engine. All entries describe the
-canonical **devnet** program `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`. Mainnet is a
+canonical **devnet** program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`. Mainnet is a
 separate, later effort. Numbers below come from `artifacts/public_evidence_summary.json`.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/); this project tracks
@@ -24,7 +24,7 @@ protocol after the promotion below. Commits `208d2ef` (product-sync) and `9eb588
 
 ## 2026-06-25 — Canonical promotion
 
-The full protocol was promoted to the canonical devnet program `9tEram…`. There is no longer a
+The full protocol was promoted to the canonical devnet program `6QtLot…`. There is no longer a
 separate isolated program for these paths.
 
 - **Default entropy stays SlotHashes.** Unicorn-G is **opt-in**, selected explicitly per draw.

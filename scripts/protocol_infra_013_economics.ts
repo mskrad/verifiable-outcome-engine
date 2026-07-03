@@ -22,7 +22,7 @@ import {
 
 const DEFAULT_RPC_URL = "http://127.0.0.1:8899";
 const DEFAULT_WALLET_PATH = "~/.config/solana/id.json";
-const CANONICAL_PROGRAM_ID = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+const CANONICAL_PROGRAM_ID = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 const ARTIFACT = "artifacts/protocol_infra_013_economics_localnet.json";
 
 const FEE_ENTRY = 1;

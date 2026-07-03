@@ -39,7 +39,7 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
   --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
 
 ## 5) Embedded widget equivalent
@@ -85,7 +85,7 @@ Maturity notes:
 - Relies on a Groth16 **trusted setup** (devnet RSA modulus). A multi-party ceremony is the path to a stronger setup before any mainnet use.
 - Mainnet is a separate, later effort; this describes the canonical **devnet** protocol.
 
-Validation program (devnet): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` — the same code now carried by the canonical program `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`.
+Validation program (devnet): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` — the same code now carried by the canonical program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
 
 End-to-end devnet cycle completed: `prepare -> SlotHashes-derived u replay -> proof -> seal -> attest`.
 
@@ -109,7 +109,7 @@ Evidence artifacts:
 Read-only verification (no mutation):
 
 ```bash
-solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F --url https://api.devnet.solana.com
+solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B --url https://api.devnet.solana.com
 ```
 
 Local gates recorded with this evidence: `cargo test -p outcome` (`31/31`), `anchor build`, `npx tsc --noEmit`, `git diff --check`.
@@ -125,7 +125,7 @@ Notes:
 - Replay-by-signature stays the **default** resolution path; sortition is a canonical alternative.
 - Mainnet is a separate, later effort; this describes the canonical **devnet** protocol.
 
-Validation program (devnet): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` — the same code now carried by the canonical program `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`.
+Validation program (devnet): `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` — the same code now carried by the canonical program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
 
 Evidence (sortition `v1.4.0`, `PROTOCOL-INFRA-011`):
 
@@ -164,7 +164,7 @@ controlled by the configured operator path.
 Verify the current authority:
 
 ```bash
-solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --url https://api.devnet.solana.com
 ```
 
@@ -176,12 +176,12 @@ anchor build                                    # -> target/deploy/outcome.so
 
 # 2) Upgrade in place (authority = operator key)
 solana program deploy target/deploy/outcome.so \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --upgrade-authority ~/.config/solana/id.json \
   --url https://api.devnet.solana.com
 
 # 3) Verify (Last Deployed In Slot should advance)
-solana program show 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --url https://api.devnet.solana.com
 ```
 
@@ -193,7 +193,7 @@ single-key flow above:
 
 ```bash
 # Executed via the multisig: set-upgrade-authority -> <operator pubkey>
-solana program set-upgrade-authority 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+solana program set-upgrade-authority 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --new-upgrade-authority <operator pubkey> \
   --url https://api.devnet.solana.com
 ```
@@ -202,7 +202,7 @@ solana program set-upgrade-authority 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1
 
 | Name | Address |
 |---|---|
-| Program | `9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F` |
+| Program | `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` |
 | ProgramConfig admin | `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf` (Swig actor wallet, separate from upgrade authority) |
 
 ## 8) Swig operator setup
@@ -224,7 +224,7 @@ cd verifiable-outcome-engine
 ROOT_KEYPAIR=~/.config/solana/esjx.json \
 SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-VRE_PROGRAM_ID=9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+VRE_PROGRAM_ID=6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
 yarn -s swig:operator:create
 ```
 
@@ -235,7 +235,7 @@ cd verifiable-outcome-engine
 ROOT_KEYPAIR=~/.config/solana/esjx.json \
 SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-VRE_PROGRAM_ID=9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+VRE_PROGRAM_ID=6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
 SWIG_TRANSFER_PROGRAM_CONFIG_ADMIN=1 \
 yarn -s swig:operator:create
 ```
@@ -323,7 +323,7 @@ Evidence is written to `artifacts/vanish_integration_evidence.json` with:
 
 ## 9b) Outcome Standards status
 
-Both artifact standards are canonical on `9tEram…`:
+Both artifact standards are canonical on `6QtLot…`:
 
 - `Outcome Standard V1.1`
   - compact named-entry base

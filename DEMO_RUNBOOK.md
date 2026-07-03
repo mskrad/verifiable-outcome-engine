@@ -37,7 +37,7 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
   --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
 
 ## 4) Expected result
@@ -51,7 +51,7 @@ If devnet RPC is unavailable, retry later or use another active signature from `
 
 > **Resolution paths note.** This demo uses the default replay-by-signature + global-Ω
 > resolve path. The protocol also carries other canonical paths on the same program
-> `9tEram…`: Sortition-by-Claim (`v1.4.0`), sortition economics (`v1.4.1`), and the
+> `6QtLot…`: Sortition-by-Claim (`v1.4.0`), sortition economics (`v1.4.1`), and the
 > Unicorn-G entropy source (B8, canonical opt-in — default entropy stays SlotHashes).
 > See `README.md` → "Resolution Paths" and `RUNBOOK.md` §6b–§6c. Mainnet is a separate,
 > later effort; these describe the canonical devnet protocol.
@@ -68,14 +68,14 @@ ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 ANCHOR_WALLET=~/.config/solana/id.json \
 yarn -s resolve:operator \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F \
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --json
 
 # Step 2 — replay the returned signature
 yarn -s replay \
   --sig <signature> \
   --url https://api.devnet.solana.com \
-  --program-id 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
 
 Expected: `verification_result : MATCH` / `verification_reason : OK`

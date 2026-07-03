@@ -13,7 +13,7 @@ Anyone verifies from a transaction signature. One POST request to get started.
 | **Partner** | Own instance via partnership | Contact VRE team | Partner agreement |
 
 > The npm package (`verifiable-outcome-sdk`) covers Verifier, Builder, and Operator roles.  
-> The canonical Solana program (`9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`) is operated by the VRE team.
+> The canonical Solana program (`6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`) is operated by the VRE team.
 >
 > The SDK does **not** deploy a new Solana program instance. It builds artifacts,
 > resolves against an already deployed program, and verifies resolved outcomes.
@@ -68,7 +68,7 @@ Expected output:
 ```
 verification_result : MATCH
 verification_reason : OK
-program_id          : 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F
+program_id          : 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 runtime_id          : dabf24dc2a1e8ee7c4ab54e76089c038
 compiled_artifact_hash : 4a5c908d...
 outcome_id          : <winner id>
@@ -155,7 +155,7 @@ console.log(artifact.toString("hex"));
 
 Resolve outcomes on-chain against an **existing deployed program**. Requires the wallet that initialized that program (the program admin).
 
-> The canonical devnet program (`9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`) is operated by the VRE team and is subject to the protocol fee model. For a dedicated instance, see **Part 4 — Partner Program**.
+> The canonical devnet program (`6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`) is operated by the VRE team and is subject to the protocol fee model. For a dedicated instance, see **Part 4 — Partner Program**.
 >
 > `vre resolve` does not deploy a program. It commits an artifact and resolves
 > against the program ID you provide.
@@ -284,14 +284,14 @@ vre verify \
 vre verify
   --sig <TX_SIG>         Transaction signature to verify
   --rpc <URL>            RPC endpoint (default: https://api.devnet.solana.com)
-  --program-id <PUBKEY>  Program ID (default: 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F)
+  --program-id <PUBKEY>  Program ID (default: 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B)
   --json                 Output as JSON
 
 vre resolve
   --config <PATH>        Path to raffle.config.json
   --wallet <PATH>        Path to Solana keypair JSON file
   --rpc <URL>            RPC endpoint (default: https://api.devnet.solana.com)
-  --program-id <PUBKEY>  Program ID (default: 9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F)
+  --program-id <PUBKEY>  Program ID (default: 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B)
   --out-dir <DIR>        Directory to write result artifacts (default: ./tmp)
   --json                 Output as JSON
 ```

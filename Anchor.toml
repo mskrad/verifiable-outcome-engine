@@ -12,10 +12,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-outcome = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+outcome = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
 
 [programs.devnet]
-outcome = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+outcome = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
 
 [registry]
 url = "https://api.apr.dev"

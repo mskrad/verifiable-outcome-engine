@@ -170,8 +170,8 @@
             <div class="spec-grid-2">
               <div class="spec-kv">
                 <div class="spec-kv-label">Program ID</div>
-                <div class="spec-kv-value mono">9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F</div>
-                <button class="btn btn-ghost btn-sm" data-copy="9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F">Copy</button>
+                <div class="spec-kv-value mono">6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B</div>
+                <button class="btn btn-ghost btn-sm" data-copy="6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B">Copy</button>
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">Cluster</div>
@@ -333,7 +333,7 @@
               <div class="terminal-body"><span class="comment"># Any agent verifies a VRE outcome</span>
 curl -s https://verifiableoutcome.online/api/replay \
   -H <span class="ok">"content-type: application/json"</span> \
-  -d <span class="ok">'{"signature":"&lt;resolve_tx_sig&gt;","programId":"9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"}'</span>
+  -d <span class="ok">'{"signature":"&lt;resolve_tx_sig&gt;","programId":"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"}'</span>
 → { <span class="key">"ok"</span>: <span class="ok">true</span>, <span class="key">"replay"</span>: { <span class="key">"verification_result"</span>: <span class="ok">"MATCH"</span>, <span class="key">"verification_reason"</span>: <span class="ok">"OK"</span>, … } }</div>
             </div>
 
@@ -438,7 +438,7 @@ const artifact = <span class="key">await</span> buildArtifact({
 <span class="comment">// Verify a resolved transaction</span>
 const result = <span class="key">await</span> verifyOutcome({
   <span class="key">signature</span>: <span class="ok">"5KJp…9vW2"</span>,
-  <span class="key">programId</span>: <span class="ok">"9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"</span>,
+  <span class="key">programId</span>: <span class="ok">"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"</span>,
 });
 <span class="comment">// → { status: "MATCH", code: "OK", winner: "…", … }</span></div>
             </div>
@@ -723,7 +723,7 @@ curl https://verifiableoutcome.online/api/resolutions \
           <section id="resolution-paths" class="spec-section">
             <div class="spec-section-num">15</div>
             <h2>Resolution Paths &amp; Versions</h2>
-            <p class="lead-sm">The protocol carries several resolution paths, all canonical on the one devnet program <span class="mono">9tEram…</span>. Replay-by-signature stays the <b>default</b>; the others are canonical alternatives selected per draw. Default entropy is SlotHashes — <b>Unicorn-G is opt-in</b>. On 2026-06-25 the whole protocol was promoted to this single canonical program (no separate isolated program).</p>
+            <p class="lead-sm">The protocol carries several resolution paths, all canonical on the one devnet program <span class="mono">6QtLot…</span>. Replay-by-signature stays the <b>default</b>; the others are canonical alternatives selected per draw. Default entropy is SlotHashes — <b>Unicorn-G is opt-in</b>. On 2026-06-25 the whole protocol was promoted to this single canonical program (no separate isolated program).</p>
             <div class="spec-table-wrap">
               <table class="spec-table">
                 <thead><tr><th>Version</th><th>Path</th><th>Task</th><th>Status</th></tr></thead>

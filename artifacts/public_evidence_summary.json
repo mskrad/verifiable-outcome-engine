@@ -1,6 +1,6 @@
 {
   "schema_version": "outcome_public_reference_summary_v1",
-  "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+  "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
   "default_rpc_url": "https://api.devnet.solana.com",
   "network": "devnet",
   "reference_scope": [
@@ -88,7 +88,7 @@
     "status": "canonical_opt_in",
     "task_id": "PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE",
     "scope": "global-omega / RngV2State Unicorn-G entropy path; opt-in (default entropy stays SlotHashes)",
-    "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
     "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
     "maturity": {
       "canonical": true,
@@ -139,7 +139,7 @@
     "task_id": "PROTOCOL-INFRA-011",
     "standard_version": "1.4.0",
     "scope": "Sortition-by-Claim commit-reveal ticket draw; canonical alternative resolution path",
-    "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
     "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
     "default_resolution_path": "replay-by-signature",
     "lifecycle": {
@@ -170,7 +170,7 @@
     "task_id": "PROTOCOL-INFRA-013",
     "standard_version": "1.4.1",
     "scope": "Optional sortition fee layer (entry fee + close-skim); byte-compatible with 1.4.0 draws (fee fields 0 = disabled)",
-    "canonical_program_id": "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F",
+    "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
     "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
     "results": {
       "positive_ok": true,
@@ -193,7 +193,7 @@
     "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
     "Legacy compiled spec and metrics appendix files are not part of the active standalone runtime surface.",
     "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows.",
-    "The canonical program is 9tEram... on devnet; the blessed signature set covers Raffle, Rewards Selection, Trading Competition, and Prediction Market.",
+    "The canonical program is 6QtLot... on devnet; the blessed signature set covers Raffle, Rewards Selection, Trading Competition, and Prediction Market.",
     "Sortition v1.4.0, sortition economics v1.4.1, and the Unicorn-G entropy source are canonical paths on the same program; replay-by-signature stays the default resolution path and Unicorn-G is opt-in.",
     "Mainnet is a separate, later effort; this evidence describes the canonical devnet protocol."
   ]
