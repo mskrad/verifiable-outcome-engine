@@ -43,6 +43,8 @@ const CORS_API_PATHS = new Set([
   "/api/partner/sortition/register",
   "/api/partner/sortition/seal",
   "/api/partner/sortition/claim",
+  // conditions (fc7/fv9) — public one-call scoring demo
+  "/api/conditions/score",
 ]);
 const JSON_BODY_LIMIT_BYTES = Number(process.env.JSON_BODY_LIMIT_BYTES || 16_384);
 const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
@@ -116,6 +118,7 @@ let verifyOutcomePromise;
 let snapshotHelpersPromise;
 let artifactBuilderPromise;
 let sortitionOpsPromise;
+let conditionsOpsPromise;
 let swigOperatorConfig;
 let vanishConfig;
 let partnerConfig;
@@ -500,6 +503,130 @@ async function loadSortitionOps() {
     });
   }
   return sortitionOpsPromise;
+}
+
+// conditions (fc7/fv9) scoring — OddSol partner integration. Off-chain deterministic
+// scorer that matches on-chain `resolve_conditions` bit-for-bit.
+async function loadConditionsOps() {
+  ensureTsSdkRuntime();
+  if (!conditionsOpsPromise) {
+    conditionsOpsPromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "conditions.ts")).href
+    ).then((module) => {
+      for (const name of [
+        "buildConditionsArtifact",
+        "parseConditionsArtifact",
+        "resolveConditionsArtifact",
+        "slipHash",
+        "NO_LINE",
+        "FORMAT_VERSION_CONDITIONS",
+        "FORMULA_CODE_CONDITIONS",
+      ]) {
+        if (module[name] === undefined) {
+          throw new Error(`conditions export not found: ${name}`);
+        }
+      }
+      return module;
+    });
+  }
+  return conditionsOpsPromise;
+}
+
+function conditionsWalletBytes(value, label) {
+  if (typeof value === "string" && /^[0-9a-fA-F]{64}$/.test(value)) {
+    return Buffer.from(value, "hex");
+  }
+  try {
+    return new PublicKey(String(value)).toBuffer();
+  } catch {
+    throw httpError(400, `${label} must be a base58 pubkey or 32-byte hex`);
+  }
+}
+
+function conditionsRoot32(value) {
+  if (value === undefined || value === null) return Buffer.alloc(32);
+  if (typeof value === "string" && /^[0-9a-fA-F]{64}$/.test(value)) {
+    return Buffer.from(value, "hex");
+  }
+  throw httpError(400, "event_stat_root must be 32-byte hex");
+}
+
+// POST /api/conditions/score — public, off-chain, no key/wallet. The one-call
+// integration demo: send slips (committed conditions + odds) + proven facts, get back a
+// verifiable per-entrant score S, the round ranking, per-slip commitment hashes, and the
+// exact fc7 artifact bytes that on-chain `resolve_conditions` would recompute to MATCH.
+async function handleConditionsScore(req, res) {
+  const c = await loadConditionsOps();
+  const body = await readJsonBody(req);
+  if (!Array.isArray(body.fixtures) || !Array.isArray(body.entrants)) {
+    throw httpError(400, "body must be { fixtures: [...], entrants: [...] }");
+  }
+  const fixtures = body.fixtures.map((f, i) => ({
+    fixtureId: Number(f.fixture_id ?? i),
+    eventStatRoot: conditionsRoot32(f.event_stat_root),
+    stats: (f.stats || []).map((s) => ({ statKey: Number(s.stat_key), value: Number(s.value) })),
+  }));
+  const entrants = body.entrants.map((e, i) => ({
+    wallet: conditionsWalletBytes(e.wallet, `entrants[${i}].wallet`),
+    tier: BigInt(e.tier ?? 0),
+    enteredAt: BigInt(e.entered_at ?? 0),
+    legs: (e.legs || []).map((l) => ({
+      termKind: Number(l.term_kind ?? 1),
+      statKeyA: Number(l.stat_key_a),
+      statKeyB: Number(l.stat_key_b ?? 0),
+      op: Number(l.op),
+      comparison: Number(l.comparison),
+      threshold: Number(l.threshold ?? 0),
+      lineX2: l.line_x2 === undefined || l.line_x2 === null ? c.NO_LINE : Number(l.line_x2),
+      oddsMilli: Number(l.odds_milli),
+    })),
+    fixtureIndex: (e.fixture_index || []).map(Number),
+  }));
+
+  const bytes = c.buildConditionsArtifact(fixtures, entrants);
+  const parsed = c.parseConditionsArtifact(bytes); // roundtrip sanity
+  const ranked = c.resolveConditionsArtifact(parsed);
+  const artifactHash = crypto.createHash("sha256").update(bytes).digest("hex");
+
+  const slipByWallet = new Map();
+  for (const e of entrants) {
+    slipByWallet.set(
+      new PublicKey(e.wallet).toBase58(),
+      c.slipHash(e.wallet, e.tier, e.legs).toString("hex")
+    );
+  }
+
+  const winners = ranked.filter((r) => r.allHit);
+  json(res, 200, {
+    ok: true,
+    formula: "conditions",
+    formula_code: c.FORMULA_CODE_CONDITIONS,
+    format_version: c.FORMAT_VERSION_CONDITIONS,
+    program_id: defaultProgramId(),
+    maturity: "canonical-devnet",
+    maturity_note:
+      "Off-chain deterministic conditions scoring — bit-for-bit identical to on-chain resolve_conditions. OddSol partner integration (WIP); payout is pro-rata over winners and executed by the partner, not by VRE.",
+    winners_count: winners.length,
+    winning_score_sum: winners.reduce((sum, r) => sum + r.scoreFixed, 0),
+    ranking: ranked.map((r, idx) => {
+      const wallet = new PublicKey(r.wallet).toBase58();
+      return {
+        rank: idx + 1,
+        wallet,
+        all_hit: r.allHit,
+        score: r.scoreFixed / 10000,
+        score_fixed: r.scoreFixed,
+        void_count: r.voidCount,
+        settled: r.settled,
+        slip_hash: slipByWallet.get(wallet),
+      };
+    }),
+    artifact: {
+      hash: artifactHash,
+      bytes: bytes.length,
+      hex: bytes.toString("hex"),
+    },
+  });
 }
 
 async function fetchResolutions(limit, opts = {}) {
@@ -2765,6 +2892,11 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/partner/sortition/claim") {
       await handlePartnerSortitionClaim(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/conditions/score") {
+      await handleConditionsScore(req, res);
       return;
     }
 
