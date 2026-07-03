@@ -3,7 +3,7 @@
 
   const PUBLIC_ORIGIN = "https://verifiableoutcome.online";
   const DEFAULT_RPC = "https://api.devnet.solana.com";
-  const DEFAULT_PROGRAM_ID = "9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+  const DEFAULT_PROGRAM_ID = "6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
   const DEFAULT_SIGNATURE =
     "5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2";
 

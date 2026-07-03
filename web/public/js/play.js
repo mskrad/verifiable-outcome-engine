@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const DEFAULT_PROGRAM_ID = '9tEramtR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
+  const DEFAULT_PROGRAM_ID = '6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
   const WORLD_IDKIT_CORE_URL = 'https://esm.sh/@worldcoin/idkit-core@4.1.3?bundle';
   const TOTAL_SIGNATURE_LIMIT = 6;
@@ -226,7 +226,7 @@
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Program</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">9tEram…FE1F</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">6QtLot…FE1F</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Flow</div>

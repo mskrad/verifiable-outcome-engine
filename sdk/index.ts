@@ -47,7 +47,7 @@ export { verifyOutcome } from "./verify.js";
 // Fixed-point slip scoring + slip_hash + artifact build/parse/replay. See PROTOCOL-INFRA-016.
 export * from "./conditions.js";
 // Sortition-by-claim (v1.4.0) + economics (v1.4.1) builders. Canonical protocol
-// path on the devnet program 9tEram…; replay-by-signature stays the default
+// path on the devnet program 6QtLot…; replay-by-signature stays the default
 // resolution path. See README "Resolution Paths".
 export {
   SORTITION_MATURITY,

@@ -1,7 +1,7 @@
 /**
  * Sortition-by-Claim (v1.4.0) + sortition economics (v1.4.1) builders.
  *
- * Part of the canonical protocol on the devnet program `9tEram…`. The default
+ * Part of the canonical protocol on the devnet program `6QtLot…`. The default
  * resolution path remains replay-by-signature + global-Ω resolve; sortition is a
  * canonical alternative resolution path. See README.md "Resolution Paths".
  */

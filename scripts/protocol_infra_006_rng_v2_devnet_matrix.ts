@@ -1256,7 +1256,7 @@ TS_NODE_PROJECT=tsconfig.json yarn -s ts-node --esm --transpile-only scripts/pro
   const programId = argString(args, "program-id", process.env.PROGRAM_ID ?? "");
   if (!programId) throw new Error("Provide --program-id <ISOLATED_PROGRAM_ID>");
   if (programId === CANONICAL_PROGRAM_ID) {
-    throw new Error("Refusing to run PROTOCOL-INFRA-006 against canonical 9tEram program");
+    throw new Error("Refusing to run PROTOCOL-INFRA-006 against canonical 6QtLot program");
   }
   const batchSize = argNumber(args, "batch-size", 5);
   const outputDir = path.join(process.cwd(), "tmp", "protocol-infra-006-rng-v2-devnet-matrix");
