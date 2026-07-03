@@ -97,3 +97,4 @@ programs/outcome/src/math/*
 !programs/outcome/src/math/unicorn_g_vk.rs
 !programs/outcome/src/instructions/resolve_outcome_v121.rs
 !programs/outcome/src/instructions/resolve_conditions.rs
+!programs/outcome/src/instructions/settle_rng_v2.rs

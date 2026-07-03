@@ -49,6 +49,7 @@ use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
 #[cfg(feature = "unicorn-g")]
 use instructions::seal_randomness_unicorn::{SealRandomnessUnicorn, SealRandomnessUnicornArgs};
 use instructions::seal_sortition_draw::{SealSortitionDraw, SealSortitionDrawArgs};
+use instructions::settle_rng_v2::{SettleRngV2, SettleRngV2Args};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
 #[cfg(feature = "unicorn-g")]
 use instructions::set_unicorn_g_config::{SetUnicornGConfig, SetUnicornGConfigArgs};
@@ -187,6 +188,10 @@ pub mod outcome {
         args: SealRandomnessUnicornArgs,
     ) -> Result<()> {
         instructions::seal_randomness_unicorn::handler(ctx, args)
+    }
+
+    pub fn settle_rng_v2(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
+        instructions::settle_rng_v2::handler(ctx, args)
     }
 
     pub fn attest_winners(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
@@ -342,6 +347,10 @@ mod __client_accounts_resolve_conditions {
 }
 
 #[allow(unused_imports)]
+mod __client_accounts_settle_rng_v2 {
+    pub use crate::instructions::settle_rng_v2::__client_accounts_settle_rng_v2::*;
+}
+
 mod __client_accounts_attest_winners {
     pub use crate::instructions::attest_winners::__client_accounts_attest_winners::*;
 }

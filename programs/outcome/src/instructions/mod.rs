@@ -30,6 +30,7 @@ pub mod seal_randomness;
 #[cfg(feature = "unicorn-g")]
 pub mod seal_randomness_unicorn;
 pub mod seal_sortition_draw;
+pub mod settle_rng_v2;
 pub mod set_program_config;
 #[cfg(feature = "unicorn-g")]
 pub mod set_unicorn_g_config;
