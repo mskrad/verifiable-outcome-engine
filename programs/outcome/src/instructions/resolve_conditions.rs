@@ -27,7 +27,7 @@ pub struct ResolveConditionsArgs {
 #[derive(Accounts)]
 #[instruction(args: ResolveConditionsArgs)]
 pub struct ResolveConditions<'info> {
-    /// Allowlisted operator (must equal `outcome_config.attester_key`).
+    /// Operator: the OutcomeConfig `authority` (its creator) or, if set, its `attester_key`.
     pub actor: Signer<'info>,
     #[account(seeds = [b"outcome_program_config"], bump = program_config.bump)]
     pub program_config: Account<'info, ProgramConfig>,
@@ -47,9 +47,13 @@ pub struct ResolveConditions<'info> {
 pub fn handler(ctx: Context<ResolveConditions>, args: ResolveConditionsArgs) -> Result<()> {
     let cfg = &ctx.accounts.outcome_config;
 
-    // Operator gate.
+    // Operator gate. `initialize_outcome_config` sets `authority = caller` and leaves
+    // `attester_key = default` (there is no setter), so the config creator is the operator;
+    // a non-default `attester_key` is also accepted for a future delegated-attester path.
     require!(
-        ctx.accounts.actor.key() == cfg.attester_key,
+        ctx.accounts.actor.key() == cfg.authority
+            || (cfg.attester_key != Pubkey::default()
+                && ctx.accounts.actor.key() == cfg.attester_key),
         OutcomeError::Unauthorized
     );
 

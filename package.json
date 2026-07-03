@@ -46,6 +46,8 @@
     "dist/sdk/internals.d.ts",
     "dist/sdk/sortition.js",
     "dist/sdk/sortition.d.ts",
+    "dist/sdk/conditions.js",
+    "dist/sdk/conditions.d.ts",
     "artifacts/outcome_idl.json",
     "README.md"
   ],
