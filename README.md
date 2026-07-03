@@ -121,12 +121,18 @@ layer (`v1.4.1`), and the opt-in Unicorn-G entropy source (`B8`) — and on **20
 whole protocol was **promoted to the single canonical devnet program** `6QtLot…` (no separate
 isolated program). Replay-by-signature stays the default; default entropy stays SlotHashes.
 
-| Version | Path | Task | Status |
-|---------|------|------|--------|
-| v1.3.2 | global-Ω resolve / replay-by-signature | — | **canonical · default** |
-| v1.4.0 | Sortition-by-Claim | `PROTOCOL-INFRA-011` | **canonical** |
-| v1.4.1 | Sortition economics (fee layer) | `PROTOCOL-INFRA-013` | **canonical** |
-| B8 | Unicorn-G entropy source | `PROTOCOL-INFRA-014-B8` | **canonical · opt-in** |
+Versions live on **two axes**: the **randomness** (`rng_version`: v1 legacy → v2 current) and
+the **artifact format / size tier** (compact for small–medium, Merkle *scale* for large). They
+are independent — see [`CHANGELOG.md`](CHANGELOG.md) "Version model".
+
+| Version | Path | rng | Status |
+|---------|------|-----|--------|
+| rng_v1 | operator-seed resolve (compact small/medium) | v1 | legacy · retained |
+| **v1.2** | `settle_rng_v2` — single-phase future-slot-hash (simple random / casino) | v2 | **current · pending redeploy** |
+| v1.3.2 | global-Ω two-phase `seal → attest` / replay-by-signature | v2 | **canonical · default** |
+| v1.4.0 | Sortition-by-Claim | v2 | **canonical** |
+| v1.4.1 | Sortition economics (fee layer) | — | **canonical** |
+| B8 | Unicorn-G entropy source | v2 | **canonical · opt-in** |
 
 Full history, per-path mechanics, and measured numbers (CU, negatives, distribution) live in
 [`CHANGELOG.md`](CHANGELOG.md). Numbers are sourced from `artifacts/public_evidence_summary.json`.

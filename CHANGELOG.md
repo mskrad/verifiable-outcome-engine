@@ -7,7 +7,40 @@ separate, later effort. Numbers below come from `artifacts/public_evidence_summa
 The format is based on [Keep a Changelog](https://keepachangelog.com/); this project tracks
 **protocol/standard versions** (not npm package versions).
 
+## Version model — two independent axes
+
+Versions live on **two orthogonal axes**; don't conflate them:
+
+- **Artifact format (`artifact_format_version`, "fmt") — about SIZE.** How the rules +
+  participant list are encoded on-chain.
+  - **Compact** (W3O1 v1/v2/v3, fmt 1/2/3): full list inline, capped at ~**103 entries / 8 KB**
+    → **small & medium** draws (same format — only the entry count differs).
+  - **Scale** (V1.2 / V1.2.1, fmt 6/7): **Merkle snapshot**, only the root on-chain →
+    **large** draws (thousands–millions).
+- **Randomness (`rng_version`) — about SECURITY.**
+  - **rng_v1** — operator `master_seed` (grindable). **Legacy, retained** (still the only path
+    for the compact/small-medium formats).
+  - **rng_v2** — future Solana SlotHash (unpredictable). **Current.** Two lifecycles:
+    - **v1.2** single-phase `settle_rng_v2` — one settle; unpredictable, not no-abort. Fit for
+      casino/game "simple random" (untrusted operator is not the threat).
+    - **v1.3.2** two-phase `seal → attest` — adds no-abort (untrusted operator).
+  - rng_v2 currently binds the **scale (large)** format; compact stays rng_v1.
+
 ---
+
+## 2026-07-03 — settle_rng_v2 (v1.2) restored + size pass
+
+- **`settle_rng_v2` (v1.2)** restored from the pre-1.3.2 design (INFRA-003): single-phase
+  rng_v2 settle — future SlotHash entropy, one settle, executes payout. Gives operators the
+  choice per draw: fast single-phase (v1.2) or no-abort two-phase (v1.3.2). Resolution tagged
+  `protocol_revision = 2`, `entropy_source = SlotHash`. **Code-complete + tested; goes live
+  on-chain at the next canonical redeploy** (the deployed `6QtLot` binary predates it).
+- **Size:** ~1.21 MB → ~1.03 MB (light) with no functional loss — SHA-256 via the `sol_sha256`
+  syscall (dropped the `sha2` crate, −21 KB), manual `UpgradeableLoaderState` parse (−62 KB),
+  `strip = true`. `opt-level` stays **3**: `opt-z/s` were measured to break the public
+  "claim sortition < 10k CU" guarantee (z=14,552, s=11,280 vs 8,188 CU on opt-3).
+- Unicorn-G moved behind a `unicorn-g` cargo feature (opt-in build; alt_bn128 is a syscall, so
+  the size delta is small — the feature keeps the trusted-setup-pending path out of the default).
 
 ## 2026-07-02 — Product-surface sync
 
