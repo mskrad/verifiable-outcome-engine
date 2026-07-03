@@ -550,6 +550,45 @@ curl https://verifiableoutcome.online/api/resolutions \
   <span class="key">"resolution_slot"</span>: <span class="num">340123512</span>
 }</div>
             </div>
+
+            <h3 id="conditions-score">POST /api/conditions/score — one-call scoring (public)</h3>
+            <p>The fastest way to integrate: a <b>public, no-key, off-chain</b> endpoint for the <span class="mono">conditions</span> mode (parlay / prediction scoring). Send committed slips (conditions + odds) and proven facts, get back a verifiable per-entrant score <span class="mono">S</span>, the round ranking, per-slip commitment hashes, and the exact fc7 artifact that on-chain <span class="mono">resolve_conditions</span> recomputes to MATCH. Scoring is deterministic and bit-for-bit identical on-chain and off-chain. VRE proves the winner ranking; payout is pro-rata and executed by the partner — <b>no fund custody</b>.</p>
+            <div class="terminal">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>curl — one call</span>
+              </div>
+              <div class="terminal-body">curl -s -X POST https://verifiableoutcome.online/api/conditions/score \
+  -H <span class="ok">"content-type: application/json"</span> -d '{
+  <span class="key">"fixtures"</span>: [
+    { <span class="key">"fixture_id"</span>: <span class="num">1</span>, <span class="key">"stats"</span>: [{<span class="key">"stat_key"</span>:<span class="num">1</span>,<span class="key">"value"</span>:<span class="num">2</span>},{<span class="key">"stat_key"</span>:<span class="num">2</span>,<span class="key">"value"</span>:<span class="num">0</span>}] },
+    { <span class="key">"fixture_id"</span>: <span class="num">2</span>, <span class="key">"stats"</span>: [{<span class="key">"stat_key"</span>:<span class="num">1</span>,<span class="key">"value"</span>:<span class="num">1</span>},{<span class="key">"stat_key"</span>:<span class="num">2</span>,<span class="key">"value"</span>:<span class="num">1</span>}] }
+  ],
+  <span class="key">"entrants"</span>: [
+    { <span class="key">"wallet"</span>: <span class="ok">"HvVt…UUava"</span>, <span class="key">"tier"</span>: <span class="num">50</span>, <span class="key">"entered_at"</span>: <span class="num">100</span>, <span class="key">"fixture_index"</span>: [<span class="num">0</span>,<span class="num">1</span>],
+      <span class="key">"legs"</span>: [
+        {<span class="key">"stat_key_a"</span>:<span class="num">1</span>,<span class="key">"stat_key_b"</span>:<span class="num">2</span>,<span class="key">"op"</span>:<span class="num">2</span>,<span class="key">"comparison"</span>:<span class="num">0</span>,<span class="key">"odds_milli"</span>:<span class="num">2150</span>},
+        {<span class="key">"stat_key_a"</span>:<span class="num">1</span>,<span class="key">"stat_key_b"</span>:<span class="num">2</span>,<span class="key">"op"</span>:<span class="num">1</span>,<span class="key">"comparison"</span>:<span class="num">1</span>,<span class="key">"line_x2"</span>:<span class="num">5</span>,<span class="key">"odds_milli"</span>:<span class="num">1850</span>}
+      ]}
+  ]
+}'</div>
+            </div>
+            <div class="terminal">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>response</span>
+              </div>
+              <div class="terminal-body">{
+  <span class="key">"ok"</span>: <span class="ok">true</span>,
+  <span class="key">"formula"</span>: <span class="ok">"conditions"</span>, <span class="key">"formula_code"</span>: <span class="num">7</span>, <span class="key">"format_version"</span>: <span class="num">9</span>,
+  <span class="key">"winners_count"</span>: <span class="num">1</span>, <span class="key">"winning_score_sum"</span>: <span class="num">39775</span>,
+  <span class="key">"ranking"</span>: [
+    { <span class="key">"rank"</span>: <span class="num">1</span>, <span class="key">"wallet"</span>: <span class="ok">"HvVt…"</span>, <span class="key">"all_hit"</span>: <span class="ok">true</span>, <span class="key">"score"</span>: <span class="num">3.9775</span>, <span class="key">"score_fixed"</span>: <span class="num">39775</span>, <span class="key">"slip_hash"</span>: <span class="ok">"4dc5…"</span> }
+  ],
+  <span class="key">"artifact"</span>: { <span class="key">"hash"</span>: <span class="ok">"a084be42…"</span>, <span class="key">"bytes"</span>: <span class="num">148</span>, <span class="key">"hex"</span>: <span class="ok">"57334f31…"</span> }
+}</div>
+            </div>
+            <p>Leg encoding (partner compiles market labels to these codes): <span class="mono">op</span> — <span class="mono">1</span>=Add (totals), <span class="mono">2</span>=Subtract (1x2); <span class="mono">comparison</span> — <span class="mono">0</span>=GT, <span class="mono">1</span>=LT, <span class="mono">2</span>=EQ; <span class="mono">line_x2</span> = round(line×2), totals only. Full-match goals: <span class="mono">stat_key</span> <span class="mono">1</span>=P1, <span class="mono">2</span>=P2. For an on-chain attestation, the same fc7 artifact is resolved via the canonical program's <span class="mono">resolve_conditions</span> instruction (SDK <span class="mono">sdk/conditions.ts</span>).</p>
           </section>
 
           <section id="w3o1-v3-layout" class="spec-section">
