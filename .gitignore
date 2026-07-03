@@ -61,6 +61,7 @@ programs/outcome/src/*
 !programs/outcome/src/state/
 programs/outcome/src/state/*
 !programs/outcome/src/state/mod.rs
+!programs/outcome/src/state/upgradeable_loader.rs
 !programs/outcome/src/state/unicorn_g.rs
 !programs/outcome/tests/
 programs/outcome/tests/*
@@ -90,6 +91,7 @@ programs/outcome/src/math/*
 !programs/outcome/src/math/conditions.rs
 !programs/outcome/src/math/mod.rs
 !programs/outcome/src/math/rng_v1.rs
+!programs/outcome/src/math/sha.rs
 !programs/outcome/src/math/rng_v2.rs
 !programs/outcome/src/math/unicorn_g.rs
 !programs/outcome/src/math/unicorn_g_vk.rs
