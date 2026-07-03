@@ -5,3 +5,4 @@ pub mod outcome_resolution;
 pub mod program_config;
 pub mod sortition;
 pub mod unicorn_g;
+pub mod upgradeable_loader;
