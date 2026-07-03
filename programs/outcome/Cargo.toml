@@ -10,6 +10,9 @@ name = "outcome"
 
 [features]
 default = []
+# Unicorn-G (VDF + on-chain Groth16/alt_bn128 verify) is heavy (~500 KB) and opt-in
+# (trusted-setup pending). Off by default so the canonical binary stays light + deployable.
+unicorn-g = ["dep:solana-bn254"]
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
@@ -21,8 +24,7 @@ custom-panic = []
 
 [dependencies]
 anchor-lang = "0.32.1"
-sha2 = "0.10"
-solana-bn254 = "2.2"
+solana-bn254 = { version = "2.2", optional = true }
 solana-sha256-hasher = "2.3.0"
 
 [lints.rust]

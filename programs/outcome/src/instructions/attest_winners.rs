@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, system_program};
-use sha2::{Digest, Sha256};
+use crate::math::sha::sha256;
 
 use crate::{
     errors::OutcomeError,
@@ -81,12 +81,6 @@ impl OutcomeResolutionV4 {
         + 8
         + 1
         + 19;
-}
-
-fn sha256(bytes: &[u8]) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    hasher.finalize().into()
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]

@@ -1,13 +1,17 @@
 use anchor_lang::prelude::*;
-use sha2::{Digest, Sha256};
+use crate::math::sha::Sha256;
+#[cfg(feature = "unicorn-g")]
 use solana_bn254::prelude::{alt_bn128_addition, alt_bn128_multiplication, alt_bn128_pairing};
 
+#[cfg(feature = "unicorn-g")]
 use crate::errors::OutcomeError;
 
+#[cfg(feature = "unicorn-g")]
 pub mod vk {
     pub use super::unicorn_g_vk::*;
 }
 
+#[cfg(feature = "unicorn-g")]
 #[path = "unicorn_g_vk.rs"]
 mod unicorn_g_vk;
 
@@ -70,6 +74,7 @@ pub fn derive_randomness(
     hasher.finalize().into()
 }
 
+#[cfg(feature = "unicorn-g")]
 pub fn verify_unicorn_proof(
     public_commit: [u8; 32],
     proof_a_neg: &[u8; 64],
@@ -89,6 +94,7 @@ pub fn verify_unicorn_proof(
     )
 }
 
+#[cfg(feature = "unicorn-g")]
 fn verify_raw(
     alpha_g1: &[u8; 64],
     beta_g2: &[u8; 128],

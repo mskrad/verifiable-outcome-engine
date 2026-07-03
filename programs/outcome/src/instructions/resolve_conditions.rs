@@ -6,7 +6,7 @@
 //! the committed artifact → MATCH.
 
 use anchor_lang::prelude::*;
-use sha2::{Digest, Sha256};
+use crate::math::sha::Sha256;
 
 use crate::{
     errors::OutcomeError,

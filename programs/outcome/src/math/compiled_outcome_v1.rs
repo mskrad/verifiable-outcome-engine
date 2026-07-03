@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use anchor_lang::prelude::*;
-use sha2::{Digest, Sha256};
+use crate::math::sha::Sha256;
 
 use crate::errors::OutcomeError;
 use crate::math::composite_rank_desc::{

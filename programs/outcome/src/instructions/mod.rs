@@ -12,8 +12,10 @@ pub mod init_compiled_artifact_chunk;
 pub mod init_sortition_economics;
 pub mod initialize_outcome_config;
 pub mod initialize_program_config;
+#[cfg(feature = "unicorn-g")]
 pub mod initialize_unicorn_g_config;
 pub mod prepare_rng_v2;
+#[cfg(feature = "unicorn-g")]
 pub mod prepare_rng_v2_unicorn;
 pub mod recover_program_config_admin;
 pub mod refresh_master_seed;
@@ -25,9 +27,11 @@ pub mod resolve_conditions;
 pub mod resolve_outcome_v4;
 pub mod review_compiled_artifact;
 pub mod seal_randomness;
+#[cfg(feature = "unicorn-g")]
 pub mod seal_randomness_unicorn;
 pub mod seal_sortition_draw;
 pub mod set_program_config;
+#[cfg(feature = "unicorn-g")]
 pub mod set_unicorn_g_config;
 pub mod submit_compiled_artifact;
 pub mod sweep_sortition_tickets;

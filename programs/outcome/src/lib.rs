@@ -26,10 +26,12 @@ use instructions::initialize_outcome_config::{
 use instructions::initialize_program_config::{
     InitializeProgramConfig, InitializeProgramConfigArgs,
 };
+#[cfg(feature = "unicorn-g")]
 use instructions::initialize_unicorn_g_config::{
     InitializeUnicornGConfig, InitializeUnicornGConfigArgs,
 };
 use instructions::prepare_rng_v2::{PrepareRngV2, PrepareRngV2Args};
+#[cfg(feature = "unicorn-g")]
 use instructions::prepare_rng_v2_unicorn::PrepareRngV2Unicorn;
 use instructions::recover_program_config_admin::{
     RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
@@ -44,9 +46,11 @@ use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121A
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
 use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
+#[cfg(feature = "unicorn-g")]
 use instructions::seal_randomness_unicorn::{SealRandomnessUnicorn, SealRandomnessUnicornArgs};
 use instructions::seal_sortition_draw::{SealSortitionDraw, SealSortitionDrawArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
+#[cfg(feature = "unicorn-g")]
 use instructions::set_unicorn_g_config::{SetUnicornGConfig, SetUnicornGConfigArgs};
 use instructions::submit_compiled_artifact::{SubmitCompiledArtifact, SubmitCompiledArtifactArgs};
 use instructions::sweep_sortition_tickets::{SweepSortitionTickets, SweepSortitionTicketsArgs};
@@ -81,6 +85,7 @@ pub mod outcome {
         instructions::recover_program_config_admin::handler(ctx, args)
     }
 
+    #[cfg(feature = "unicorn-g")]
     pub fn initialize_unicorn_g_config(
         ctx: Context<InitializeUnicornGConfig>,
         args: InitializeUnicornGConfigArgs,
@@ -88,6 +93,7 @@ pub mod outcome {
         instructions::initialize_unicorn_g_config::handler(ctx, args)
     }
 
+    #[cfg(feature = "unicorn-g")]
     pub fn set_unicorn_g_config(
         ctx: Context<SetUnicornGConfig>,
         args: SetUnicornGConfigArgs,
@@ -163,6 +169,7 @@ pub mod outcome {
         instructions::prepare_rng_v2::handler(ctx, args)
     }
 
+    #[cfg(feature = "unicorn-g")]
     pub fn prepare_rng_v2_unicorn(
         ctx: Context<PrepareRngV2Unicorn>,
         args: PrepareRngV2Args,
@@ -174,6 +181,7 @@ pub mod outcome {
         instructions::seal_randomness::handler(ctx, args)
     }
 
+    #[cfg(feature = "unicorn-g")]
     pub fn seal_randomness_unicorn(
         ctx: Context<SealRandomnessUnicorn>,
         args: SealRandomnessUnicornArgs,
@@ -277,9 +285,11 @@ mod __client_accounts_set_program_config {
 mod __client_accounts_recover_program_config_admin {
     pub use crate::instructions::recover_program_config_admin::__client_accounts_recover_program_config_admin::*;
 }
+#[cfg(feature = "unicorn-g")]
 mod __client_accounts_initialize_unicorn_g_config {
     pub use crate::instructions::initialize_unicorn_g_config::__client_accounts_initialize_unicorn_g_config::*;
 }
+#[cfg(feature = "unicorn-g")]
 mod __client_accounts_set_unicorn_g_config {
     pub use crate::instructions::set_unicorn_g_config::__client_accounts_set_unicorn_g_config::*;
 }
@@ -316,12 +326,14 @@ mod __client_accounts_resolve_outcome_v121 {
 mod __client_accounts_prepare_rng_v2 {
     pub use crate::instructions::prepare_rng_v2::__client_accounts_prepare_rng_v2::*;
 }
+#[cfg(feature = "unicorn-g")]
 mod __client_accounts_prepare_rng_v2_unicorn {
     pub use crate::instructions::prepare_rng_v2_unicorn::__client_accounts_prepare_rng_v2_unicorn::*;
 }
 mod __client_accounts_seal_randomness {
     pub use crate::instructions::seal_randomness::__client_accounts_seal_randomness::*;
 }
+#[cfg(feature = "unicorn-g")]
 mod __client_accounts_seal_randomness_unicorn {
     pub use crate::instructions::seal_randomness_unicorn::__client_accounts_seal_randomness_unicorn::*;
 }

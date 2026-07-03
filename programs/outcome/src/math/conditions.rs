@@ -20,7 +20,7 @@
 //! which a compiled threshold alone could not.
 
 use anchor_lang::prelude::*;
-use sha2::{Digest, Sha256};
+use crate::math::sha::Sha256;
 
 pub const FORMAT_VERSION_CONDITIONS: u16 = 9;
 pub const FORMULA_CODE_CONDITIONS: u8 = 7;

@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*, system_program};
-use sha2::{Digest, Sha256};
+use crate::math::sha::sha256;
 
 use crate::{
     errors::OutcomeError,
@@ -58,12 +58,6 @@ pub struct PrepareRngV2Unicorn<'info> {
     )]
     pub approved_outcome_artifact: Account<'info, ApprovedOutcomeArtifact>,
     pub system_program: Program<'info, System>,
-}
-
-fn sha256(bytes: &[u8]) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(bytes);
-    hasher.finalize().into()
 }
 
 pub fn handler(ctx: Context<PrepareRngV2Unicorn>, args: PrepareRngV2Args) -> Result<()> {

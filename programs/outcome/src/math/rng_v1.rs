@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use sha2::{Digest, Sha256};
+use crate::math::sha::Sha256;
 
 // Deterministic v1 randomness is replay-friendly but predictable from public
 // state. Do not use it for adversarial economic payouts without external
