@@ -86,14 +86,21 @@ alternatives selected per draw.
 | Replay-by-signature + global-Ω resolve | v1.3.2 | **canonical (default)** | Recompute an outcome locally from a tx signature; the default reviewer entry. |
 | Sortition-by-Claim | v1.4.0 | **canonical** | Commit-reveal ticket draw; winners self-claim against an on-chain threshold. |
 | Sortition economics | v1.4.1 | **canonical** | Optional entry fee / close-skim fee layer on a sortition draw. |
-| Unicorn-G entropy source | B8 | **canonical · opt-in** | Alternative global-Ω entropy: VDF output verified on-chain via embedded Groth16. |
+| Conditions (OddSol) | fc7/fv9 | **canonical · attestation-only** | Score committed prediction slips (odds × proven facts) → ranking; `resolve_conditions` proves S + winners, no fund custody. |
+| Unicorn-G entropy source | B8 | **opt-in · research (setup pending)** | Alternative global-Ω entropy: VDF output verified on-chain via embedded Groth16. |
 
 Notes:
 
 - All paths run on the one canonical program `6QtLot…`; there is no separate isolated program.
 - The default entropy source is SlotHashes. **Unicorn-G is opt-in** (selected explicitly
-  per draw) and relies on a Groth16 trusted setup (devnet RSA modulus); a multi-party
-  ceremony is the path to a stronger setup before any mainnet use.
+  per draw) and relies on a Groth16 trusted setup (devnet RSA modulus). A known soundness
+  caveat remains (a composite `l` passes the in-circuit primality check) — Unicorn-G is
+  research/opt-in only and **not** for mainnet until a multi-party ceremony and the sound
+  circuit land.
+- **Conditions** (fc7/fv9): live on `6QtLot` since **2026-07-03**; the off-chain scorer
+  (`/api/conditions/score`) is byte-identical to on-chain `resolve_conditions`, and a live
+  attestation replays to MATCH. VRE proves the winner ranking only; payout is pro-rata over
+  winners and executed by the partner (no fund custody).
 - Mainnet is a separate, later effort; these statuses describe the canonical **devnet** protocol.
 
 Evidence for each path lives under `artifacts/public_evidence_summary.json` and is
@@ -128,11 +135,12 @@ are independent — see [`CHANGELOG.md`](CHANGELOG.md) "Version model".
 | Version | Path | rng | Status |
 |---------|------|-----|--------|
 | rng_v1 | operator-seed resolve (compact small/medium) | v1 | legacy · retained |
-| **v1.2** | `settle_rng_v2` — single-phase future-slot-hash (simple random / casino) | v2 | **current · pending redeploy** |
+| **v1.2** | `settle_rng_v2` — single-phase future-slot-hash (simple random / casino) | v2 | **canonical** |
 | v1.3.2 | global-Ω two-phase `seal → attest` / replay-by-signature | v2 | **canonical · default** |
 | v1.4.0 | Sortition-by-Claim | v2 | **canonical** |
 | v1.4.1 | Sortition economics (fee layer) | — | **canonical** |
-| B8 | Unicorn-G entropy source | v2 | **canonical · opt-in** |
+| fc7/fv9 | Conditions (OddSol) — score committed slips → ranking (attestation-only) | — | **canonical** |
+| B8 | Unicorn-G entropy source | v2 | **opt-in · research (setup pending)** |
 
 Full history, per-path mechanics, and measured numbers (CU, negatives, distribution) live in
 [`CHANGELOG.md`](CHANGELOG.md). Numbers are sourced from `artifacts/public_evidence_summary.json`.

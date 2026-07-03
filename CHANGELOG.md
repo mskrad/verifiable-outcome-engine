@@ -28,13 +28,31 @@ Versions live on **two orthogonal axes**; don't conflate them:
 
 ---
 
+## 2026-07-03 — Conditions (OddSol) live on-chain + parity hardening
+
+- **Conditions (fc7/fv9) wired end-to-end on `6QtLot`.** `submit_compiled_artifact`,
+  `finalize_compiled_artifact`, and `initialize_outcome_config` now accept the fc7 format
+  (`format_version = 9`) via additive, format-gated branches (structural fc7 validation;
+  attestation-only zero input band). Previously the format was rejected at submit, so the
+  deployed `resolve_conditions` was unreachable. A live `resolve_conditions` attestation
+  (`15,738` CU) now **replays to MATCH** through the reviewer path (`sdk/verify.ts` fc7 branch):
+  it reconstructs the committed fc7 blob from its chunk accounts, recomputes S + ranking, and
+  matches the on-chain `ConditionsResolvedV1` (`winners_digest`, `facts_ref_root`,
+  `winning_score_sum`). No fund custody — VRE proves the winner ranking; payout is pro-rata over
+  winners, executed by the partner.
+- **Fixed-point parity hardening (Rust ↔ TS).** The coefficient overflow contract is now
+  identical on both sides: a slip whose worst-case coefficient overflows `u128`/`u64` is rejected
+  at `validate()` (not silently scored `0`). The TS scorer carries `score_fixed` as an exact
+  `bigint` (was a lossy `number` above 2⁵³) so the off-chain `winners_digest` is byte-identical
+  to on-chain. Negative overflow vector added to the parity set.
+
 ## 2026-07-03 — settle_rng_v2 (v1.2) restored + size pass
 
 - **`settle_rng_v2` (v1.2)** restored from the pre-1.3.2 design (INFRA-003): single-phase
   rng_v2 settle — future SlotHash entropy, one settle, executes payout. Gives operators the
   choice per draw: fast single-phase (v1.2) or no-abort two-phase (v1.3.2). Resolution tagged
-  `protocol_revision = 2`, `entropy_source = SlotHash`. **Code-complete + tested; goes live
-  on-chain at the next canonical redeploy** (the deployed `6QtLot` binary predates it).
+  `protocol_revision = 2`, `entropy_source = SlotHash`. **Live on `6QtLot` since 2026-07-03**
+  (canonical redeploy, slot 473728377).
 - **Size:** ~1.21 MB → ~1.03 MB (light) with no functional loss — SHA-256 via the `sol_sha256`
   syscall (dropped the `sha2` crate, −21 KB), manual `UpgradeableLoaderState` parse (−62 KB),
   `strip = true`. `opt-level` stays **3**: `opt-z/s` were measured to break the public

@@ -517,6 +517,8 @@ async function loadConditionsOps() {
         "buildConditionsArtifact",
         "parseConditionsArtifact",
         "resolveConditionsArtifact",
+        "scoreSlip",
+        "rankRound",
         "slipHash",
         "NO_LINE",
         "FORMAT_VERSION_CONDITIONS",
@@ -549,6 +551,11 @@ function conditionsRoot32(value) {
     return Buffer.from(value, "hex");
   }
   throw httpError(400, "event_stat_root must be 32-byte hex");
+}
+
+// A u64 bigint → number when it fits MAX_SAFE_INTEGER, else a decimal string (lossless).
+function bigToJson(v) {
+  return v <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(v) : v.toString();
 }
 
 // POST /api/conditions/score — public, off-chain, no key/wallet. The one-call
@@ -585,16 +592,24 @@ async function handleConditionsScore(req, res) {
 
   const bytes = c.buildConditionsArtifact(fixtures, entrants);
   const parsed = c.parseConditionsArtifact(bytes); // roundtrip sanity
-  const ranked = c.resolveConditionsArtifact(parsed);
+  // Rank with each entrant's slip_hash carried through by identity — two slips from the same
+  // wallet must each keep their own hash (a wallet-keyed map would collide to the last one).
+  const ranked = c.rankRound(
+    parsed.entrants.map((e) => {
+      const factsByLeg = e.fixtureIndex.map((fi) => parsed.fixtures[fi]?.stats ?? []);
+      const s = c.scoreSlip(e.legs, factsByLeg);
+      return {
+        wallet: e.wallet,
+        enteredAt: e.enteredAt,
+        scoreFixed: s.scoreFixed,
+        allHit: s.allHit,
+        voidCount: s.voidCount,
+        settled: s.settled,
+        slipHash: c.slipHash(e.wallet, e.tier, e.legs).toString("hex"),
+      };
+    })
+  );
   const artifactHash = crypto.createHash("sha256").update(bytes).digest("hex");
-
-  const slipByWallet = new Map();
-  for (const e of entrants) {
-    slipByWallet.set(
-      new PublicKey(e.wallet).toBase58(),
-      c.slipHash(e.wallet, e.tier, e.legs).toString("hex")
-    );
-  }
 
   const winners = ranked.filter((r) => r.allHit);
   json(res, 200, {
@@ -607,18 +622,20 @@ async function handleConditionsScore(req, res) {
     maturity_note:
       "Off-chain deterministic conditions scoring — bit-for-bit identical to on-chain resolve_conditions. OddSol partner integration (WIP); payout is pro-rata over winners and executed by the partner, not by VRE.",
     winners_count: winners.length,
-    winning_score_sum: winners.reduce((sum, r) => sum + r.scoreFixed, 0),
+    // scoreFixed is a u64 bigint; emit as a JS number when it fits (realistic coefficients do),
+    // else as a decimal string — never lose precision silently.
+    winning_score_sum: bigToJson(winners.reduce((sum, r) => sum + r.scoreFixed, 0n)),
     ranking: ranked.map((r, idx) => {
       const wallet = new PublicKey(r.wallet).toBase58();
       return {
         rank: idx + 1,
         wallet,
         all_hit: r.allHit,
-        score: r.scoreFixed / 10000,
-        score_fixed: r.scoreFixed,
+        score: Number(r.scoreFixed) / 10000,
+        score_fixed: bigToJson(r.scoreFixed),
         void_count: r.voidCount,
         settled: r.settled,
-        slip_hash: slipByWallet.get(wallet),
+        slip_hash: r.slipHash,
       };
     }),
     artifact: {
@@ -2896,6 +2913,7 @@ async function handleApi(req, res, pathname) {
     }
 
     if (req.method === "POST" && pathname === "/api/conditions/score") {
+      enforceApiRateLimit(req, pathname);
       await handleConditionsScore(req, res);
       return;
     }
