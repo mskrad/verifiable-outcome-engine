@@ -646,6 +646,150 @@ async function handleConditionsScore(req, res) {
   });
 }
 
+// ---- conditions VRE-operated on-chain flow (OddSol partner endpoints) ----
+// commit anchors the rules on-chain (VRE key); resolve builds the full artifact + resolve_conditions
+// (VRE key). Partner calls the API only — no partner key on-chain, no deploy, no approve on their side.
+
+const CONDITIONS_NO_LINE = -2147483648; // i32::MIN sentinel (must match sdk/conditions.ts NO_LINE)
+const CONDITIONS_STORE_PATH =
+  process.env.CONDITIONS_STORE_PATH || path.join(REF_ROOT, "data", "conditions_commits.json");
+
+function conditionsFixturesFromBody(list, requireStats) {
+  if (!Array.isArray(list)) throw httpError(400, "fixtures must be an array");
+  return list.map((f, i) => ({
+    fixtureId: Number(f.fixture_id ?? i),
+    eventStatRoot: conditionsRoot32(f.event_stat_root),
+    stats: requireStats
+      ? (Array.isArray(f.stats) ? f.stats : []).map((s) => ({ statKey: Number(s.stat_key), value: Number(s.value) }))
+      : [],
+  }));
+}
+
+function conditionsEntrantsFromBody(list) {
+  if (!Array.isArray(list)) throw httpError(400, "entrants must be an array");
+  return list.map((e, i) => ({
+    wallet: conditionsWalletBytes(e.wallet, `entrants[${i}].wallet`),
+    tier: BigInt(e.tier ?? 0),
+    enteredAt: BigInt(e.entered_at ?? 0),
+    legs: (Array.isArray(e.legs) ? e.legs : []).map((l) => ({
+      termKind: Number(l.term_kind ?? 1),
+      statKeyA: Number(l.stat_key_a),
+      statKeyB: Number(l.stat_key_b ?? 0),
+      op: Number(l.op),
+      comparison: Number(l.comparison),
+      threshold: Number(l.threshold ?? 0),
+      lineX2: l.line_x2 === undefined || l.line_x2 === null ? CONDITIONS_NO_LINE : Number(l.line_x2),
+      oddsMilli: Number(l.odds_milli),
+    })),
+    fixtureIndex: (Array.isArray(e.fixture_index) ? e.fixture_index : []).map(Number),
+  }));
+}
+
+function loadConditionsCommits() {
+  try {
+    return JSON.parse(fs.readFileSync(CONDITIONS_STORE_PATH, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function saveConditionsCommit(roundId, entry) {
+  const store = loadConditionsCommits();
+  store[roundId] = entry;
+  fs.mkdirSync(path.dirname(CONDITIONS_STORE_PATH), { recursive: true });
+  fs.writeFileSync(CONDITIONS_STORE_PATH, JSON.stringify(store, null, 2));
+}
+
+let conditionsOperatorModPromise;
+async function loadConditionsOperator() {
+  ensureTsSdkRuntime();
+  if (!conditionsOperatorModPromise) {
+    conditionsOperatorModPromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "conditions_operator.ts")).href
+    );
+  }
+  const mod = await conditionsOperatorModPromise;
+  const walletPath = process.env.CONDITIONS_OPERATOR_WALLET || process.env.ANCHOR_WALLET || "";
+  if (!walletPath) {
+    throw httpError(503, "Conditions operator not configured (set CONDITIONS_OPERATOR_WALLET)");
+  }
+  const idl = JSON.parse(fs.readFileSync(path.join(REF_ROOT, "artifacts", "outcome_idl.json"), "utf8"));
+  const rpcUrl = resolveRpcUrl(process.env.CONDITIONS_RPC_URL || defaultRpc());
+  const op = mod.createConditionsOperator({ rpcUrl, walletPath, programId: defaultProgramId(), idl });
+  return { mod, op };
+}
+
+// POST /api/partner/conditions/commit — anchor the round rules on-chain (VRE key), before outcome.
+async function handlePartnerConditionsCommit(req, res) {
+  requirePartnerApiKey(req, "/api/partner/conditions/commit");
+  const body = await readJsonBody(req);
+  const roundId = String(body.round_id || "").trim();
+  if (!roundId) throw httpError(400, "round_id is required");
+  const fixtures = conditionsFixturesFromBody(body.fixtures, false);
+  const entrants = conditionsEntrantsFromBody(body.entrants);
+  const { mod, op } = await loadConditionsOperator();
+  const result = await mod.commitConditions(op, { fixtures, entrants });
+  saveConditionsCommit(roundId, {
+    round_id: roundId,
+    commitment_ref: result.commitmentRef,
+    fixtures: body.fixtures,
+    entrants: body.entrants,
+    committed_at_slot: result.committedAtSlot,
+    created_utc: new Date().toISOString(),
+  });
+  json(res, 200, {
+    ok: true,
+    round_id: roundId,
+    commitment_ref: result.commitmentRef,
+    conditions_hash: result.conditionsHash,
+    commit_signature: result.commitSignature,
+    committed_at_slot: result.committedAtSlot,
+    program_id: defaultProgramId(),
+  });
+}
+
+// POST /api/partner/conditions/resolve — reveal facts, resolve on-chain (VRE key), return signature.
+async function handlePartnerConditionsResolve(req, res) {
+  requirePartnerApiKey(req, "/api/partner/conditions/resolve");
+  const body = await readJsonBody(req);
+  const roundId = body.round_id ? String(body.round_id).trim() : "";
+  const stored = roundId ? loadConditionsCommits()[roundId] : null;
+  if (!stored) throw httpError(404, "unknown round_id — commit the rules first");
+
+  // Merge revealed facts (event_stat_root + stats, keyed by fixture_id) onto the committed skeleton.
+  const revealed = new Map();
+  for (const f of Array.isArray(body.fixtures) ? body.fixtures : []) {
+    revealed.set(Number(f.fixture_id), f);
+  }
+  const mergedFixtures = (stored.fixtures || []).map((f, i) => {
+    const rf = revealed.get(Number(f.fixture_id ?? i)) || {};
+    return {
+      fixture_id: f.fixture_id ?? i,
+      event_stat_root: rf.event_stat_root ?? f.event_stat_root,
+      stats: rf.stats ?? [],
+    };
+  });
+  const fixtures = conditionsFixturesFromBody(mergedFixtures, true);
+  const entrants = conditionsEntrantsFromBody(stored.entrants);
+  const { mod, op } = await loadConditionsOperator();
+  const result = await mod.resolveConditionsRound(op, { fixtures, entrants, commitmentRef: stored.commitment_ref });
+  json(res, 200, {
+    ok: true,
+    round_id: roundId,
+    signature: result.signature,
+    verify_url: `https://verifiableoutcome.online/verify?sig=${result.signature}`,
+    program_id: defaultProgramId(),
+    winners_count: result.winnersCount,
+    winning_score_sum: result.winningScoreSum,
+    winners: result.winners,
+    ranking: result.ranking,
+    artifact: { hash: result.artifactHash, bytes: result.artifactBytes, hex: result.artifactHex },
+    runtime_id: result.runtimeId,
+    winners_digest: result.winnersDigest,
+    facts_ref_root: result.factsRefRoot,
+  });
+}
+
 async function fetchResolutions(limit, opts = {}) {
   const now = Date.now();
   const cacheKey = `${opts.preferBlessed ? "blessed" : "latest"}:${opts.includeBlessed === false ? "recent-only" : "with-blessed"}:${limit}:${typeof opts.recentLimit === "number" ? opts.recentLimit : "auto"}`;
@@ -2915,6 +3059,16 @@ async function handleApi(req, res, pathname) {
     if (req.method === "POST" && pathname === "/api/conditions/score") {
       enforceApiRateLimit(req, pathname);
       await handleConditionsScore(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/conditions/commit") {
+      await handlePartnerConditionsCommit(req, res);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/partner/conditions/resolve") {
+      await handlePartnerConditionsResolve(req, res);
       return;
     }
 
