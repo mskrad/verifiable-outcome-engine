@@ -19,7 +19,7 @@ import {
 } from "../dist/sdk/internals.js";
 
 const RPC = process.env.VRE_RPC ?? "http://127.0.0.1:8899";
-const PROGRAM_ID = new PublicKey(process.env.VRE_PROGRAM_ID ?? "6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F");
+const PROGRAM_ID = new PublicKey(process.env.VRE_PROGRAM_ID ?? "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B");
 const WALLET_PATH = process.env.VRE_WALLET ?? `${os.homedir()}/.config/solana/id.json`;
 const RSA_MODULUS_ID = Buffer.from("6ae9d033c1d76c4f535b5ad5c0073933a0b375b4120a75fbb66be814eab1a9ce", "hex");
 const BPF_LOADER_UPGRADEABLE = new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111");

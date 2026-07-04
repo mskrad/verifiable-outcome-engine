@@ -3,9 +3,9 @@
 
   const PUBLIC_ORIGIN = "https://verifiableoutcome.online";
   const DEFAULT_RPC = "https://api.devnet.solana.com";
-  const DEFAULT_PROGRAM_ID = "6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+  const DEFAULT_PROGRAM_ID = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
   const DEFAULT_SIGNATURE =
-    "5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2";
+    "47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF";
 
   function short(value) {
     return String(value || "").slice(0, 8);

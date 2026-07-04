@@ -8,7 +8,7 @@
   'use strict';
 
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
-  const DEFAULT_PROGRAM_ID = '6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
+  const DEFAULT_PROGRAM_ID = '6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B';
   const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
   const LAST_MATCH_STORAGE_KEY = 'vre:last-match-verify';
 

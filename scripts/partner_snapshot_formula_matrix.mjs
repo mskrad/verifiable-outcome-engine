@@ -253,7 +253,7 @@ async function main() {
     --api-key <KEY> \\
     [--base-url http://127.0.0.1:8787] \\
     [--rpc-url http://127.0.0.1:8899] \\
-    [--program-id 6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F] \\
+    [--program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B] \\
     [--count 1001] \\
     [--chunk-size 500] \\
     [--winners 1,2,3,5] \\
@@ -267,7 +267,7 @@ async function main() {
   const baseUrl = String(args["base-url"] || "http://127.0.0.1:8787").trim();
   const rpcUrl = String(args["rpc-url"] || "http://127.0.0.1:8899").trim();
   const programId = String(
-    args["program-id"] || "6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F"
+    args["program-id"] || "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
   ).trim();
   const count = positiveInteger(args.count || "1001", "count");
   const chunkSize = positiveInteger(args["chunk-size"] || "500", "chunk-size");

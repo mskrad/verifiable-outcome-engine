@@ -114,7 +114,7 @@ async function main() {
     args["program-id"] ||
     process.env.LIVE_RAFFLE_PROGRAM_ID ||
     process.env.PROGRAM_ID ||
-    "6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+    "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 
   const connection = new Connection(rpcUrl, "confirmed");
 

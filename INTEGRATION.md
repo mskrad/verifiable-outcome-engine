@@ -51,7 +51,7 @@ npm install -g verifiable-outcome-sdk
 
 ```bash
 vre verify \
-  --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
+  --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF \
   --rpc https://api.devnet.solana.com
 ```
 
@@ -59,7 +59,7 @@ Or run without a global install:
 
 ```bash
 npx -p verifiable-outcome-sdk vre verify \
-  --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
+  --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF \
   --rpc https://api.devnet.solana.com
 ```
 

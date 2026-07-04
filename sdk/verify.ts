@@ -45,7 +45,7 @@ import type {
 } from "./types.js";
 import { OUTCOME_IDL } from "./idl.js";
 
-const DEFAULT_PROGRAM_ID = "6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F";
+const DEFAULT_PROGRAM_ID = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 const CHUNK_SIZE = 1024;
 const MAX_OUTCOME_ID_BYTES = 64;
 const EFFECT_ENTRY_BYTES = 16;

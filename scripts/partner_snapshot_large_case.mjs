@@ -149,7 +149,7 @@ async function main() {
   console.log(`irys_url            : ${finalized.irys_url || ""}`);
   console.log(`proof_manifest_url  : ${finalized.proof_manifest_url || ""}`);
   console.log(`publication_status  : ${finalized.publication_status || ""}`);
-  console.log(`replay_command      : yarn -s replay --sig ${finalized.signature} --url http://127.0.0.1:8899 --program-id 6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F`);
+  console.log(`replay_command      : yarn -s replay --sig ${finalized.signature} --url http://127.0.0.1:8899 --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`);
   console.log(
     `snapshot_path_rel   : ${path.relative(process.cwd(), finalized.snapshot_uri)}`
   );

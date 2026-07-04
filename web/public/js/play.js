@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const DEFAULT_PROGRAM_ID = '6QtLottR21bLBHvXqa4sofVBPa1ZBho4WzhCkCimFE1F';
+  const DEFAULT_PROGRAM_ID = '6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B';
   const DEFAULT_RPC = 'https://api.devnet.solana.com';
   const WORLD_IDKIT_CORE_URL = 'https://esm.sh/@worldcoin/idkit-core@4.1.3?bundle';
   const TOTAL_SIGNATURE_LIMIT = 6;

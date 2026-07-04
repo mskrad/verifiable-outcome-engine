@@ -10,7 +10,7 @@ verify the result themselves. No backend trust required.
 
 ```bash
 npm install -g verifiable-outcome-sdk
-vre verify --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2
+vre verify --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF
 
 # -> MATCH / OK
 ```
@@ -18,7 +18,7 @@ vre verify --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnx
 Live verifier:
 
 ```text
-https://verifiableoutcome.online/verify?sig=5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2
+https://verifiableoutcome.online/verify?sig=47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF
 ```
 
 Full error code reference: [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md)
@@ -190,7 +190,7 @@ yarn install
 
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
 yarn -s replay \
-  --sig 5wZUU5YQ8Nu5RddNeEEigYUEM5Q45C2SJmwLgdLhQcLQi4S3vYhAUvLc6YchYnxqU5b1pvEsBSD1USZPPDEaRVd2 \
+  --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF \
   --url https://api.devnet.solana.com \
   --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
 ```
