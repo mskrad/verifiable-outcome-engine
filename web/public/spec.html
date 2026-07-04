@@ -589,6 +589,14 @@ curl https://verifiableoutcome.online/api/resolutions \
 }</div>
             </div>
             <p>Leg encoding (partner compiles market labels to these codes): <span class="mono">op</span> — <span class="mono">1</span>=Add (totals), <span class="mono">2</span>=Subtract (1x2); <span class="mono">comparison</span> — <span class="mono">0</span>=GT, <span class="mono">1</span>=LT, <span class="mono">2</span>=EQ; <span class="mono">line_x2</span> = round(line×2), totals only. Full-match goals: <span class="mono">stat_key</span> <span class="mono">1</span>=P1, <span class="mono">2</span>=P2. For an on-chain attestation, the same fc7 artifact is resolved via the canonical program's <span class="mono">resolve_conditions</span> instruction (SDK <span class="mono">sdk/conditions.ts</span>).</p>
+
+            <h3 id="conditions-partner">POST /api/partner/conditions/{commit, resolve} — VRE-operated on-chain (partner key)</h3>
+            <p>When you want the outcome <b>on-chain</b> without running any keys yourself: VRE does all on-chain work with its own key. Two calls, gated by an <span class="mono">x-api-key</span> partner key. Live on the canonical program <span class="mono">6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B</span>.</p>
+            <ul>
+              <li><b><span class="mono">commit</span></b> (at slate open) — anchor the round rules on-chain <i>before</i> the outcome. Body: <span class="mono">{ round_id, fixtures:[{fixture_id}], entrants:[{wallet, tier, entered_at, fixture_index[], legs:[…]}] }</span>. Returns <span class="mono">{ commitment_ref, commit_signature, committed_at_slot }</span>. No facts yet.</li>
+              <li><b><span class="mono">resolve</span></b> (after the match) — reveal facts; VRE builds the full fc7, submits + finalizes + self-reviews + binds an OutcomeConfig + calls <span class="mono">resolve_conditions</span>. Body: <span class="mono">{ round_id, fixtures:[{fixture_id, event_stat_root, stats:[{stat_key, value}]}] }</span>. Returns <span class="mono">{ signature, verify_url, winners, ranking, winning_score_sum, artifact }</span>. Resolve checks that the rules equal the ones committed at <span class="mono">commit</span> (facts cannot change the rules).</li>
+            </ul>
+            <p>The returned <span class="mono">signature</span> replays to <span class="ok">MATCH</span> at <span class="mono">/verify?sig=…</span> — same deterministic scoring as the off-chain endpoint, now attested on-chain. VRE proves the winner ranking; escrow and pro-rata payout stay with the partner — <b>no fund custody</b>.</p>
           </section>
 
           <section id="w3o1-v3-layout" class="spec-section">

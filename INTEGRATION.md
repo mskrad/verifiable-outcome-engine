@@ -278,6 +278,43 @@ vre verify \
 
 ---
 
+## Part 5 — Conditions (parlay / prediction)
+
+The `conditions` mode (fc7/fv9) scores committed prediction slips (odds × proven facts) into a
+per-entrant score `S` and a round ranking. Off-chain and on-chain scoring are **byte-for-byte
+identical**. VRE proves the winner ranking; escrow and pro-rata payout stay with the partner —
+no fund custody. Live on the canonical program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
+
+### Off-chain scoring — one call, no key
+
+`POST /api/conditions/score` — send `{ fixtures:[{fixture_id, stats}], entrants:[{wallet, tier,
+entered_at, fixture_index[], legs:[…]}] }`, get back `winners_count`, `winning_score_sum`,
+`ranking[{rank, wallet, score_fixed, slip_hash}]`, and the exact fc7 `artifact.hex`.
+
+Leg codes: `term_kind` 0=single/1=binary · `op` 0=none/1=add(totals)/2=subtract(1x2) ·
+`comparison` 0=GT/1=LT/2=EQ · `odds_milli` = odds×1000 (1001…1_000_000) · `line_x2` =
+round(line×2) for totals · `stat_key` = period×1000 + base (base 1=P1 goals, 2=P2 goals).
+Scoring: `S = Π odds(hit legs)`, any miss → `S=0`, void = push; `score_fixed` = S×10000.
+
+### On-chain attestation — VRE-operated, two calls (partner key)
+
+VRE does all on-chain work with its own key; the partner supplies data via `x-api-key`. Two-phase
+commit-reveal so the rules are anchored on-chain before the outcome:
+
+1. `POST /api/partner/conditions/commit` at slate open — body `{ round_id, fixtures:[{fixture_id}],
+   entrants:[…] }` → `{ commitment_ref, commit_signature, committed_at_slot }`.
+2. `POST /api/partner/conditions/resolve` after the match — body `{ round_id, fixtures:[{fixture_id,
+   event_stat_root, stats:[{stat_key, value}]}] }` → `{ signature, verify_url, winners, ranking,
+   winning_score_sum, artifact }`. Resolve verifies the rules match the ones committed at step 1.
+
+The returned `signature` replays to `MATCH` at `/verify?sig=…`. Server env for the operator:
+`CONDITIONS_OPERATOR_WALLET` (the program-config admin keypair), optional `CONDITIONS_STORE_PATH`.
+
+Supported markets: 1X2 / totals / BTTS-yes. Facts are trusted from the partner's stats source
+(TxLINE) — VRE binds the facts-ref (`event_stat_root`) but does not re-verify them.
+
+---
+
 ## CLI reference
 
 ```

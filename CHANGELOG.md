@@ -28,6 +28,20 @@ Versions live on **two orthogonal axes**; don't conflate them:
 
 ---
 
+## 2026-07-04 — VRE-operated conditions endpoints + canon-id fix
+
+- **VRE-operated partner endpoints** for conditions: `POST /api/partner/conditions/commit`
+  (anchor the round rules on-chain before the outcome) and `POST /api/partner/conditions/resolve`
+  (reveal facts, resolve on-chain, return the tx signature). VRE does all on-chain work with its
+  own key (`CONDITIONS_OPERATOR_WALLET`, the program-config admin) — the partner only calls the
+  API with an `x-api-key`, no keys/deploy/approve on their side. Commit binds the rules; resolve
+  verifies the revealed facts did not change them. Live end-to-end (OddSol in production; replay
+  → MATCH). See `INTEGRATION.md` Part 5.
+- **Canon program-id fix:** a botched `9tEram → 6QtLot` find-replace had left an invalid id
+  (`6QtLot…CimFE1F`) as the default across the Verify page, widget, replay SDK, and scripts —
+  replay defaulted to `ERR_PROGRAM_ID_MISMATCH`. Corrected to the real canon everywhere, and the
+  stale hero example signature swapped for a blessed one that replays to MATCH.
+
 ## 2026-07-03 — Conditions (OddSol) live on-chain + parity hardening
 
 - **Conditions (fc7/fv9) wired end-to-end on `6QtLot`.** `submit_compiled_artifact`,

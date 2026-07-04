@@ -100,7 +100,9 @@ Notes:
 - **Conditions** (fc7/fv9): live on `6QtLot` since **2026-07-03**; the off-chain scorer
   (`/api/conditions/score`) is byte-identical to on-chain `resolve_conditions`, and a live
   attestation replays to MATCH. VRE proves the winner ranking only; payout is pro-rata over
-  winners and executed by the partner (no fund custody).
+  winners and executed by the partner (no fund custody). For a fully **VRE-operated** on-chain
+  flow (no partner keys), two partner-key endpoints anchor the rules and resolve on-chain with
+  VRE's key: `POST /api/partner/conditions/commit` then `/resolve` (see `INTEGRATION.md` Part 5).
 - Mainnet is a separate, later effort; these statuses describe the canonical **devnet** protocol.
 
 Evidence for each path lives under `artifacts/public_evidence_summary.json` and is

@@ -1,200 +1,228 @@
 {
-  "schema_version": "outcome_public_reference_summary_v1",
-  "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-  "default_rpc_url": "https://api.devnet.solana.com",
-  "network": "devnet",
-  "reference_scope": [
-    "standalone replay verification by signature",
-    "operator-side resolve command",
-    "sortition-by-claim + economics resolution path",
-    "unicorn-g opt-in entropy source",
-    "reviewer-oriented public evidence bundle"
-  ],
-  "accepted_sources_summary": [
-    {
-      "id": "execution_contract_v0_1_0",
-      "status": "frozen",
-      "summary": "Canonical outcome-core baseline after accepted packages 1 and 2."
-    },
-    {
-      "id": "bounded_package_1",
-      "status": "accepted",
-      "summary": "Outcome-only state, PDA, instruction, event, and deterministic math surfaces."
-    },
-    {
-      "id": "bounded_package_2",
-      "status": "accepted",
-      "summary": "Replay verifier by signature plus localnet smoke and negative coverage."
-    },
-    {
-      "id": "devnet_gate",
-      "status": "accepted",
-      "summary": "Four active blessed canonical devnet signatures replay to MATCH / OK, including W3O1 v3 rank_desc and closest_to."
-    },
-    {
-      "id": "operator_packaging",
-      "status": "accepted",
-      "summary": "Operator-side resolve is bundled without monorepo-only runtime paths."
-    },
-    {
-      "id": "adapters_package",
-      "status": "accepted",
-      "summary": "Adapter evidence remains docs-only and is not exported as public code."
-    },
-    {
-      "id": "unicorn_g_b8",
-      "status": "canonical_opt_in",
-      "summary": "Unicorn-G entropy source (global-omega / RngV2State): SlotHashes-derived u, Groth16-verified y, seal + attest + wrong-proof rejection, validated end-to-end on devnet. Canonical opt-in path; default entropy stays SlotHashes; relies on a Groth16 trusted setup (devnet RSA modulus). Details under unicorn_g_b8."
-    },
-    {
-      "id": "sortition_v140",
-      "status": "canonical",
-      "summary": "Sortition-by-Claim v1.4.0 commit-reveal ticket draw: lifecycle create/register/seal/claim, 5/5 negative cases, claim CU < 10k, winner distribution matches binomial. Canonical path; replay-by-signature stays the default. Details under sortition_v140."
-    },
-    {
-      "id": "sortition_economics_v141",
-      "status": "canonical",
-      "summary": "Sortition economics v1.4.1 optional fee layer (entry fee + close-skim): positive path + 9/9 negatives, dedicated treasury, byte-compatible with 1.4.0 draws. Canonical. Details under sortition_economics_v141."
-    }
-  ],
-  "accepted_source_of_truth_files": [
-    "README.md",
-    "RUNBOOK.md",
-    "DEMO_RUNBOOK.md",
-    "artifacts/outcome_devnet_blessed_signatures.json",
-    "artifacts/EXPECTED_TX_EXAMPLES.md",
-    "artifacts/outcome_idl.json",
-    "scripts/replay_verify.ts",
-    "scripts/resolve_operator.ts"
-  ],
-  "packaging_validation": {
-    "status": "accepted",
-    "commit": "local-sync",
-    "scope": "standalone functional sync",
-    "runtime_sanity_commands": [
-      "yarn install",
-      "yarn -s replay --help",
-      "yarn -s resolve:operator --help"
-    ]
+ "schema_version": "outcome_public_reference_summary_v1",
+ "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+ "default_rpc_url": "https://api.devnet.solana.com",
+ "network": "devnet",
+ "reference_scope": [
+  "standalone replay verification by signature",
+  "operator-side resolve command",
+  "sortition-by-claim + economics resolution path",
+  "unicorn-g opt-in entropy source",
+  "reviewer-oriented public evidence bundle"
+ ],
+ "accepted_sources_summary": [
+  {
+   "id": "execution_contract_v0_1_0",
+   "status": "frozen",
+   "summary": "Canonical outcome-core baseline after accepted packages 1 and 2."
   },
-  "authoritative_files_in_package": [
-    "artifacts/outcome_devnet_blessed_signatures.json",
-    "artifacts/outcome_idl.json",
-    "artifacts/EXPECTED_TX_EXAMPLES.md",
-    "scripts/replay_verify.ts",
-    "scripts/resolve_operator.ts"
-  ],
-  "unicorn_g_b8": {
-    "status": "canonical_opt_in",
-    "task_id": "PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE",
-    "scope": "global-omega / RngV2State Unicorn-G entropy path; opt-in (default entropy stays SlotHashes)",
-    "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-    "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-    "maturity": {
-      "canonical": true,
-      "opt_in": true,
-      "default_entropy_is_slot_hash": true,
-      "trusted_setup": "groth16-devnet-rsa-modulus",
-      "mainnet_readiness": false
-    },
-    "seal": {
-      "signature": "4aKtC13JeN73bg9j2kycqSwAhocPipdhWgDYdYQvgygheAS1qvmK5uvsBAGEsxvUdRWuyJTh6fo7spFTDYbDSGQC",
-      "compute_units": 247476,
-      "randomness_hex": "939e8494fb7696f6a18bcab57a8e87e2c7935e91987e60ea209a60f8555a73c9"
-    },
-    "attest": {
-      "signature": "45RCc4Xd9Sdyr3q1VmurJ2D2QvTUcj8zR63u42iPyw8mBqXnv4umKXqNJ2fRz2NNYfd3cu8o2wBUhyZETqHUNaeD",
-      "compute_units": 61466,
-      "outcome_resolution": "4eg6mKzS2LSLDsDUZnwPu35nE7dmUrCYzqqNuUkrrzyr",
-      "winner": "p_0"
-    },
-    "wrong_proof_rejection": {
-      "error": "InvalidUnicornGProof",
-      "error_number": 6035,
-      "simulation_compute_units": 143069
-    },
-    "localnet_full_e2e": {
-      "seal_compute_units": 209226,
-      "prove_wall_s": 37.4,
-      "prove_peak_rss_gb": 4.3,
-      "tampered_y_rejected": true
-    },
-    "artifacts": [
-      "artifacts/protocol_infra_014_b8_devnet_evidence_summary.json",
-      "artifacts/protocol_infra_014_b8_unicorn_g_replay.json",
-      "artifacts/protocol_infra_014_b8_attest_devnet.json",
-      "artifacts/protocol_infra_014_b8_wrong_proof_replay.json",
-      "artifacts/protocol_infra_014_b8_wrong_proof_rejection.json",
-      "artifacts/protocol_infra_014_b8_localnet_e2e.json"
-    ],
-    "local_gates": {
-      "cargo_test_p_outcome": "PASS 31/31",
-      "anchor_build": "PASS",
-      "npx_tsc_no_emit": "PASS",
-      "git_diff_check": "PASS"
-    }
+  {
+   "id": "bounded_package_1",
+   "status": "accepted",
+   "summary": "Outcome-only state, PDA, instruction, event, and deterministic math surfaces."
   },
-  "sortition_v140": {
-    "status": "canonical",
-    "task_id": "PROTOCOL-INFRA-011",
-    "standard_version": "1.4.0",
-    "scope": "Sortition-by-Claim commit-reveal ticket draw; canonical alternative resolution path",
-    "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-    "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-    "default_resolution_path": "replay-by-signature",
-    "lifecycle": {
-      "passed": true,
-      "negative_total": 5,
-      "negative_passed": 5,
-      "claim_cu_below_10k": true
-    },
-    "distribution": {
-      "draws": 200,
-      "tickets": 100,
-      "expected_winners": 10,
-      "observed_mean": 9.7,
-      "observed_variance": 8.76,
-      "binomial_mean": 10,
-      "binomial_variance": 9
-    },
-    "artifacts": [
-      "artifacts/protocol_infra_011_sortition_localnet.json",
-      "artifacts/protocol_infra_011_sortition_devnet.json",
-      "artifacts/protocol_infra_011_deep_tests.json",
-      "artifacts/protocol_infra_011_residual_tests.json",
-      "artifacts/protocol_infra_011_completion_tests.json"
-    ]
+  {
+   "id": "bounded_package_2",
+   "status": "accepted",
+   "summary": "Replay verifier by signature plus localnet smoke and negative coverage."
   },
-  "sortition_economics_v141": {
-    "status": "canonical",
-    "task_id": "PROTOCOL-INFRA-013",
-    "standard_version": "1.4.1",
-    "scope": "Optional sortition fee layer (entry fee + close-skim); byte-compatible with 1.4.0 draws (fee fields 0 = disabled)",
-    "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-    "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
-    "results": {
-      "positive_ok": true,
-      "negatives_passed": "9/9",
-      "treasury_is_dedicated": true
-    },
-    "compute_units": {
-      "register_paid": 18096,
-      "init_economics": 5234,
-      "close": 9643,
-      "sweep_2": 18459
-    },
-    "artifacts": [
-      "artifacts/protocol_infra_013_economics_localnet.json",
-      "artifacts/protocol_infra_013_economics_devnet.json"
-    ]
+  {
+   "id": "devnet_gate",
+   "status": "accepted",
+   "summary": "Four active blessed canonical devnet signatures replay to MATCH / OK, including W3O1 v3 rank_desc and closest_to."
   },
-  "notes": [
-    "This repository is the standalone repo and the reviewer/runtime flow runs from repo root.",
-    "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
-    "Legacy compiled spec and metrics appendix files are not part of the active standalone runtime surface.",
-    "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows.",
-    "The canonical program is 6QtLot... on devnet; the blessed signature set covers Raffle, Rewards Selection, Trading Competition, and Prediction Market.",
-    "Sortition v1.4.0, sortition economics v1.4.1, and the Unicorn-G entropy source are canonical paths on the same program; replay-by-signature stays the default resolution path and Unicorn-G is opt-in.",
-    "Mainnet is a separate, later effort; this evidence describes the canonical devnet protocol."
+  {
+   "id": "operator_packaging",
+   "status": "accepted",
+   "summary": "Operator-side resolve is bundled without monorepo-only runtime paths."
+  },
+  {
+   "id": "adapters_package",
+   "status": "accepted",
+   "summary": "Adapter evidence remains docs-only and is not exported as public code."
+  },
+  {
+   "id": "unicorn_g_b8",
+   "status": "canonical_opt_in",
+   "summary": "Unicorn-G entropy source (global-omega / RngV2State): SlotHashes-derived u, Groth16-verified y, seal + attest + wrong-proof rejection, validated end-to-end on devnet. Canonical opt-in path; default entropy stays SlotHashes; relies on a Groth16 trusted setup (devnet RSA modulus). Details under unicorn_g_b8."
+  },
+  {
+   "id": "sortition_v140",
+   "status": "canonical",
+   "summary": "Sortition-by-Claim v1.4.0 commit-reveal ticket draw: lifecycle create/register/seal/claim, 5/5 negative cases, claim CU < 10k, winner distribution matches binomial. Canonical path; replay-by-signature stays the default. Details under sortition_v140."
+  },
+  {
+   "id": "sortition_economics_v141",
+   "status": "canonical",
+   "summary": "Sortition economics v1.4.1 optional fee layer (entry fee + close-skim): positive path + 9/9 negatives, dedicated treasury, byte-compatible with 1.4.0 draws. Canonical. Details under sortition_economics_v141."
+  }
+ ],
+ "accepted_source_of_truth_files": [
+  "README.md",
+  "RUNBOOK.md",
+  "DEMO_RUNBOOK.md",
+  "artifacts/outcome_devnet_blessed_signatures.json",
+  "artifacts/EXPECTED_TX_EXAMPLES.md",
+  "artifacts/outcome_idl.json",
+  "scripts/replay_verify.ts",
+  "scripts/resolve_operator.ts"
+ ],
+ "packaging_validation": {
+  "status": "accepted",
+  "commit": "local-sync",
+  "scope": "standalone functional sync",
+  "runtime_sanity_commands": [
+   "yarn install",
+   "yarn -s replay --help",
+   "yarn -s resolve:operator --help"
   ]
+ },
+ "authoritative_files_in_package": [
+  "artifacts/outcome_devnet_blessed_signatures.json",
+  "artifacts/outcome_idl.json",
+  "artifacts/EXPECTED_TX_EXAMPLES.md",
+  "scripts/replay_verify.ts",
+  "scripts/resolve_operator.ts"
+ ],
+ "unicorn_g_b8": {
+  "status": "canonical_opt_in",
+  "task_id": "PROTOCOL-INFRA-014-B8-UNICORN-G-CLOSURE",
+  "scope": "global-omega / RngV2State Unicorn-G entropy path; opt-in (default entropy stays SlotHashes)",
+  "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "maturity": {
+   "canonical": true,
+   "opt_in": true,
+   "default_entropy_is_slot_hash": true,
+   "trusted_setup": "groth16-devnet-rsa-modulus",
+   "mainnet_readiness": false
+  },
+  "seal": {
+   "signature": "4aKtC13JeN73bg9j2kycqSwAhocPipdhWgDYdYQvgygheAS1qvmK5uvsBAGEsxvUdRWuyJTh6fo7spFTDYbDSGQC",
+   "compute_units": 247476,
+   "randomness_hex": "939e8494fb7696f6a18bcab57a8e87e2c7935e91987e60ea209a60f8555a73c9"
+  },
+  "attest": {
+   "signature": "45RCc4Xd9Sdyr3q1VmurJ2D2QvTUcj8zR63u42iPyw8mBqXnv4umKXqNJ2fRz2NNYfd3cu8o2wBUhyZETqHUNaeD",
+   "compute_units": 61466,
+   "outcome_resolution": "4eg6mKzS2LSLDsDUZnwPu35nE7dmUrCYzqqNuUkrrzyr",
+   "winner": "p_0"
+  },
+  "wrong_proof_rejection": {
+   "error": "InvalidUnicornGProof",
+   "error_number": 6035,
+   "simulation_compute_units": 143069
+  },
+  "localnet_full_e2e": {
+   "seal_compute_units": 209226,
+   "prove_wall_s": 37.4,
+   "prove_peak_rss_gb": 4.3,
+   "tampered_y_rejected": true
+  },
+  "artifacts": [
+   "artifacts/protocol_infra_014_b8_devnet_evidence_summary.json",
+   "artifacts/protocol_infra_014_b8_unicorn_g_replay.json",
+   "artifacts/protocol_infra_014_b8_attest_devnet.json",
+   "artifacts/protocol_infra_014_b8_wrong_proof_replay.json",
+   "artifacts/protocol_infra_014_b8_wrong_proof_rejection.json",
+   "artifacts/protocol_infra_014_b8_localnet_e2e.json"
+  ],
+  "local_gates": {
+   "cargo_test_p_outcome": "PASS 31/31",
+   "anchor_build": "PASS",
+   "npx_tsc_no_emit": "PASS",
+   "git_diff_check": "PASS"
+  }
+ },
+ "sortition_v140": {
+  "status": "canonical",
+  "task_id": "PROTOCOL-INFRA-011",
+  "standard_version": "1.4.0",
+  "scope": "Sortition-by-Claim commit-reveal ticket draw; canonical alternative resolution path",
+  "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "default_resolution_path": "replay-by-signature",
+  "lifecycle": {
+   "passed": true,
+   "negative_total": 5,
+   "negative_passed": 5,
+   "claim_cu_below_10k": true
+  },
+  "distribution": {
+   "draws": 200,
+   "tickets": 100,
+   "expected_winners": 10,
+   "observed_mean": 9.7,
+   "observed_variance": 8.76,
+   "binomial_mean": 10,
+   "binomial_variance": 9
+  },
+  "artifacts": [
+   "artifacts/protocol_infra_011_sortition_localnet.json",
+   "artifacts/protocol_infra_011_sortition_devnet.json",
+   "artifacts/protocol_infra_011_deep_tests.json",
+   "artifacts/protocol_infra_011_residual_tests.json",
+   "artifacts/protocol_infra_011_completion_tests.json"
+  ]
+ },
+ "sortition_economics_v141": {
+  "status": "canonical",
+  "task_id": "PROTOCOL-INFRA-013",
+  "standard_version": "1.4.1",
+  "scope": "Optional sortition fee layer (entry fee + close-skim); byte-compatible with 1.4.0 draws (fee fields 0 = disabled)",
+  "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "validation_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "results": {
+   "positive_ok": true,
+   "negatives_passed": "9/9",
+   "treasury_is_dedicated": true
+  },
+  "compute_units": {
+   "register_paid": 18096,
+   "init_economics": 5234,
+   "close": 9643,
+   "sweep_2": 18459
+  },
+  "artifacts": [
+   "artifacts/protocol_infra_013_economics_localnet.json",
+   "artifacts/protocol_infra_013_economics_devnet.json"
+  ]
+ },
+ "conditions_fc7": {
+  "status": "canonical",
+  "task_id": "PROTOCOL-INFRA-016",
+  "standard_version": "fc7/fv9",
+  "scope": "OddSol conditions scoring — score committed prediction slips (odds × proven facts) into per-entrant S + ranking; attestation-only (no fund custody)",
+  "canonical_program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "default_resolution_path": "replay-by-signature",
+  "live_since": "2026-07-03",
+  "endpoints": {
+   "off_chain_score": "POST /api/conditions/score (public, no key)",
+   "partner_commit": "POST /api/partner/conditions/commit (partner key, VRE-operated)",
+   "partner_resolve": "POST /api/partner/conditions/resolve (partner key, VRE-operated)"
+  },
+  "parity": {
+   "scope": "Rust (on-chain) ↔ TS SDK ↔ OddSol scoreExpress byte-identical",
+   "vectors_passed": true,
+   "overflow_contract": "coefficient rejected (not silent 0) on u128/u64 overflow; TS score_fixed is exact bigint"
+  },
+  "live_evidence": {
+   "resolve_signature": "327kjz4P6Pf6VSPWFzjS8FGCsPr9xRoLtVu43b6QdeZzi27sA6d8PiY6VVnpbWVigw59rGaa5XjXPtgurDM1SRDE",
+   "resolve_cu": 15738,
+   "replay_result": "MATCH",
+   "winners_count": 2,
+   "winning_score_sum": "61275",
+   "winners_digest": "06e7b6f4fa04979b41afd9ca29933b4d1149c79e636923cde276916302fa18bd",
+   "note": "VRE-operated commit+resolve verified end-to-end; OddSol integration live in production against this program"
+  }
+ },
+ "notes": [
+  "This repository is the standalone repo and the reviewer/runtime flow runs from repo root.",
+  "Historical localnet signatures are not treated as evergreen public acceptance fixtures.",
+  "Legacy compiled spec and metrics appendix files are not part of the active standalone runtime surface.",
+  "The ecosystem monorepo continues separately and is not required for replay or operator resolve flows.",
+  "The canonical program is 6QtLot... on devnet; the blessed signature set covers Raffle, Rewards Selection, Trading Competition, and Prediction Market.",
+  "Sortition v1.4.0, sortition economics v1.4.1, and the Unicorn-G entropy source are canonical paths on the same program; replay-by-signature stays the default resolution path and Unicorn-G is opt-in.",
+  "Mainnet is a separate, later effort; this evidence describes the canonical devnet protocol."
+ ]
 }
