@@ -11,7 +11,8 @@ export type ResolutionFormula =
 export type RuntimeResolutionFormula =
   | ResolutionFormula
   | "composite_rank_desc"
-  | "conditions";
+  | "conditions"
+  | "slot";
 
 export type CompositeNormalizationMode = "none" | "min_max";
 
@@ -353,6 +354,14 @@ export type VerifyResult = {
   outcomes?: Array<{ id: string; weight: number; score?: number; order?: number }>;
   // conditions (fc7/fv9) attestation fields — set only for resolution_formula === "conditions".
   entrant_count?: number;
+  // SF1 slot spin fields — set only for resolution_formula === "slot".
+  actor?: string;
+  input_lamports?: string;
+  payout_lamports?: string;
+  raw_win_lamports?: string;
+  reel_stops?: number[];
+  randomness?: string;
+  settled_at_slot?: string;
   winning_score_sum?: string;
   winners_digest?: string;
   facts_ref_root?: string;

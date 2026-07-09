@@ -46,6 +46,9 @@ export { verifyOutcome } from "./verify.js";
 // OddSol `conditions` mode (fc7/fv9): isolated devnet partner integration, non-canonical.
 // Fixed-point slip scoring + slip_hash + artifact build/parse/replay. See PROTOCOL-INFRA-016.
 export * from "./conditions.js";
+
+// SF1 slot format (format 10): artifact encoder/parser + deterministic spin replay.
+export * from "./slot.js";
 // Sortition-by-claim (v1.4.0) + economics (v1.4.1) builders. Canonical protocol
 // path on the devnet program 6QtLot…; replay-by-signature stays the default
 // resolution path. See README "Resolution Paths".

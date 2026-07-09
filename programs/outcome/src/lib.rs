@@ -33,6 +33,7 @@ use instructions::initialize_unicorn_g_config::{
 use instructions::prepare_rng_v2::{PrepareRngV2, PrepareRngV2Args};
 #[cfg(feature = "unicorn-g")]
 use instructions::prepare_rng_v2_unicorn::PrepareRngV2Unicorn;
+use instructions::prepare_slot_spin::{PrepareSlotSpin, PrepareSlotSpinArgs};
 use instructions::recover_program_config_admin::{
     RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
 };
@@ -50,6 +51,7 @@ use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
 use instructions::seal_randomness_unicorn::{SealRandomnessUnicorn, SealRandomnessUnicornArgs};
 use instructions::seal_sortition_draw::{SealSortitionDraw, SealSortitionDrawArgs};
 use instructions::settle_rng_v2::{SettleRngV2, SettleRngV2Args};
+use instructions::settle_slot_spin::{SettleSlotSpin, SettleSlotSpinArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
 #[cfg(feature = "unicorn-g")]
 use instructions::set_unicorn_g_config::{SetUnicornGConfig, SetUnicornGConfigArgs};
@@ -192,6 +194,20 @@ pub mod outcome {
 
     pub fn settle_rng_v2(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
         instructions::settle_rng_v2::handler(ctx, args)
+    }
+
+    pub fn prepare_slot_spin(
+        ctx: Context<PrepareSlotSpin>,
+        args: PrepareSlotSpinArgs,
+    ) -> Result<()> {
+        instructions::prepare_slot_spin::handler(ctx, args)
+    }
+
+    pub fn settle_slot_spin(
+        ctx: Context<SettleSlotSpin>,
+        args: SettleSlotSpinArgs,
+    ) -> Result<()> {
+        instructions::settle_slot_spin::handler(ctx, args)
     }
 
     pub fn attest_winners(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
@@ -349,6 +365,13 @@ mod __client_accounts_resolve_conditions {
 #[allow(unused_imports)]
 mod __client_accounts_settle_rng_v2 {
     pub use crate::instructions::settle_rng_v2::__client_accounts_settle_rng_v2::*;
+}
+
+mod __client_accounts_prepare_slot_spin {
+    pub use crate::instructions::prepare_slot_spin::__client_accounts_prepare_slot_spin::*;
+}
+mod __client_accounts_settle_slot_spin {
+    pub use crate::instructions::settle_slot_spin::__client_accounts_settle_slot_spin::*;
 }
 
 mod __client_accounts_attest_winners {

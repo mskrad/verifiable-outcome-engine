@@ -282,3 +282,37 @@ pub struct ConditionsResolvedV1 {
     pub winners_digest: [u8; 32],
     pub facts_ref_root: [u8; 32],
 }
+
+#[event]
+pub struct SlotSpinPreparedV1 {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub actor: Pubkey,
+    pub input_lamports: u64,
+    pub compiled_artifact_hash: [u8; 32],
+    pub target_slots: [u64; 3],
+    pub expiry_slot: u64,
+    pub exposure_cap: u64,
+    pub fee_snapshot: u64,
+}
+
+/// Carries everything replay-by-signature verification needs: the frozen slots and
+/// their hashes reproduce the seed, the artifact hash pins the game, and the reel
+/// stops / payout are the claimed outcome to re-derive. No resolution account is
+/// persisted for slot spins.
+#[event]
+pub struct SlotSpinResolvedV1 {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub actor: Pubkey,
+    pub input_lamports: u64,
+    pub payout_lamports: u64,
+    pub raw_win_lamports: u64,
+    pub compiled_artifact_hash: [u8; 32],
+    pub randomness: [u8; 32],
+    pub reel_count: u8,
+    pub reel_stops: [u16; 16],
+    pub resolved_slots: [u64; 3],
+    pub slot_hashes: [[u8; 32]; 3],
+    pub settled_at_slot: u64,
+}

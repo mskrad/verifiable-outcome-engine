@@ -38,6 +38,12 @@ import {
   FORMAT_VERSION_CONDITIONS,
   FORMULA_CODE_CONDITIONS,
 } from "./conditions.js";
+import {
+  parseSlotArtifact,
+  replaySpin,
+  maxWinCap,
+  FORMAT_VERSION_SLOT,
+} from "./slot.js";
 import type {
   RuntimeResolutionFormula,
   VerifyOutcomeOptions,
@@ -727,6 +733,98 @@ function findConditionsResolvedEvent(
     if (!line.startsWith("Program data: ")) continue;
     if (stack.length === 0 || stack[stack.length - 1] !== expectedProgramId) continue;
     const event = decodeConditionsResolvedV1(line);
+    if (event) return event;
+  }
+  return null;
+}
+
+// ---- SF1 slot spin (format 10) settle event ----
+
+type SlotSpinResolvedEvent = {
+  runtimeId: Buffer;
+  resolveId: bigint;
+  actor: PublicKey;
+  inputLamports: bigint;
+  payoutLamports: bigint;
+  rawWinLamports: bigint;
+  compiledArtifactHash: Buffer;
+  randomness: Buffer;
+  reelCount: number;
+  reelStops: number[];
+  resolvedSlots: bigint[];
+  slotHashes: Buffer[];
+  settledAtSlot: bigint;
+};
+
+function decodeSlotSpinResolvedV1(line: string): SlotSpinResolvedEvent | null {
+  if (!line.startsWith("Program data: ")) return null;
+  const encoded = line.slice("Program data: ".length).trim();
+  const buf = Buffer.from(encoded, "base64");
+  const discriminator = anchorEventDiscriminator("SlotSpinResolvedV1");
+  if (buf.length < 8 || !buf.subarray(0, 8).equals(discriminator)) return null;
+
+  const offset = { value: 8 };
+  const runtimeId = readBytes(buf, offset, 16);
+  const resolveId = readU64LE(buf, offset);
+  const actor = new PublicKey(readBytes(buf, offset, 32));
+  const inputLamports = readU64LE(buf, offset);
+  const payoutLamports = readU64LE(buf, offset);
+  const rawWinLamports = readU64LE(buf, offset);
+  const compiledArtifactHash = readBytes(buf, offset, 32);
+  const randomness = readBytes(buf, offset, 32);
+  const reelCount = buf[offset.value];
+  offset.value += 1;
+  const reelStops: number[] = [];
+  for (let index = 0; index < 16; index += 1) {
+    reelStops.push(readU16LE(buf, offset));
+  }
+  const resolvedSlots = readFixedU64Array(buf, offset, 3);
+  const slotHashes = readFixedHashArray(buf, offset, 3);
+  const settledAtSlot = readU64LE(buf, offset);
+  return {
+    runtimeId,
+    resolveId,
+    actor,
+    inputLamports,
+    payoutLamports,
+    rawWinLamports,
+    compiledArtifactHash,
+    randomness,
+    reelCount,
+    reelStops,
+    resolvedSlots,
+    slotHashes,
+    settledAtSlot,
+  };
+}
+
+// Returns the first `SlotSpinResolvedV1` event emitted by the expected program, or null so the
+// caller can fall through to the other event paths. Program-id scoping mirrors
+// `findOutcomeResolvedEvent`.
+function findSlotSpinResolvedEvent(
+  logs: string[],
+  expectedProgramId: string
+): SlotSpinResolvedEvent | null {
+  const stack: string[] = [];
+  for (const line of logs) {
+    const invoke = parseProgramInvoke(line);
+    if (invoke) {
+      stack.push(invoke);
+      continue;
+    }
+    const finish = parseProgramFinish(line);
+    if (finish) {
+      for (let index = stack.length - 1; index >= 0; index -= 1) {
+        if (stack[index] === finish) {
+          stack.splice(index, 1);
+          break;
+        }
+      }
+      continue;
+    }
+    if (!line.startsWith("Program data: ")) continue;
+    if (stack.length === 0 || stack[stack.length - 1] !== expectedProgramId) continue;
+    const event = decodeSlotSpinResolvedV1(line);
     if (event) return event;
   }
   return null;
@@ -1685,6 +1783,139 @@ async function verifyConditions(
   };
 }
 
+// SF1 slot spins carry no snapshot and no operator commit: the seed mixes the zero snapshot
+// hash and omits the commit chunk, exactly as prepare_slot_spin wrote the state.
+function deriveSlotSpinRandomness(event: SlotSpinResolvedEvent): Buffer {
+  const chunks: Buffer[] = [
+    Buffer.from(RNG_V2_DOMAIN, "ascii"),
+    event.runtimeId,
+    u64le(event.resolveId),
+    event.compiledArtifactHash,
+    Buffer.alloc(32, 0),
+  ];
+  for (let index = 0; index < 3; index += 1) {
+    chunks.push(u64le(event.resolvedSlots[index]));
+    chunks.push(event.slotHashes[index]);
+  }
+  const seed = sha256(Buffer.concat(chunks));
+  return sha256(
+    Buffer.concat([seed, event.runtimeId, u64le(event.resolveId), event.actor.toBuffer()])
+  );
+}
+
+// Verify a `settle_slot_spin` (SF1/format 10) result by replaying the committed game:
+// reconstruct the SF1 blob from its on-chain chunk accounts, re-derive the rng_v2 randomness
+// from the frozen slot hashes, replay the spin (reel stops + line/scatter payout), clamp by the
+// artifact max-win cap, and compare everything to the emitted `SlotSpinResolvedV1` event.
+async function verifySlot(
+  connection: anchor.web3.Connection,
+  coder: any,
+  programId: PublicKey,
+  event: SlotSpinResolvedEvent
+): Promise<VerifyResult> {
+  const runtimeIdHex = toHex(event.runtimeId);
+  const compiledArtifactHashHex = toHex(event.compiledArtifactHash);
+
+  // OutcomeConfig binds runtime_id → compiled_artifact_hash (same hash the event carries).
+  const outcomeConfigPda = deriveOutcomeConfigPda(programId, event.runtimeId);
+  const outcomeConfig = await fetchDecodedAccount(
+    connection,
+    coder,
+    outcomeConfigPda,
+    "OutcomeConfig",
+    "ERR_OUTCOME_CONFIG_NOT_FOUND"
+  );
+  const configHash = Buffer.from(
+    pick<number[]>(outcomeConfig, "compiled_artifact_hash", "compiledArtifactHash")
+  );
+  if (!configHash.equals(event.compiledArtifactHash)) {
+    mismatch("ERR_CONFIG_HASH_MISMATCH", "OutcomeConfig hash differs from event hash");
+  }
+
+  const approvedArtifactPda = deriveApprovedArtifactPda(programId, event.compiledArtifactHash);
+  const approvedArtifact = await fetchDecodedAccount(
+    connection,
+    coder,
+    approvedArtifactPda,
+    "ApprovedOutcomeArtifact",
+    "ERR_ARTIFACT_HEADER_NOT_FOUND"
+  );
+  const headerHash = Buffer.from(
+    pick<number[]>(approvedArtifact, "compiled_artifact_hash", "compiledArtifactHash")
+  );
+  if (!headerHash.equals(event.compiledArtifactHash)) {
+    mismatch("ERR_ARTIFACT_HASH_MISMATCH", "ApprovedOutcomeArtifact hash differs from event hash");
+  }
+  if (!Boolean(pick(approvedArtifact, "is_finalized", "isFinalized"))) {
+    mismatch("ERR_ARTIFACT_NOT_FINALIZED", "ApprovedOutcomeArtifact is not finalized");
+  }
+  const blob = await reconstructArtifactBlob(
+    connection,
+    coder,
+    programId,
+    event.compiledArtifactHash,
+    approvedArtifact
+  );
+  if (!sha256(blob).equals(event.compiledArtifactHash)) {
+    mismatch("ERR_ARTIFACT_HASH_MISMATCH", "Reconstructed SF1 blob hash differs from event hash");
+  }
+
+  let spec: ReturnType<typeof parseSlotArtifact>;
+  try {
+    spec = parseSlotArtifact(blob);
+  } catch (error) {
+    mismatch("ERR_REPLAY_UNHANDLED", error instanceof Error ? error.message : String(error));
+  }
+
+  // Re-derive the randomness from the slot-hash evidence and check the event told the truth.
+  const recomputedRandomness = deriveSlotSpinRandomness(event);
+  if (!recomputedRandomness.equals(event.randomness)) {
+    mismatch("ERR_SLOT_RANDOMNESS_MISMATCH", "Recomputed randomness differs from event");
+  }
+
+  // Replay the spin against the committed artifact.
+  const outcome = replaySpin(spec, recomputedRandomness, event.inputLamports);
+  if (
+    event.reelCount !== spec.cols ||
+    outcome.reelStops.some((stop, index) => stop !== event.reelStops[index]) ||
+    event.reelStops.slice(spec.cols).some((stop) => stop !== 0)
+  ) {
+    mismatch("ERR_SLOT_REEL_STOPS_MISMATCH", "Replayed reel stops differ from event");
+  }
+  if (outcome.totalWinLamports !== event.rawWinLamports) {
+    mismatch("ERR_SLOT_WIN_MISMATCH", "Replayed win differs from event raw win");
+  }
+  const cap = maxWinCap(event.inputLamports, spec.maxWinMultiplier);
+  const expectedPayout =
+    outcome.totalWinLamports < cap ? outcome.totalWinLamports : cap;
+  if (expectedPayout !== event.payoutLamports) {
+    mismatch("ERR_SLOT_PAYOUT_MISMATCH", "Clamped payout differs from event payout");
+  }
+
+  return {
+    status: "MATCH",
+    reason: "OK",
+    outcome_id: "",
+    resolution_formula: "slot",
+    artifact_format_version: FORMAT_VERSION_SLOT,
+    actor: event.actor.toBase58(),
+    input_lamports: event.inputLamports.toString(),
+    payout_lamports: event.payoutLamports.toString(),
+    raw_win_lamports: event.rawWinLamports.toString(),
+    reel_stops: outcome.reelStops,
+    randomness: recomputedRandomness.toString("hex"),
+    settled_at_slot: event.settledAtSlot.toString(),
+    rng_version: RNG_VERSION_V2,
+    resolved_slots: event.resolvedSlots.map((slot) => slot.toString()),
+    slot_hashes: event.slotHashes.map((hash) => hash.toString("hex")),
+    outcomes: [],
+    resolve_id: event.resolveId.toString(),
+    compiled_artifact_hash: compiledArtifactHashHex,
+    runtime_id: runtimeIdHex,
+    program_id: programId.toBase58(),
+  };
+}
+
 async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promise<VerifyResult> {
   const programId = new PublicKey(opts.programId);
   const connection = new anchor.web3.Connection(opts.rpcUrl, { commitment: "confirmed" });
@@ -1698,6 +1929,13 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   const conditionsEvent = findConditionsResolvedEvent(logs, programId.toBase58());
   if (conditionsEvent) {
     return await verifyConditions(connection, coder, programId, conditionsEvent);
+  }
+
+  // SF1 slot spins (format 10) emit SlotSpinResolvedV1 (no OutcomeResolution account) —
+  // branch to the dedicated replay before the OutcomeResolved path.
+  const slotEvent = findSlotSpinResolvedEvent(logs, programId.toBase58());
+  if (slotEvent) {
+    return await verifySlot(connection, coder, programId, slotEvent);
   }
 
   const event = findOutcomeResolvedEvent(logs, programId.toBase58());

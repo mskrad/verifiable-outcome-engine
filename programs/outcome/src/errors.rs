@@ -114,4 +114,6 @@ pub enum OutcomeError {
     SortitionEconomicsAfterRegistration,
     #[msg("Invalid conditions artifact")]
     InvalidConditionsArtifact,
+    #[msg("Vault balance below the max-win exposure for this spin")]
+    SlotVaultReserveInsufficient,
 }

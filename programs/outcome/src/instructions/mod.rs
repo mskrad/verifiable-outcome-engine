@@ -17,6 +17,7 @@ pub mod initialize_unicorn_g_config;
 pub mod prepare_rng_v2;
 #[cfg(feature = "unicorn-g")]
 pub mod prepare_rng_v2_unicorn;
+pub mod prepare_slot_spin;
 pub mod recover_program_config_admin;
 pub mod refresh_master_seed;
 pub mod register_sortition_ticket;
@@ -31,6 +32,7 @@ pub mod seal_randomness;
 pub mod seal_randomness_unicorn;
 pub mod seal_sortition_draw;
 pub mod settle_rng_v2;
+pub mod settle_slot_spin;
 pub mod set_program_config;
 #[cfg(feature = "unicorn-g")]
 pub mod set_unicorn_g_config;

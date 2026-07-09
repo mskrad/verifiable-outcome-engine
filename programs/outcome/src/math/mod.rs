@@ -4,4 +4,5 @@ pub mod conditions;
 pub mod rng_v1;
 pub mod sha;
 pub mod rng_v2;
+pub mod slot;
 pub mod unicorn_g;
