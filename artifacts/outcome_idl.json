@@ -1539,7 +1539,10 @@
           "address": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
         },
         {
-          "name": "program_data"
+          "name": "program_data",
+          "docs": [
+            "authority are validated by `upgradeable_loader::upgrade_authority`."
+          ]
         },
         {
           "name": "upgrade_authority",
@@ -2132,6 +2135,215 @@
       ]
     },
     {
+      "name": "prepare_slot_spin",
+      "discriminator": [
+        170,
+        236,
+        194,
+        198,
+        137,
+        17,
+        136,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "docs": [
+            "The player (session key). Signs the bet, pays the refundable state rent,",
+            "and receives the payout at settle."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.next_resolve_id",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "PrepareSlotSpinArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "recover_program_config_admin",
       "discriminator": [
         202,
@@ -2184,7 +2396,10 @@
           "address": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"
         },
         {
-          "name": "program_data"
+          "name": "program_data",
+          "docs": [
+            "authority are validated by `upgradeable_loader::upgrade_authority`."
+          ]
         },
         {
           "name": "upgrade_authority",
@@ -2534,6 +2749,144 @@
           "type": {
             "defined": {
               "name": "RegisterSortitionTicketArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "resolve_conditions",
+      "discriminator": [
+        68,
+        77,
+        202,
+        215,
+        177,
+        201,
+        40,
+        96
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "docs": [
+            "Operator: the OutcomeConfig `authority` (its creator) or, if set, its `attester_key`."
+          ],
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "ResolveConditionsArgs"
             }
           }
         }
@@ -3743,6 +4096,477 @@
       ]
     },
     {
+      "name": "settle_rng_v2",
+      "discriminator": [
+        95,
+        67,
+        194,
+        44,
+        159,
+        53,
+        215,
+        13
+      ],
+      "accounts": [
+        {
+          "name": "actor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_resolution",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  114,
+                  101,
+                  115,
+                  111,
+                  108,
+                  117,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_treasury",
+          "writable": true
+        },
+        {
+          "name": "protocol_treasury",
+          "writable": true
+        },
+        {
+          "name": "slot_hashes"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SettleRngV2Args"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "settle_slot_spin",
+      "discriminator": [
+        113,
+        227,
+        151,
+        60,
+        167,
+        132,
+        90,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "cranker",
+          "docs": [
+            "Permissionless crank — anyone may settle a matured spin."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  112,
+                  114,
+                  111,
+                  103,
+                  114,
+                  97,
+                  109,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "outcome_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "rng_v2_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  110,
+                  103,
+                  95,
+                  118,
+                  50,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "args.runtime_id"
+              },
+              {
+                "kind": "arg",
+                "path": "args.resolve_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "actor",
+          "writable": true
+        },
+        {
+          "name": "approved_outcome_artifact",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  112,
+                  112,
+                  114,
+                  111,
+                  118,
+                  101,
+                  100,
+                  95,
+                  111,
+                  117,
+                  116,
+                  99,
+                  111,
+                  109,
+                  101,
+                  95,
+                  97,
+                  114,
+                  116,
+                  105,
+                  102,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "outcome_config.compiled_artifact_hash",
+                "account": "OutcomeConfig"
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol_treasury",
+          "writable": true
+        },
+        {
+          "name": "slot_hashes"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SettleSlotSpinArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "submit_compiled_artifact",
       "discriminator": [
         145,
@@ -4187,6 +5011,19 @@
   ],
   "events": [
     {
+      "name": "ConditionsResolvedV1",
+      "discriminator": [
+        31,
+        148,
+        223,
+        216,
+        116,
+        42,
+        196,
+        116
+      ]
+    },
+    {
       "name": "MasterSeedRefreshedV1",
       "discriminator": [
         82,
@@ -4353,6 +5190,32 @@
         159,
         219,
         247
+      ]
+    },
+    {
+      "name": "SlotSpinPreparedV1",
+      "discriminator": [
+        97,
+        111,
+        195,
+        9,
+        115,
+        248,
+        3,
+        238
+      ]
+    },
+    {
+      "name": "SlotSpinResolvedV1",
+      "discriminator": [
+        90,
+        186,
+        90,
+        84,
+        162,
+        58,
+        205,
+        244
       ]
     },
     {
@@ -4748,6 +5611,16 @@
       "code": 6054,
       "name": "SortitionEconomicsAfterRegistration",
       "msg": "Sortition economics must be set before the first registration"
+    },
+    {
+      "code": 6055,
+      "name": "InvalidConditionsArtifact",
+      "msg": "Invalid conditions artifact"
+    },
+    {
+      "code": 6056,
+      "name": "SlotVaultReserveInsufficient",
+      "msg": "Vault balance below the max-win exposure for this spin"
     }
   ],
   "types": [
@@ -4984,6 +5857,66 @@
               "array": [
                 "u8",
                 16
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ConditionsResolvedV1",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "compiled_artifact_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "entrant_count",
+            "type": "u32"
+          },
+          {
+            "name": "winner_count",
+            "type": "u16"
+          },
+          {
+            "name": "winning_score_sum",
+            "type": "u128"
+          },
+          {
+            "name": "winners_digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "facts_ref_root",
+            "type": {
+              "array": [
+                "u8",
+                32
               ]
             }
           }
@@ -6298,6 +7231,27 @@
       }
     },
     {
+      "name": "PrepareSlotSpinArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "input_lamports",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "ProgramConfig",
       "type": {
         "kind": "struct",
@@ -6405,6 +7359,23 @@
               "array": [
                 "u8",
                 32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolveConditionsArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
               ]
             }
           }
@@ -7203,6 +8174,247 @@
           },
           {
             "name": "delay_slots",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettleRngV2Args",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "winner_count",
+            "type": "u16"
+          },
+          {
+            "name": "winner_claim_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "outcome_id_len",
+            "type": "u8"
+          },
+          {
+            "name": "outcome_id",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "operator_reveal_len",
+            "type": "u8"
+          },
+          {
+            "name": "operator_reveal",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettleSlotSpinArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlotSpinPreparedV1",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "input_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "compiled_artifact_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "target_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "expiry_slot",
+            "type": "u64"
+          },
+          {
+            "name": "exposure_cap",
+            "type": "u64"
+          },
+          {
+            "name": "fee_snapshot",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlotSpinResolvedV1",
+      "docs": [
+        "Carries everything replay-by-signature verification needs: the frozen slots and",
+        "their hashes reproduce the seed, the artifact hash pins the game, and the reel",
+        "stops / payout are the claimed outcome to re-derive. No resolution account is",
+        "persisted for slot spins."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "input_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "payout_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "raw_win_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "compiled_artifact_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "randomness",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "reel_count",
+            "type": "u8"
+          },
+          {
+            "name": "reel_stops",
+            "type": {
+              "array": [
+                "u16",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolved_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "slot_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "settled_at_slot",
             "type": "u64"
           }
         ]
