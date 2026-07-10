@@ -8,17 +8,24 @@ pub mod state;
 
 use instructions::admin_pause::AdminPause;
 use instructions::admin_withdraw::AdminWithdraw;
+#[cfg(not(feature = "gaming"))]
 use instructions::attest_winners::{AttestWinners, AttestWinnersArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::resolve_conditions::{ResolveConditions, ResolveConditionsArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::claim_sortition_ticket::{ClaimSortitionTicket, ClaimSortitionTicketArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::close_sortition_ticket::{CloseSortitionTicket, CloseSortitionTicketArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::create_sortition_draw::{CreateSortitionDraw, CreateSortitionDrawArgs};
 use instructions::expire_rng_v2::{ExpireRngV2, ExpireRngV2Args};
+#[cfg(not(feature = "gaming"))]
 use instructions::expire_sealed_rng_v2::{ExpireSealedRngV2, ExpireSealedRngV2Args};
 use instructions::finalize_compiled_artifact::FinalizeCompiledArtifact;
 use instructions::init_compiled_artifact_chunk::{
     InitCompiledArtifactChunk, InitCompiledArtifactChunkArgs,
 };
+#[cfg(not(feature = "gaming"))]
 use instructions::init_sortition_economics::{InitSortitionEconomics, InitSortitionEconomicsArgs};
 use instructions::initialize_outcome_config::{
     InitializeOutcomeConfig, InitializeOutcomeConfigArgs,
@@ -30,6 +37,7 @@ use instructions::initialize_program_config::{
 use instructions::initialize_unicorn_g_config::{
     InitializeUnicornGConfig, InitializeUnicornGConfigArgs,
 };
+#[cfg(any(not(feature = "gaming"), feature = "unicorn-g"))]
 use instructions::prepare_rng_v2::{PrepareRngV2, PrepareRngV2Args};
 #[cfg(feature = "unicorn-g")]
 use instructions::prepare_rng_v2_unicorn::PrepareRngV2Unicorn;
@@ -37,25 +45,35 @@ use instructions::prepare_slot_spin::{PrepareSlotSpin, PrepareSlotSpinArgs};
 use instructions::recover_program_config_admin::{
     RecoverProgramConfigAdmin, RecoverProgramConfigAdminArgs,
 };
+#[cfg(not(feature = "gaming"))]
 use instructions::refresh_master_seed::{RefreshMasterSeed, RefreshMasterSeedArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::register_sortition_ticket::{
     RegisterSortitionTicket, RegisterSortitionTicketArgs,
 };
+#[cfg(not(feature = "gaming"))]
 use instructions::register_sortition_ticket_paid::RegisterSortitionTicketPaid;
+#[cfg(not(feature = "gaming"))]
 use instructions::resolve_outcome::{ResolveOutcome, ResolveOutcomeArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::resolve_outcome_v121::{ResolveOutcomeV121, ResolveOutcomeV121Args};
+#[cfg(not(feature = "gaming"))]
 use instructions::resolve_outcome_v4::{ResolveOutcomeV4, ResolveOutcomeV4Args};
 use instructions::review_compiled_artifact::{ReviewCompiledArtifact, ReviewCompiledArtifactArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::seal_randomness::{SealRandomness, SealRandomnessArgs};
 #[cfg(feature = "unicorn-g")]
 use instructions::seal_randomness_unicorn::{SealRandomnessUnicorn, SealRandomnessUnicornArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::seal_sortition_draw::{SealSortitionDraw, SealSortitionDrawArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::settle_rng_v2::{SettleRngV2, SettleRngV2Args};
 use instructions::settle_slot_spin::{SettleSlotSpin, SettleSlotSpinArgs};
 use instructions::set_program_config::{SetProgramConfig, SetProgramConfigArgs};
 #[cfg(feature = "unicorn-g")]
 use instructions::set_unicorn_g_config::{SetUnicornGConfig, SetUnicornGConfigArgs};
 use instructions::submit_compiled_artifact::{SubmitCompiledArtifact, SubmitCompiledArtifactArgs};
+#[cfg(not(feature = "gaming"))]
 use instructions::sweep_sortition_tickets::{SweepSortitionTickets, SweepSortitionTicketsArgs};
 use instructions::write_compiled_artifact_chunk::{
     WriteCompiledArtifactChunk, WriteCompiledArtifactChunkArgs,
@@ -143,6 +161,7 @@ pub mod outcome {
         instructions::initialize_outcome_config::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn refresh_master_seed(
         ctx: Context<RefreshMasterSeed>,
         args: RefreshMasterSeedArgs,
@@ -150,10 +169,12 @@ pub mod outcome {
         instructions::refresh_master_seed::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn resolve_outcome(ctx: Context<ResolveOutcome>, args: ResolveOutcomeArgs) -> Result<()> {
         instructions::resolve_outcome::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn resolve_outcome_v4(
         ctx: Context<ResolveOutcomeV4>,
         args: ResolveOutcomeV4Args,
@@ -161,6 +182,7 @@ pub mod outcome {
         instructions::resolve_outcome_v4::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn resolve_outcome_v121(
         ctx: Context<ResolveOutcomeV121>,
         args: ResolveOutcomeV121Args,
@@ -168,6 +190,7 @@ pub mod outcome {
         instructions::resolve_outcome_v121::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn prepare_rng_v2(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()> {
         instructions::prepare_rng_v2::handler(ctx, args)
     }
@@ -180,6 +203,7 @@ pub mod outcome {
         instructions::prepare_rng_v2_unicorn::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn seal_randomness(ctx: Context<SealRandomness>, args: SealRandomnessArgs) -> Result<()> {
         instructions::seal_randomness::handler(ctx, args)
     }
@@ -192,6 +216,7 @@ pub mod outcome {
         instructions::seal_randomness_unicorn::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn settle_rng_v2(ctx: Context<SettleRngV2>, args: SettleRngV2Args) -> Result<()> {
         instructions::settle_rng_v2::handler(ctx, args)
     }
@@ -210,10 +235,12 @@ pub mod outcome {
         instructions::settle_slot_spin::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn attest_winners(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<()> {
         instructions::attest_winners::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn resolve_conditions(
         ctx: Context<ResolveConditions>,
         args: ResolveConditionsArgs,
@@ -225,6 +252,7 @@ pub mod outcome {
         instructions::expire_rng_v2::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn expire_sealed_rng_v2(
         ctx: Context<ExpireSealedRngV2>,
         args: ExpireSealedRngV2Args,
@@ -240,6 +268,7 @@ pub mod outcome {
         instructions::admin_withdraw::handler(ctx, lamports)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn create_sortition_draw(
         ctx: Context<CreateSortitionDraw>,
         args: CreateSortitionDrawArgs,
@@ -247,6 +276,7 @@ pub mod outcome {
         instructions::create_sortition_draw::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn register_sortition_ticket(
         ctx: Context<RegisterSortitionTicket>,
         args: RegisterSortitionTicketArgs,
@@ -254,6 +284,7 @@ pub mod outcome {
         instructions::register_sortition_ticket::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn seal_sortition_draw(
         ctx: Context<SealSortitionDraw>,
         args: SealSortitionDrawArgs,
@@ -261,6 +292,7 @@ pub mod outcome {
         instructions::seal_sortition_draw::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn claim_sortition_ticket(
         ctx: Context<ClaimSortitionTicket>,
         args: ClaimSortitionTicketArgs,
@@ -268,6 +300,7 @@ pub mod outcome {
         instructions::claim_sortition_ticket::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn init_sortition_economics(
         ctx: Context<InitSortitionEconomics>,
         args: InitSortitionEconomicsArgs,
@@ -275,6 +308,7 @@ pub mod outcome {
         instructions::init_sortition_economics::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn register_sortition_ticket_paid(
         ctx: Context<RegisterSortitionTicketPaid>,
         args: RegisterSortitionTicketArgs,
@@ -282,6 +316,7 @@ pub mod outcome {
         instructions::register_sortition_ticket_paid::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn close_sortition_ticket(
         ctx: Context<CloseSortitionTicket>,
         args: CloseSortitionTicketArgs,
@@ -289,6 +324,7 @@ pub mod outcome {
         instructions::close_sortition_ticket::handler(ctx, args)
     }
 
+    #[cfg(not(feature = "gaming"))]
     pub fn sweep_sortition_tickets<'info>(
         ctx: Context<'_, '_, 'info, 'info, SweepSortitionTickets<'info>>,
         args: SweepSortitionTicketsArgs,
@@ -332,18 +368,23 @@ mod __client_accounts_review_compiled_artifact {
 mod __client_accounts_initialize_outcome_config {
     pub use crate::instructions::initialize_outcome_config::__client_accounts_initialize_outcome_config::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_refresh_master_seed {
     pub use crate::instructions::refresh_master_seed::__client_accounts_refresh_master_seed::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_resolve_outcome {
     pub use crate::instructions::resolve_outcome::__client_accounts_resolve_outcome::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_resolve_outcome_v4 {
     pub use crate::instructions::resolve_outcome_v4::__client_accounts_resolve_outcome_v4::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_resolve_outcome_v121 {
     pub use crate::instructions::resolve_outcome_v121::__client_accounts_resolve_outcome_v121::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_prepare_rng_v2 {
     pub use crate::instructions::prepare_rng_v2::__client_accounts_prepare_rng_v2::*;
 }
@@ -351,6 +392,7 @@ mod __client_accounts_prepare_rng_v2 {
 mod __client_accounts_prepare_rng_v2_unicorn {
     pub use crate::instructions::prepare_rng_v2_unicorn::__client_accounts_prepare_rng_v2_unicorn::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_seal_randomness {
     pub use crate::instructions::seal_randomness::__client_accounts_seal_randomness::*;
 }
@@ -358,10 +400,12 @@ mod __client_accounts_seal_randomness {
 mod __client_accounts_seal_randomness_unicorn {
     pub use crate::instructions::seal_randomness_unicorn::__client_accounts_seal_randomness_unicorn::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_resolve_conditions {
     pub use crate::instructions::resolve_conditions::__client_accounts_resolve_conditions::*;
 }
 
+#[cfg(not(feature = "gaming"))]
 #[allow(unused_imports)]
 mod __client_accounts_settle_rng_v2 {
     pub use crate::instructions::settle_rng_v2::__client_accounts_settle_rng_v2::*;
@@ -374,12 +418,14 @@ mod __client_accounts_settle_slot_spin {
     pub use crate::instructions::settle_slot_spin::__client_accounts_settle_slot_spin::*;
 }
 
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_attest_winners {
     pub use crate::instructions::attest_winners::__client_accounts_attest_winners::*;
 }
 mod __client_accounts_expire_rng_v2 {
     pub use crate::instructions::expire_rng_v2::__client_accounts_expire_rng_v2::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_expire_sealed_rng_v2 {
     pub use crate::instructions::expire_sealed_rng_v2::__client_accounts_expire_sealed_rng_v2::*;
 }
@@ -389,27 +435,35 @@ mod __client_accounts_admin_pause {
 mod __client_accounts_admin_withdraw {
     pub use crate::instructions::admin_withdraw::__client_accounts_admin_withdraw::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_create_sortition_draw {
     pub use crate::instructions::create_sortition_draw::__client_accounts_create_sortition_draw::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_register_sortition_ticket {
     pub use crate::instructions::register_sortition_ticket::__client_accounts_register_sortition_ticket::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_seal_sortition_draw {
     pub use crate::instructions::seal_sortition_draw::__client_accounts_seal_sortition_draw::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_claim_sortition_ticket {
     pub use crate::instructions::claim_sortition_ticket::__client_accounts_claim_sortition_ticket::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_init_sortition_economics {
     pub use crate::instructions::init_sortition_economics::__client_accounts_init_sortition_economics::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_register_sortition_ticket_paid {
     pub use crate::instructions::register_sortition_ticket_paid::__client_accounts_register_sortition_ticket_paid::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_close_sortition_ticket {
     pub use crate::instructions::close_sortition_ticket::__client_accounts_close_sortition_ticket::*;
 }
+#[cfg(not(feature = "gaming"))]
 mod __client_accounts_sweep_sortition_tickets {
     pub use crate::instructions::sweep_sortition_tickets::__client_accounts_sweep_sortition_tickets::*;
 }

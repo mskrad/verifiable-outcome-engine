@@ -13,6 +13,11 @@ default = []
 # Unicorn-G (VDF + on-chain Groth16/alt_bn128 verify) is heavy (~500 KB) and opt-in
 # (trusted-setup pending). Off by default so the canonical binary stays light + deployable.
 unicorn-g = ["dep:solana-bn254"]
+# VRE Gaming build: only the gaming surface (artifact commit path, config/admin,
+# slot spins, expire refund). Cuts rng_v1 resolves, fmt-7 rng_v2 draws, two-phase
+# seal/attest, conditions, sortition from the dispatcher (modules stay compiled;
+# unused handlers are DCE'd). Build: cargo build-sbf --arch v3 -- --features gaming
+gaming = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
