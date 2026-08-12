@@ -197,10 +197,10 @@
               <table class="spec-table">
                 <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">admin</td><td class="mono">Pubkey</td><td>Authority allowed to update config. Current devnet value: Swig actor wallet <span class="mono">E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</span>.</td></tr>
+                  <tr><td class="mono">admin</td><td class="mono">Pubkey</td><td>Authority allowed to update config, and the only signer <span class="mono">review_compiled_artifact</span> accepts. Current devnet value: <span class="mono">HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava</span>.</td></tr>
                   <tr><td class="mono">allow_unreviewed_binding</td><td class="mono">bool</td><td>Whether unreviewed artifacts can be bound.</td></tr>
                   <tr><td class="mono">fee_lamports</td><td class="mono">u64</td><td>Protocol fee per <span class="mono">resolveOutcome</span> call. Current devnet value: <span class="mono">0</span>.</td></tr>
-                  <tr><td class="mono">treasury</td><td class="mono">Pubkey</td><td>Recipient of protocol fees when <span class="mono">fee_lamports &gt; 0</span>. Current devnet value: <span class="mono">ESjxDsMvG2SkPpK1FdcD6Lce4RUfMM8Bvg6sfFBUsXkT</span>.</td></tr>
+                  <tr><td class="mono">treasury</td><td class="mono">Pubkey</td><td>Recipient of protocol fees when <span class="mono">fee_lamports &gt; 0</span>. Current devnet value: <span class="mono">GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm</span>.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -212,13 +212,13 @@
                 <thead><tr><th>Layer</th><th>Mechanism</th><th>Address</th></tr></thead>
                 <tbody>
                   <tr><td>Program upgrades</td><td>Single operator upgrade key on devnet. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time.</td><td class="mono">devnet: single operator key</td></tr>
-                  <tr><td>Operator signing</td><td>Swig smart wallet — delegated key scoped to VRE program with daily SOL spending cap. Master keypair kept offline.</td><td class="mono">Actor: E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf</td></tr>
+                  <tr><td>Operator signing</td><td>A single operator key on devnet. It is the <span class="mono">admin</span> in ProgramConfig, which is what lets it review an artifact before binding.</td><td class="mono">HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava</td></tr>
                 </tbody>
               </table>
             </div>
 
-            <h3>Swig — why it matters</h3>
-            <p>The canonical operator runs as a Swig smart wallet actor. The hot delegate key is scoped to the VRE program only and carries a daily SOL spending cap — a compromised delegate cannot drain the treasury or invoke unrelated programs. The master keypair that controls the Swig wallet is kept offline. This means every live raffle on <span class="mono">/play</span> is signed by a key that has no broader permissions than running VRE.</p>
+            <h3>Swig — smart-wallet operator</h3>
+            <p>The server can run its operator as a Swig smart-wallet actor: the hot delegate is scoped to the VRE program and carries a daily SOL cap, so a compromised delegate cannot drain the treasury or invoke unrelated programs, while the master keypair stays offline. That path is built and configurable through the <span class="mono">SWIG_*</span> environment, but it is <strong>not</strong> the devnet operator — on devnet the signer is the single admin key above, because artifact review is gated on that exact address.</p>
 
             <h3>Upgrade authority (devnet)</h3>
             <p>On devnet the program upgrade authority is a single operator key — multisig governance is not used on devnet, as it added ceremony without protecting real value while the protocol iterates. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time and is not implied by the devnet setup.</p>
