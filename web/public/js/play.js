@@ -226,7 +226,7 @@
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Program</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">6QtLot…FE1F</div>
+            <div class="lr-stat-value mono" style="font-size:14px;">6QtLot…CP6B</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Flow</div>
