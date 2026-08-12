@@ -15,6 +15,8 @@
   const HISTORICAL_LIMIT = 6;
 
   let liveRaffleWallet = { status: 'not-connected' };
+  let walletChoice;              // wallet name picked when more than one is installed
+  let liveRaffleState = 'idle';  // last state handed to renderLiveRaffle
   let liveRaffleHealth = null;
   let liveRaffleHealthPromise = null;
   let worldIdRequired = false;
@@ -102,7 +104,7 @@
     const checked = enabled && worldIdRequired;
     const copy = enabled
       ? checked
-        ? `The raffle will first request a World ID 4.0 proof-of-human bound to your Phantom address. Environment: ${capability.environment}.`
+        ? `The raffle will first request a World ID 4.0 proof-of-human bound to your wallet address. Environment: ${capability.environment}.`
         : `Optional World ID 4.0 gate via RP signatures. Action: ${capability.action}. Environment: ${capability.environment}.`
       : 'World ID is optional and currently unavailable on this host. The existing raffle flow still works without it.';
     return `
@@ -202,6 +204,7 @@
   }
 
   function renderLiveRaffle(state = 'idle', data = {}) {
+    liveRaffleState = state;
     const root = document.getElementById('live-raffle');
     if (!root) return;
 
@@ -212,7 +215,7 @@
           <div>
             <span class="eyebrow"><span class="dot pulse"></span> Live on devnet</span>
             <h2 class="live-raffle-title">Try a real on-chain raffle</h2>
-            <div class="live-raffle-sub">Connect Phantom to enter a weighted devnet raffle and verify the result from the resulting transaction signature.</div>
+            <div class="live-raffle-sub">Connect any Solana wallet to enter a weighted devnet raffle and verify the result from the resulting transaction signature.</div>
           </div>
           <div class="live-raffle-countdown">
             <div class="countdown-num"><span>—</span></div>
@@ -230,7 +233,7 @@
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Flow</div>
-            <div class="lr-stat-value">Phantom</div>
+            <div class="lr-stat-value">Wallet</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">World ID</div>
@@ -238,9 +241,9 @@
           </div>
         </div>
         <div class="live-raffle-cta">
-          <a class="btn btn-primary btn-lg" href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom <span aria-hidden>→</span></a>
+          <a class="btn btn-primary btn-lg" href="https://solana.com/solana-wallets" target="_blank" rel="noopener">Get a Solana wallet <span aria-hidden>→</span></a>
           <a class="btn btn-secondary btn-lg" href="/verify">Open verifier</a>
-          <span class="text-faint" style="font-size:12.5px;">Phantom is required for the live raffle flow.</span>
+          <span class="text-faint" style="font-size:12.5px;">Any Solana wallet works — Phantom, Solflare, Backpack. Verifying a signature needs no wallet at all.</span>
         </div>
       `;
       return;
@@ -257,7 +260,7 @@
             <h2 class="live-raffle-title">Try a real on-chain raffle</h2>
             <div class="live-raffle-sub">${connected
               ? `Your address is connected: <span class="wallet-pill">${escapeHtml(liveRaffleWallet.shortAddress)}</span>`
-              : 'Connect Phantom to enter a weighted devnet raffle. Your wallet will be added to a fixed public test set.'}</div>
+              : 'Connect a wallet to enter a weighted devnet raffle. Your address will be added to a fixed public test set.'}</div>
           </div>
           <div class="live-raffle-countdown">
             <div class="countdown-num"><span>${connected ? 'READY' : 'WAIT'}</span></div>
@@ -285,7 +288,7 @@
         <div class="live-raffle-cta">
           ${connected
             ? `<button class="btn btn-primary btn-lg" type="button" data-live-raffle-start>${worldIdRequired ? 'Verify & Start Raffle' : 'Start Raffle'} <span aria-hidden>→</span></button>`
-            : '<button class="btn btn-primary btn-lg" type="button" data-live-raffle-connect>Connect Phantom <span aria-hidden>→</span></button>'}
+            : renderConnectButtons()}
           <a class="btn btn-secondary btn-lg" href="/verify">Open verifier</a>
           <span class="text-faint" style="font-size:12.5px;">The result is a real devnet transaction you can replay independently.</span>
         </div>
@@ -427,16 +430,29 @@
     }
   }
 
+  // One installed wallet connects straight away; several are offered by name so the
+  // user picks the one holding the address they want in the draw.
+  function renderConnectButtons() {
+    const wallets = window.vreWallet?.listWallets?.() || [];
+    if (wallets.length <= 1) {
+      return '<button class="btn btn-primary btn-lg" type="button" data-live-raffle-connect>Connect wallet <span aria-hidden>→</span></button>';
+    }
+    return wallets.map((wallet) => `
+      <button class="btn btn-primary btn-lg" type="button" data-live-raffle-connect="${escapeHtml(wallet.name)}">
+        ${wallet.icon ? `<img src="${escapeHtml(wallet.icon)}" alt="" width="18" height="18" style="vertical-align:-4px;margin-right:8px;border-radius:5px;" />` : ''}${escapeHtml(wallet.name)} <span aria-hidden>→</span>
+      </button>`).join('');
+  }
+
   async function connectLiveRaffleWallet() {
-    if (!window.vreWallet?.connectPhantom) throw new Error('Wallet helper unavailable');
-    liveRaffleWallet = await window.vreWallet.connectPhantom();
+    if (!window.vreWallet?.connect) throw new Error('Wallet helper unavailable');
+    liveRaffleWallet = await window.vreWallet.connect(walletChoice);
     resetWorldIdState();
     if (liveRaffleWallet.status === 'not-installed') {
       renderLiveRaffle('not-installed');
       return;
     }
     if (liveRaffleWallet.status !== 'connected') {
-      throw new Error('Phantom not connected');
+      throw new Error('Wallet not connected');
     }
     renderLiveRaffle('idle');
   }
@@ -504,7 +520,14 @@
   function initLiveRaffle() {
     const root = document.getElementById('live-raffle');
     if (!root) return;
-    liveRaffleWallet = window.vreWallet?.readConnectedPhantom?.() || { status: 'not-connected' };
+    liveRaffleWallet = window.vreWallet?.readConnected?.() || { status: 'not-connected' };
+    window.vreWallet?.onChange?.((state) => {
+      // Never stomp a draw in flight or its result — only the pre-draw card follows
+      // the wallet.
+      if (liveRaffleState === 'loading' || liveRaffleState === 'result') return;
+      liveRaffleWallet = state;
+      renderLiveRaffle(state.status === 'not-installed' ? 'not-installed' : 'idle');
+    });
     renderLiveRaffle(liveRaffleWallet.status === 'not-installed' ? 'not-installed' : 'idle');
     loadHealth()
       .then(() => {
@@ -513,7 +536,9 @@
       .catch(() => {});
 
     document.addEventListener('click', (event) => {
-      if (event.target.closest('[data-live-raffle-connect]')) {
+      const connectBtn = event.target.closest('[data-live-raffle-connect]');
+      if (connectBtn) {
+        walletChoice = connectBtn.getAttribute('data-live-raffle-connect') || undefined;
         connectLiveRaffleWallet().catch((error) => {
           renderLiveRaffle('error', { message: error?.message || String(error) });
         });

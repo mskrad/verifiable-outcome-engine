@@ -13,7 +13,7 @@
   const LAST_MATCH_STORAGE_KEY = 'vre:last-match-verify';
 
   let lastVerifyResult = null;
-  let phantomState = { status: 'not-connected' };
+  let walletState = { status: 'not-connected' };
 
   function el(id) { return document.getElementById(id); }
 
@@ -287,32 +287,44 @@
   function renderDidIWin(r) {
     if (r.status !== 'MATCH' || !hasAddressOutcomes(r)) return '';
 
-    const state = phantomState || { status: 'not-connected' };
+    const state = walletState || { status: 'not-connected' };
     if (state.status === 'not-installed') {
       return `
         <div class="result-section did-win-card">
           <div class="did-win-head">
             <div>
               <div class="result-section-title">Did I win?</div>
-              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected winner list.</p>
+              <p class="did-win-copy">Connect a wallet to compare your address with the selected winner list.</p>
             </div>
           </div>
           <div class="did-win-status did-win-status-warn">
-            Phantom is not installed. <a class="text-teal" href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom</a>
+            No Solana wallet detected. Any wallet works —
+            <a class="text-teal" href="https://phantom.app/" target="_blank" rel="noopener">Phantom</a>,
+            <a class="text-teal" href="https://solflare.com/" target="_blank" rel="noopener">Solflare</a>,
+            <a class="text-teal" href="https://backpack.app/" target="_blank" rel="noopener">Backpack</a>.
           </div>
         </div>
       `;
     }
 
     if (state.status !== 'connected') {
+      // One wallet connects on click; several get named buttons so the user picks
+      // the one they actually hold the address in.
+      const wallets = window.vreWallet?.listWallets?.() || [];
+      const buttons = wallets.length > 1
+        ? wallets.map((wallet) => `
+            <button class="btn btn-secondary btn-sm" type="button" data-connect-wallet="${escapeHtml(wallet.name)}">
+              ${wallet.icon ? `<img src="${escapeHtml(wallet.icon)}" alt="" width="16" height="16" style="vertical-align:-3px;margin-right:6px;border-radius:4px;" />` : ''}${escapeHtml(wallet.name)}
+            </button>`).join('')
+        : '<button class="btn btn-secondary btn-sm" type="button" data-connect-wallet>Connect wallet</button>';
       return `
         <div class="result-section did-win-card">
           <div class="did-win-head">
             <div>
               <div class="result-section-title">Did I win?</div>
-              <p class="did-win-copy">Connect Phantom to compare your wallet address with the selected winner list.</p>
+              <p class="did-win-copy">Connect a wallet to compare your address with the selected winner list.</p>
             </div>
-            <button class="btn btn-secondary btn-sm" type="button" data-connect-phantom>Connect Phantom</button>
+            <div class="flex gap-2" style="flex-wrap:wrap;">${buttons}</div>
           </div>
           <div class="did-win-status did-win-status-muted">Read-only wallet check. No transaction signing.</div>
         </div>
@@ -526,8 +538,14 @@
     const form = el('verify-form');
     if (!form) return;
 
-    if (window.vreWallet?.readConnectedPhantom) {
-      phantomState = window.vreWallet.readConnectedPhantom();
+    if (window.vreWallet?.readConnected) {
+      walletState = window.vreWallet.readConnected();
+      // The wallet UI can switch or disconnect an account at any time; re-render so
+      // the panel never claims a win for an address the user no longer has.
+      window.vreWallet.onChange?.((state) => {
+        walletState = state;
+        if (lastVerifyResult) renderDetails(lastVerifyResult);
+      });
     }
 
     el('field-rpc').value = DEFAULT_RPC;
@@ -541,16 +559,16 @@
     form.addEventListener('submit', (e) => { e.preventDefault(); runFromForm(); });
 
     document.addEventListener('click', async (event) => {
-      const btn = event.target.closest('[data-connect-phantom]');
+      const btn = event.target.closest('[data-connect-wallet]');
       if (!btn) return;
       btn.disabled = true;
       const original = btn.textContent;
       btn.textContent = 'Connecting...';
       try {
-        phantomState = await window.vreWallet.connectPhantom();
+        walletState = await window.vreWallet.connect(btn.getAttribute('data-connect-wallet') || undefined);
       } catch (error) {
-        phantomState = { status: 'not-connected', error: error?.message || String(error) };
-        window.vreToast('Phantom connection cancelled');
+        walletState = { status: 'not-connected', error: error?.message || String(error) };
+        window.vreToast('Wallet connection cancelled');
       } finally {
         btn.disabled = false;
         btn.textContent = original;

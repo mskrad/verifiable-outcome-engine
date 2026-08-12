@@ -357,7 +357,7 @@ curl -s https://verifiableoutcome.online/api/replay \
 
             <h3>Flow</h3>
             <ol class="spec-step-list">
-              <li>User connects Phantom on <span class="mono">/play.html</span> and optionally enables Require World ID.</li>
+              <li>User connects a wallet on <span class="mono">/play.html</span> and optionally enables Require World ID.</li>
               <li>Frontend fetches <span class="mono">POST /api/world-id/rp-context</span> and starts a World ID 4.0 request through IDKit with RP signatures.</li>
               <li>Backend forwards the full IDKit result to <span class="mono">POST https://developer.world.org/api/v4/verify/{rp_id}</span>.</li>
               <li>Verified nullifier is reserved in-memory before <span class="mono">/api/live-raffle</span> executes and is rolled back if the raffle fails before completion.</li>
@@ -380,8 +380,8 @@ curl -s https://verifiableoutcome.online/api/replay \
             <h3>Evidence Artifact</h3>
             <p>Public reviewer evidence for this optional integration lives in <span class="mono">artifacts/world_id_evidence.json</span> and records the configured app/RP IDs, action, environment, and a staging nullifier placeholder for the first simulator-backed proof.</p>
 
-            <h3>Phantom — "Did I Win?"</h3>
-            <p>Phantom is supported on the <span class="mono">/verify</span> page for a read-only wallet check. After connecting, the page compares the connected address against <span class="mono">outcome_ids</span> in the resolved artifact and shows one of three states: <span class="mono">You won</span>, <span class="mono">In the draw — not selected</span>, or <span class="mono">Not in this draw</span>. No transaction signing is required — Phantom is used for address read only.</p>
+            <h3>Wallet check — "Did I Win?"</h3>
+            <p>The <span class="mono">/verify</span> page offers a read-only wallet check through the <a class="text-teal" href="https://github.com/wallet-standard/wallet-standard" target="_blank" rel="noopener">Wallet Standard</a>, so every wallet that implements it is detected — Phantom, Solflare, Backpack, Brave. After connecting, the page compares the connected address against <span class="mono">outcome_ids</span> in the resolved artifact and shows one of three states: <span class="mono">You won</span>, <span class="mono">In the draw — not selected</span>, or <span class="mono">Not in this draw</span>. Nothing is signed — the wallet is read for its address only.</p>
           </section>
 
           <section id="live-raffle" class="spec-section">

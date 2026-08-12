@@ -135,27 +135,150 @@
     return window.vreShort(String(address || ''), 4, 4);
   }
 
-  function readConnectedPhantom() {
-    const provider = window.solana;
-    if (!provider?.isPhantom) return { status: 'not-installed' };
-    if (provider.isConnected && provider.publicKey) {
-      const address = provider.publicKey.toString();
-      return { status: 'connected', address, shortAddress: shortAddress(address) };
-    }
-    return { status: 'not-connected' };
+  // ── Wallet layer ──────────────────────────────────────────────────────────
+  // Wallet Standard, no dependencies and no build step. Every Solana wallet that
+  // implements the standard registers itself here — Phantom, Solflare, Backpack,
+  // Brave — so nothing is hardcoded to one vendor. We only ever read the public
+  // key: the pages never sign, all signing happens with the operator key server
+  // side, which is why connect + accounts is the whole surface we need.
+  const walletRegistry = new Map(); // name → wallet
+  const walletListeners = new Set();
+  const walletUnsubscribers = new Map(); // name → () => void
+  const SELECTED_WALLET_KEY = 'vre.wallet.name';
+
+  function isSolanaWallet(wallet) {
+    if (!wallet || typeof wallet.name !== 'string') return false;
+    const chains = Array.isArray(wallet.chains) ? wallet.chains : [];
+    if (!chains.some((chain) => String(chain).startsWith('solana:'))) return false;
+    const features = wallet.features || {};
+    return Boolean(features['standard:connect'] && features['standard:events']);
   }
 
-  async function connectPhantom() {
+  function notifyWalletChange() {
+    const state = readConnected();
+    walletListeners.forEach((cb) => {
+      try { cb(state); } catch (_) { /* a broken listener must not break the rest */ }
+    });
+  }
+
+  function registerWallet(wallet) {
+    if (!isSolanaWallet(wallet) || walletRegistry.has(wallet.name)) return;
+    walletRegistry.set(wallet.name, wallet);
+    // Accounts change when the user switches or disconnects inside the wallet UI;
+    // without this the page keeps showing a stale address.
+    try {
+      const off = wallet.features['standard:events'].on('change', notifyWalletChange);
+      if (typeof off === 'function') walletUnsubscribers.set(wallet.name, off);
+    } catch (_) { /* events are optional in practice */ }
+    notifyWalletChange();
+  }
+
+  // Both halves of the handshake are required: the listener catches wallets that
+  // load after this script, the dispatch catches the ones already present.
+  const walletStandardApi = {
+    register(...wallets) {
+      wallets.flat().forEach(registerWallet);
+      return () => {};
+    },
+  };
+  window.addEventListener('wallet-standard:register-wallet', (event) => {
+    try { event.detail(walletStandardApi); } catch (_) { /* ignore a malformed wallet */ }
+  });
+  window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', { detail: walletStandardApi }));
+
+  function walletAccount(wallet) {
+    const accounts = wallet && Array.isArray(wallet.accounts) ? wallet.accounts : [];
+    return accounts.find((account) => typeof account?.address === 'string') || null;
+  }
+
+  function connectedState(wallet, account) {
+    return {
+      status: 'connected',
+      address: account.address,
+      shortAddress: shortAddress(account.address),
+      wallet: wallet.name,
+      icon: wallet.icon || null,
+    };
+  }
+
+  function preferredWallet() {
+    const remembered = walletRegistry.get(readStoredWalletName());
+    if (remembered) return remembered;
+    return walletRegistry.values().next().value || null;
+  }
+
+  function readStoredWalletName() {
+    try { return localStorage.getItem(SELECTED_WALLET_KEY) || ''; } catch (_) { return ''; }
+  }
+
+  function rememberWallet(name) {
+    try { localStorage.setItem(SELECTED_WALLET_KEY, name); } catch (_) { /* private mode */ }
+  }
+
+  // Legacy injected providers that predate the standard. Phantom registers properly,
+  // so this only covers stragglers; drop it once telemetry says nobody lands here.
+  function legacyProvider() {
     const provider = window.solana;
-    if (!provider?.isPhantom) return { status: 'not-installed' };
+    return provider && (provider.isPhantom || provider.isConnected || provider.publicKey)
+      ? provider
+      : null;
+  }
+
+  function listWallets() {
+    return [...walletRegistry.values()].map((wallet) => ({ name: wallet.name, icon: wallet.icon || null }));
+  }
+
+  function readConnected() {
+    for (const wallet of walletRegistry.values()) {
+      const account = walletAccount(wallet);
+      if (account) return connectedState(wallet, account);
+    }
+    if (walletRegistry.size > 0) return { status: 'not-connected' };
+
+    const provider = legacyProvider();
+    if (provider?.publicKey) {
+      const address = provider.publicKey.toString();
+      return { status: 'connected', address, shortAddress: shortAddress(address), wallet: 'Wallet' };
+    }
+    return { status: provider ? 'not-connected' : 'not-installed' };
+  }
+
+  async function connect(name) {
+    const wallet = name ? walletRegistry.get(name) : preferredWallet();
+    if (wallet) {
+      const result = await wallet.features['standard:connect'].connect();
+      const accounts = Array.isArray(result?.accounts) ? result.accounts : wallet.accounts;
+      const account = (accounts || []).find((entry) => typeof entry?.address === 'string');
+      if (!account) return { status: 'not-connected' };
+      rememberWallet(wallet.name);
+      return connectedState(wallet, account);
+    }
+
+    const provider = legacyProvider();
+    if (!provider) return { status: 'not-installed' };
     const resp = await provider.connect();
     const publicKey = resp?.publicKey || provider.publicKey;
     if (!publicKey) return { status: 'not-connected' };
     const address = publicKey.toString();
-    return { status: 'connected', address, shortAddress: shortAddress(address) };
+    return { status: 'connected', address, shortAddress: shortAddress(address), wallet: 'Wallet' };
   }
 
-  window.vreWallet = { connectPhantom, readConnectedPhantom, shortAddress };
+  function onWalletChange(callback) {
+    if (typeof callback !== 'function') return () => {};
+    walletListeners.add(callback);
+    return () => walletListeners.delete(callback);
+  }
+
+  window.vreWallet = {
+    listWallets,
+    readConnected,
+    connect,
+    onChange: onWalletChange,
+    shortAddress,
+    // Kept for one release so nothing breaks mid-deploy; callers moved to the names above.
+    readConnectedPhantom: readConnected,
+    connectPhantom: () => connect(),
+  };
 
   const SOLANA_ADDRESS_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
