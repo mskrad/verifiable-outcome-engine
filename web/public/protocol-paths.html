@@ -3,73 +3,24 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>VRE · Protocol Paths</title>
-  <meta name="description" content="Canonical resolution-path matrix and a sortition flow on the canonical devnet program." />
+  <title>Resolution Paths · VRE</title>
+  <meta name="description" content="Every resolution path on the canonical devnet program, its status, and a console for the sortition-by-claim flow." />
   <meta name="robots" content="noindex" />
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <style>
-    /* Token-driven so this page follows the site theme. The hard-coded
-       dark values it used before printed dark ink on light surfaces once
-       the theme switched. */
-    .pp-banner {
-      position: sticky; top: 0; z-index: 50;
-      background: var(--amber-soft); color: var(--amber);
-      border-bottom: 1px solid var(--hairline-2);
-      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-      padding: 10px 16px; font-size: 14px; text-align: center;
-      font-weight: 600;
-    }
-    .pp-wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 80px; }
-    .pp-wrap h1 { margin-top: 8px; }
-    .pp-matrix-wrap { overflow-x: auto; overscroll-behavior-x: contain; margin: 18px 0 28px; }
-    table.pp-matrix { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 14px; }
-    table.pp-matrix th, table.pp-matrix td { border: 1px solid var(--hairline-2); padding: 8px 10px; text-align: start; vertical-align: top; }
-    table.pp-matrix th { background: var(--surface-2); color: var(--text); }
-    .pp-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .pp-tag.canonical { background: var(--teal-soft); color: var(--teal-text); border: 1px solid var(--teal-glow); }
-    .pp-tag.isolated { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-soft); }
-    .pp-tag.research { background: var(--violet-soft); color: var(--violet-text); border: 1px solid var(--violet-glow); }
-    .pp-card { border: 1px solid var(--hairline); border-radius: var(--r); padding: 18px; margin: 18px 0; background: var(--surface-1); }
-    .pp-card h2 { margin-top: 0; }
-    .pp-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
-    .pp-row label { display: flex; flex-direction: column; font-size: 12px; gap: 4px; flex: 1 1 220px; min-width: 0; color: var(--text-2); }
-    .pp-row input {
-      padding: 8px; border-radius: var(--r-xs); min-width: 0;
-      border: 1px solid var(--hairline-2); background: var(--surface-1);
-      color: var(--text); font-family: var(--font-mono); font-size: 13px;
-    }
-    .pp-row input::placeholder { color: var(--text-4); }
-    .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .pp-actions button {
-      padding: 9px 14px; border-radius: var(--r-xs);
-      border: 1px solid var(--hairline-2); background: var(--surface-2);
-      color: var(--text); cursor: pointer; font-weight: 600;
-      font-family: inherit; font-size: 13px;
-    }
-    .pp-actions button:hover { background: var(--surface-3); border-color: var(--hairline-3); }
-    .pp-actions button:active { transform: scale(0.96); }
-    /* The response pane stays dark in both themes, so its ink is literal. */
-    pre.pp-out {
-      background: #0a0b10; color: rgba(255,255,255,0.85);
-      border: 1px solid var(--hairline-2); border-radius: var(--r-xs);
-      padding: 12px; overflow: auto; font-size: 12px; max-height: 320px;
-      font-family: var(--font-mono);
-    }
-    .pp-note { font-size: 13px; color: var(--text-2); max-width: 68ch; }
-    a.pp-default { color: var(--teal-text); font-weight: 700; }
-    @media (max-width: 720px) { .pp-row input { font-size: 16px; } }
+    /* Console-only additions. Everything else uses the shared system components. */
+    .pp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 760px) { .pp-grid { grid-template-columns: 1fr; } }
+    .pp-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .pp-out { margin-top: 20px; max-height: 340px; overflow: auto; white-space: pre-wrap; }
+    /* 16px keeps iOS from zooming the page when a field takes focus. */
+    @media (max-width: 720px) { .form-input { font-size: 16px; } }
   </style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="grain"></div>
-
-  <div class="pp-banner" role="alert">
-    Canonical protocol on devnet program <code>6QtLot…</code>. Replay-by-signature is the
-    default path; sortition and Unicorn-G are canonical alternatives (Unicorn-G is opt-in).
-    Mainnet is a separate, later effort.
-  </div>
 
   <nav class="nav" aria-label="Primary">
     <div class="nav-inner">
@@ -92,102 +43,161 @@
           <li><a href="/examples" data-nav="examples">Examples</a></li>
           <li><a href="/build" data-nav="build">Build</a></li>
           <li><a href="/verify" data-nav="verify">Verify</a></li>
+          <li><a href="/widget" data-nav="widget">Widget</a></li>
           <li><a href="/spec" data-nav="spec">Spec</a></li>
         </ul>
         <div class="nav-actions">
-          <a href="mailto:hello@verifiableoutcome.online" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
+          <a href="/build#access" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </div>
   </nav>
 
-  <main id="main" tabindex="-1" class="pp-wrap">
-    <h1>Resolution Paths</h1>
-    <p class="pp-note">
-      The default path is
-      <a class="pp-default" href="/verify">replay-by-signature</a>. The paths below are
-      canonical alternatives on the same program. See
-      <code>README.md</code> "Resolution Paths" and <code>RUNBOOK.md</code> §6b–§6c.
-    </p>
+  <main id="main" tabindex="-1">
 
-    <div class="pp-matrix-wrap">
-    <table class="pp-matrix">
-      <thead>
-        <tr><th>Path</th><th>Version</th><th>Status</th><th>Program</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Replay-by-signature + global-Ω resolve</td>
-          <td>v1.3.2</td>
-          <td><span class="pp-tag canonical">canonical · default</span></td>
-          <td><code>6QtLot…</code></td>
-        </tr>
-        <tr>
-          <td>Sortition-by-Claim</td>
-          <td>v1.4.0</td>
-          <td><span class="pp-tag canonical">canonical</span></td>
-          <td><code>6QtLot…</code></td>
-        </tr>
-        <tr>
-          <td>Sortition economics</td>
-          <td>v1.4.1</td>
-          <td><span class="pp-tag canonical">canonical</span></td>
-          <td><code>6QtLot…</code></td>
-        </tr>
-        <tr>
-          <td>Unicorn-G entropy source</td>
-          <td>B8</td>
-          <td><span class="pp-tag isolated">canonical · opt-in</span></td>
-          <td><code>6QtLot…</code></td>
-        </tr>
-      </tbody>
-    </table>
+  <header class="page-head">
+    <div class="container container-narrow">
+      <span class="eyebrow"><span class="dot"></span> Resolution paths</span>
+      <h1 class="page-title">Five paths, one program.</h1>
+      <p class="lead">Replay-by-signature is the default: recompute an outcome from a transaction signature and compare. The paths below are alternatives selected per draw, and they all run on the same canonical devnet program — there is no second, isolated deployment.</p>
     </div>
+  </header>
 
-    <div class="pp-card">
-      <h2>Sortition-by-Claim flow <span class="pp-tag canonical">canonical</span></h2>
-      <p class="pp-note">
-        Commit-reveal ticket draw against the canonical program. Requires a partner
-        API key and a server-side operator wallet. Every response is tagged
-        <code>maturity: "canonical-devnet"</code>. Replay-by-signature stays the default path.
-      </p>
-
-      <div class="pp-row">
-        <label>Partner API key
-          <input id="pp-key" type="password" placeholder="x-api-key" autocomplete="off" />
-        </label>
-        <label>Draw id (16-byte hex)
-          <input id="pp-draw" type="text" />
-        </label>
-        <label>Ticket id (16-byte hex)
-          <input id="pp-ticket" type="text" />
-        </label>
-      </div>
-      <div class="pp-row">
-        <label>Secret (32-byte hex)
-          <input id="pp-secret" type="text" />
-        </label>
-        <label>Threshold (32-byte hex)
-          <input id="pp-threshold" type="text" />
-        </label>
-        <label>Commitment (derived: sha256(secret‖ticket‖draw))
-          <input id="pp-commitment" type="text" readonly />
-        </label>
+  <section style="padding-top: 0;">
+    <div class="container container-narrow">
+      <div class="callout callout-amber">
+        <div class="callout-title">Scope</div>
+        <p>Every status here describes the canonical <strong>devnet</strong> program <span class="mono">6QtLot…FE1F</span>. Mainnet is a separate, later effort.</p>
       </div>
 
-      <div class="pp-actions">
-        <button id="pp-gen">Generate fixtures</button>
-        <button id="pp-create">1 · Create draw</button>
-        <button id="pp-register">2 · Register ticket</button>
-        <button id="pp-seal">3 · Seal draw</button>
-        <button id="pp-claim">4 · Claim ticket</button>
+      <div class="spec-table-wrap mt-8">
+        <table class="spec-table">
+          <thead><tr><th>Path</th><th>Version</th><th>Status</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">replay-by-signature</td>
+              <td class="mono">v1.3.2</td>
+              <td><span class="badge badge-match">canonical · default</span></td>
+              <td>Recompute an outcome locally from a transaction signature, including the global-Ω resolve. <a href="/verify" class="text-teal">Try it →</a></td>
+            </tr>
+            <tr>
+              <td class="mono">sortition-by-claim</td>
+              <td class="mono">v1.4.0</td>
+              <td><span class="badge badge-match">canonical</span></td>
+              <td>Commit-reveal ticket draw. Winners claim their own ticket against a threshold checked on-chain.</td>
+            </tr>
+            <tr>
+              <td class="mono">sortition economics</td>
+              <td class="mono">v1.4.1</td>
+              <td><span class="badge badge-match">canonical</span></td>
+              <td>Optional entry-fee and close-skim layer on top of a sortition draw.</td>
+            </tr>
+            <tr>
+              <td class="mono">conditions</td>
+              <td class="mono">fc7/fv9</td>
+              <td><span class="badge badge-match">canonical · attestation-only</span></td>
+              <td>Score committed slips (odds × proven facts) into a ranking. The engine proves the ranking; it holds no funds and executes no payout.</td>
+            </tr>
+            <tr>
+              <td class="mono">unicorn-g entropy</td>
+              <td class="mono">B8</td>
+              <td><span class="badge badge-pending">opt-in · research</span></td>
+              <td>Alternative entropy source: a delay-function output verified on-chain through an embedded Groth16 verifier.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <h3>Response</h3>
-      <pre class="pp-out" id="pp-out">// canonical devnet — responses appear here</pre>
+      <div class="callout callout-amber mt-8">
+        <div class="callout-title">Unicorn-G — read before selecting it</div>
+        <p>The default entropy source is SlotHashes; Unicorn-G is chosen explicitly per draw. It depends on a Groth16 trusted setup done against a devnet RSA modulus, and a known soundness caveat remains: a composite <span class="mono">l</span> passes the in-circuit primality check. It stays research and opt-in — <strong>not</strong> a mainnet path until a multi-party ceremony and the corrected circuit land.</p>
+      </div>
+
+      <div class="callout mt-6">
+        <div class="callout-title">Conditions</div>
+        <p>Live on the canonical program since 2026-07-03. The public scorer <span class="mono">POST /api/conditions/score</span> is byte-identical to on-chain <span class="mono">resolve_conditions</span>, and a devnet attestation replays to MATCH. Payout is pro-rata over the winners and executed by the integrator — the engine proves who won, nothing more. <a href="/examples" class="text-teal">Score a round →</a></p>
+      </div>
     </div>
+  </section>
+
+  <!-- Sortition console -->
+  <section>
+    <div class="container container-narrow">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Console</span>
+        <h2>Sortition by claim, step by step.</h2>
+        <p>Four calls against the canonical program: create the draw, register a ticket commitment, seal the draw against a future slot hash, then claim. The routes are partner-gated and sign with a server-side operator wallet, so a partner API key is required.</p>
+      </div>
+
+      <div class="card">
+        <div class="form-row pp-grid">
+          <div>
+            <label class="form-label" for="pp-key">Partner API key</label>
+            <input class="form-input" id="pp-key" type="password" placeholder="x-api-key" autocomplete="off" />
+          </div>
+          <div>
+            <label class="form-label" for="pp-draw">Draw id <span class="hint">16-byte hex</span></label>
+            <input class="form-input" id="pp-draw" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="pp-ticket">Ticket id <span class="hint">16-byte hex</span></label>
+            <input class="form-input" id="pp-ticket" type="text" spellcheck="false" />
+          </div>
+        </div>
+
+        <div class="form-row pp-grid">
+          <div>
+            <label class="form-label" for="pp-secret">Secret <span class="hint">32-byte hex</span></label>
+            <input class="form-input" id="pp-secret" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="pp-threshold">Threshold <span class="hint">32-byte hex</span></label>
+            <input class="form-input" id="pp-threshold" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="pp-commitment">Commitment <span class="hint">derived</span></label>
+            <input class="form-input" id="pp-commitment" type="text" readonly aria-describedby="pp-commitment-note" />
+          </div>
+        </div>
+        <p id="pp-commitment-note" class="text-faint" style="font-size:12.5px;margin-top:-8px;">
+          Derived in your browser as <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> — the same preimage the program recomputes when the ticket is claimed.
+        </p>
+
+        <div class="pp-actions">
+          <button class="btn btn-secondary btn-sm" type="button" id="pp-gen">Generate fixtures</button>
+          <button class="btn btn-primary btn-sm" type="button" id="pp-create">1 · Create draw</button>
+          <button class="btn btn-primary btn-sm" type="button" id="pp-register">2 · Register ticket</button>
+          <button class="btn btn-primary btn-sm" type="button" id="pp-seal">3 · Seal draw</button>
+          <button class="btn btn-primary btn-sm" type="button" id="pp-claim">4 · Claim ticket</button>
+        </div>
+
+        <pre class="raw-json pp-out" id="pp-out" role="status" aria-live="polite">Responses appear here.</pre>
+      </div>
+    </div>
+  </section>
   </main>
 
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="nav-brand-mark" style="width:22px;height:22px;"></div>
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="/play">Demo</a></li>
+          <li><a href="/examples">Examples</a></li>
+          <li><a href="/build">Build</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+        </ul>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const out = $("pp-out");
@@ -226,15 +236,19 @@
       $("pp-draw").value = randHex(16);
       $("pp-ticket").value = randHex(16);
       $("pp-secret").value = randHex(32);
-      // Permissive threshold (~10% win) for a visible demo: 0x1999... big-endian.
+      // Permissive threshold (~10% win) for a visible demo: 0x1999… big-endian.
       $("pp-threshold").value = "19" + "99".repeat(31);
       await refreshCommitment();
     }
 
     async function post(path, body) {
       const key = $("pp-key").value.trim();
-      if (!key) { show("Enter a partner API key first (sortition routes are partner-gated)."); return null; }
-      show("… requesting " + path);
+      if (!key) {
+        show("Enter a partner API key first — the sortition routes are partner-gated.");
+        $("pp-key").focus();
+        return null;
+      }
+      show("Requesting " + path + " …");
       try {
         const res = await fetch(path, {
           method: "POST",
@@ -276,6 +290,5 @@
 
     generate();
   </script>
-  <script src="/js/main.js"></script>
 </body>
 </html>

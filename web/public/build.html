@@ -50,7 +50,7 @@
           <li><a href="/spec" data-nav="spec">Spec</a></li>
         </ul>
         <div class="nav-actions">
-          <a href="mailto:hello@verifiableoutcome.online" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
+          <a href="/build#access" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
         </div>
       </div>
     </div>
@@ -381,16 +381,23 @@
     </div>
   </section>
 
-  <!-- Partner CTA -->
-  <section>
+  <!-- Access -->
+  <section id="access" style="scroll-margin-top: 96px;">
     <div class="container-narrow">
       <div class="card glass" style="padding: 40px; text-align: center;">
-        <span class="eyebrow"><span class="dot"></span> Partners</span>
-        <h3 style="margin: 14px 0 10px;">Need your own instance?</h3>
-        <p class="text-faint" style="max-width: 50ch; margin: 0 auto 20px;">
-          Large platforms and GameFi projects can deploy VRE under a partner agreement — no per-resolution fee, full control over your program ID.
+        <span class="eyebrow"><span class="dot"></span> Access</span>
+        <h3 style="margin: 14px 0 10px;">Get an API key</h3>
+        <p class="text-faint" style="max-width: 54ch; margin: 0 auto 20px;">
+          Verification is open to everyone and needs no key: the replay endpoint, the SDK verifier and the verify page are public. A partner key is what unlocks the write side — server-side draws, the sortition flow and the conditions endpoints. Write to us with what you are building and the volume you expect.
         </p>
-        <a href="mailto:hello@verifiableoutcome.online" class="btn btn-secondary">Become a partner <span aria-hidden>→</span></a>
+        <div class="flex gap-2 center" style="justify-content: center; flex-wrap: wrap;">
+          <span class="mono" style="font-size: 14px; color: var(--text);">hello@verifiableoutcome.online</span>
+          <button class="btn btn-secondary btn-sm" type="button" data-copy="hello@verifiableoutcome.online">Copy address</button>
+          <a href="mailto:hello@verifiableoutcome.online" class="btn btn-ghost btn-sm">Open in mail app <span aria-hidden="true">→</span></a>
+        </div>
+        <p class="text-faint" style="max-width: 54ch; margin: 22px auto 0; font-size: 12.5px;">
+          Running at scale? Platforms can deploy the engine under a partner agreement — their own program ID, no per-resolution fee.
+        </p>
       </div>
     </div>
   </section>
