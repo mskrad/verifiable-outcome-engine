@@ -81,6 +81,7 @@
   /* density */
   --section-py: 120px;
   --container-px: 32px;
+  --measure: 880px;
 
   /* misc */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -275,12 +276,6 @@ code, pre, .mono {
    ----------------------------------------------------------------- */
 .container {
   max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 var(--container-px);
-  min-width: 0;
-}
-.container-narrow {
-  max-width: 880px;
   margin: 0 auto;
   padding: 0 var(--container-px);
   min-width: 0;
@@ -3374,3 +3369,15 @@ h1, h2, h3, .hero-title, .page-title, .section-heading h2 { text-wrap: balance; 
   .ticker-track { overflow-x: auto; }
   .ticker-track-inner { transform: none; }
 }
+
+/* -----------------------------------------------------------------
+   Reading measure
+   Caps how wide a block gets without moving its left edge. The page
+   frame is .container on every page, so titles, cards and the footer
+   line up at the same x; long-form text and forms get their measure
+   from here instead of from a narrower container.
+   Lives at the end of the file on purpose: it has to win over the
+   blanket `.card { max-width: 100% }` above.
+   ----------------------------------------------------------------- */
+.measure { max-width: var(--measure); min-width: 0; }
+.measure-center { max-width: var(--measure); min-width: 0; margin-inline: auto; }
