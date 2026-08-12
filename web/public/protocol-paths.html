@@ -268,7 +268,9 @@
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({ ok: false, error: "non-JSON response" }));
-        const verdict = readVerdict(data);
+        const verdict = res.status === 404
+          ? "This deployment does not expose the demo endpoints yet — the server is running an older build."
+          : readVerdict(data);
         show(verdict ? { status: res.status, result: verdict, ...data } : { status: res.status, ...data });
         return data;
       } catch (err) {

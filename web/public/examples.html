@@ -564,6 +564,7 @@
         return 'One demo draw at a time from this address. Try again in ' +
           seconds + (seconds === 1 ? ' second.' : ' seconds.');
       }
+      if (status === 404) return 'This deployment does not expose the demo endpoint yet.';
       if (status === 503) return 'Demo draws are switched off on this deployment.';
       if (status === 504) return 'Devnet is slow right now. Try again in a moment.';
       // Anything else is a server-side fault the reader cannot act on — keep the detail in
