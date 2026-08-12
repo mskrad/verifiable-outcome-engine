@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Examples · VRE</title>
+  <meta name="description" content="Nine integration scenarios you can run against Solana devnet from the browser. Each one commits its rules on-chain, resolves, and returns a signature anyone can replay." />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:title"       content="VRE Examples · Run the engine on devnet" />
+  <meta property="og:description" content="Nine integration scenarios you can run against Solana devnet from the browser. Each one returns a signature anyone can replay." />
+  <meta property="og:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
+  <meta property="og:url"         content="https://verifiableoutcome.online/examples" />
+  <meta property="og:site_name"   content="Verifiable Outcome Engine" />
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="VRE Examples · Run the engine on devnet" />
+  <meta name="twitter:description" content="Nine integration scenarios you can run against Solana devnet from the browser. Each one returns a signature anyone can replay." />
+  <meta name="twitter:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
+
+  <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    /* Scenario grid — three across, collapsing to one on phones. Tokens only. */
+    .examples-grid { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1100px) { .examples-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 700px)  { .examples-grid { grid-template-columns: 1fr; } }
+
+    .ex-chip { align-self: flex-start; margin-bottom: 18px; }
+    /* The formula chip is a literal identifier, not a status: lowercase, and coloured from the
+       neutral surface tokens rather than borrowing the .badge-pending status class. */
+    .ex-formula {
+      text-transform: none; letter-spacing: 0.02em;
+      background: var(--surface-1); color: var(--text-3); border-color: var(--hairline);
+    }
+    .ex-note { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); margin-top: 14px; font-variant-numeric: tabular-nums; }
+
+    .ex-rows { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 3px; }
+    .ex-row {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+      padding: 5px 9px; border: 1px solid transparent; border-radius: var(--r-xs);
+      font-family: var(--font-mono); font-size: 12px; color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+      transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease);
+    }
+    /* Scores and weights are regenerated in place, so the values stay in one column. */
+    .ex-row-meta { color: var(--text-3); text-align: end; }
+    .ex-row[data-winner] { background: var(--teal-soft); border-color: var(--teal-glow); color: var(--teal-text); }
+    .ex-row[data-winner] .ex-row-meta { color: var(--teal-text); }
+
+    .ex-foot { margin-top: auto; padding-top: 20px; display: grid; gap: 12px; justify-items: start; }
+    .ex-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    /* A draw runs for tens of seconds. The button stays focusable through it — native
+       `disabled` would drop the keyboard user back to the top of the page — so the
+       unavailable state is declared with aria-disabled and styled to match .btn:disabled. */
+    .btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; pointer-events: none; transform: none; }
+
+    .ex-out, .ex-detail {
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: var(--text-3);
+      font-variant-numeric: tabular-nums; overflow-wrap: anywhere; width: 100%;
+    }
+    .ex-out b { color: var(--teal-text); font-weight: 600; }
+    .ex-detail a { color: var(--teal-text); }
+    .ex-out[data-tone="error"] { color: var(--red); }
+    .ex-out .spinner { width: 12px; height: 12px; vertical-align: -1px; margin-inline-end: 6px; }
+    .ex-detail vre-verify { margin-top: 10px; }
+    .ex-detail[hidden] { display: none; }
+
+    .ex-rank { display: grid; gap: 3px; margin-top: 18px; }
+
+    /* Heading that keeps the document outline complete without adding visual weight. */
+    .ex-sr {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="grain"></div>
+
+  <nav class="nav" aria-label="Primary">
+    <div class="nav-inner">
+      <a href="/" class="nav-brand" aria-label="VRE home">
+        <div class="nav-brand-mark" aria-hidden="true"></div>
+        <div>
+          <div class="nav-brand-wordmark">VRE</div>
+          <div class="nav-brand-caption">Verifiable Outcome Engine</div>
+        </div>
+      </a>
+
+      <button class="nav-toggle" type="button" data-nav-toggle
+              aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+      </button>
+
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li><a href="/play" data-nav="play">Demo</a></li>
+          <li><a href="/examples" data-nav="examples">Examples</a></li>
+          <li><a href="/build" data-nav="build">Build</a></li>
+          <li><a href="/verify" data-nav="verify">Verify</a></li>
+          <li><a href="/widget" data-nav="widget">Widget</a></li>
+          <li><a href="/spec" data-nav="spec">Spec</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a href="mailto:hello@verifiableoutcome.online" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main" tabindex="-1">
+
+  <header class="page-head">
+    <div class="container">
+      <span class="eyebrow"><span class="dot pulse"></span> Live on devnet</span>
+      <h1 class="page-title">Nine scenarios. One primitive.</h1>
+      <p class="lead">Each card below is a real call into the engine. Press the button and the rules are committed on-chain, the program resolves them, and you get a transaction signature that replays to the same result for anyone who checks it. No key, no wallet, no signup — this page talks to a public demo endpoint.</p>
+    </div>
+  </header>
+
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="status-bar">
+        <div class="status-bar-left">
+          <span class="status-pill"><span class="dot pulse"></span> Solana devnet · one demo draw per 15 seconds</span>
+          <span class="text-faint" style="font-size:12.5px;">Program <span class="mono">6QtLot…FE1F</span></span>
+        </div>
+        <div class="status-bar-right">
+          <a class="btn btn-secondary btn-sm" href="/build">Build your own <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top: 32px;">
+    <div class="container">
+      <h2 class="ex-sr">Scenarios</h2>
+
+      <div class="feature-grid examples-grid">
+
+        <article class="feature-card" data-ex="raffle">
+          <span class="badge ex-chip ex-formula">weighted_random</span>
+          <h3>NFT raffle</h3>
+          <p>One winner drawn from a committed entry list, every entry weighted the same.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="giveaway">
+          <span class="badge ex-chip ex-formula">weighted_random</span>
+          <h3>Multi-winner giveaway</h3>
+          <p>Three distinct winners in a single call, returned as an ordered list you can pay out against.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="tickets">
+          <span class="badge ex-chip ex-formula">weighted_random</span>
+          <h3>Ticket-weighted raffle</h3>
+          <p>Weights are ticket counts. More tickets means proportionally more chance, fixed on-chain before the draw.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="competition">
+          <span class="badge ex-chip ex-formula">rank_desc</span>
+          <h3>Trading competition</h3>
+          <p>Top two by committed PnL. Ties break on input order, so the ranking reproduces byte for byte.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+              <button class="btn btn-ghost btn-sm" type="button" data-reroll>Randomize inputs</button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="lowestbid">
+          <span class="badge ex-chip ex-formula">rank_asc</span>
+          <h3>Lowest-bid contest</h3>
+          <p>The smallest committed bid takes the lot. Same ranking kernel, read from the other end.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+              <button class="btn btn-ghost btn-sm" type="button" data-reroll>Randomize inputs</button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="guess">
+          <span class="badge ex-chip ex-formula">closest_to</span>
+          <h3>Guess the value</h3>
+          <p>The prediction nearest the target wins. The target is committed alongside the entries, not chosen after.</p>
+          <div class="ex-note" data-target></div>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+              <button class="btn btn-ghost btn-sm" type="button" data-reroll>Randomize inputs</button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="firstcome">
+          <span class="badge ex-chip ex-formula">first_n</span>
+          <h3>First-come airdrop</h3>
+          <p>The first three of a registration-ordered list. No randomness involved, and still fully replayable.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="loot">
+          <span class="badge ex-chip ex-formula">weighted_random</span>
+          <h3>Loot box drop table</h3>
+          <p>Rarity tiers carry the weights. Players can read the drop table before the roll and check it after.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+        <article class="feature-card" data-ex="mint">
+          <span class="badge ex-chip ex-formula">weighted_random</span>
+          <h3>NFT mint allocation</h3>
+          <p>Five slots pulled from an oversubscribed allowlist, with the full list committed before allocation.</p>
+          <ul class="ex-rows" data-rows></ul>
+          <div class="ex-foot">
+            <div class="ex-actions">
+              <button class="btn btn-primary" type="button" data-run>Run on devnet <span aria-hidden="true">→</span></button>
+            </div>
+            <div class="ex-out" data-out role="status" aria-live="polite"></div>
+            <div class="ex-detail" data-detail hidden></div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Conditions scoring -->
+  <section>
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> Conditions</span>
+        <h2>Multi-leg conditions, scored deterministically.</h2>
+        <p>When the outcome is a combination of proven facts rather than a pick from a list, the engine scores each entry against the committed conditions. Same kernel off-chain and on-chain: the bytes below are what <span class="mono">resolve_conditions</span> recomputes.</p>
+      </div>
+
+      <div class="card" data-conditions>
+        <p class="text-faint" style="font-size:13px;margin-bottom:18px;">
+          Three entries, two legs each, scored against two settled fixtures. The response carries the ranking, each entry's commitment hash, and the exact artifact bytes.
+        </p>
+        <button class="btn btn-primary" type="button" data-score>Score the round <span aria-hidden="true">→</span></button>
+        <div class="ex-rank" data-rank></div>
+        <div class="ex-out" data-out role="status" aria-live="polite" style="margin-top:14px;"></div>
+        <p class="text-faint" style="font-size:12.5px;margin-top:18px;">
+          Scoring only — this call writes nothing on-chain. The full commit → resolve path runs under a partner key.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Roadmap -->
+  <section style="padding-top: 0;">
+    <div class="container">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot"></span> More paths</span>
+        <h2>Beyond a single call.</h2>
+        <p>Every card above resolves in one request. These take several, so this page does not drive them yet — two already run on the same canonical program, one is still on paper.</p>
+      </div>
+
+      <div class="feature-grid feature-grid-compact">
+        <div class="feature-card">
+          <span class="badge badge-match ex-chip">on devnet</span>
+          <h3>Sortition by claim</h3>
+          <p>Tickets are committed, the draw is sealed against a slot hash that does not exist yet, and each winner claims their own ticket. Nobody — the operator included — can choose a winner after the fact.</p>
+          <p class="mt-4"><a href="/protocol-paths" class="text-teal">Run the sortition flow →</a></p>
+        </div>
+        <div class="feature-card">
+          <span class="badge badge-match ex-chip">on devnet · opt-in</span>
+          <h3>Unicorn-G entropy</h3>
+          <p>An alternative entropy source for the same draw: the seed arrives with a proof the program verifies on-chain, and a forged one is rejected before anything is sealed.</p>
+          <p class="mt-4"><a href="/protocol-paths" class="text-teal">Compare the resolution paths →</a></p>
+        </div>
+        <div class="feature-card">
+          <span class="badge badge-pending ex-chip">not shipped</span>
+          <h3>Merkle-committed snapshots</h3>
+          <p>Commit a participant snapshot as a single root and hand every winner an inclusion proof, so a draw over hundreds of thousands of addresses stays one on-chain artifact. Designed, not shipped.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <div class="nav-brand-mark" style="width:22px;height:22px;"></div>
+          <span>VRE · Verifiable Outcome Engine</span>
+        </div>
+        <ul class="footer-links">
+          <li><a href="/play">Demo</a></li>
+          <li><a href="/examples">Examples</a></li>
+          <li><a href="/build">Build</a></li>
+          <li><a href="/verify">Verify</a></li>
+          <li><a href="/spec">Spec</a></li>
+          <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
+        </ul>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="/widget.js" defer></script>
+  <script>
+  (function () {
+    'use strict';
+
+    var DRAW_URL = '/api/examples/draw';
+    var SCORE_URL = '/api/conditions/score';
+    var VERIFY_BASE = '/verify';
+
+    function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function escHtml(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function ids(prefix, count) {
+      var out = [];
+      for (var i = 1; i <= count; i += 1) out.push(prefix + (i < 10 ? '0' : '') + i);
+      return out;
+    }
+
+    // Each scenario owns its sample data (`build`) and the request body derived from it
+    // (`payload`). Everything else — rendering, button state, result — is shared below.
+    var SCENARIOS = {
+      raffle: {
+        formula: 'weighted_random',
+        use_case: 'raffle',
+        winners: 1,
+        build: function () {
+          return ids('entry_', 6).map(function (id) { return { id: id, meta: '1 entry' }; });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id }; }) };
+        },
+      },
+
+      giveaway: {
+        formula: 'weighted_random',
+        use_case: 'raffle',
+        winners: 3,
+        build: function () {
+          return ids('entry_', 8).map(function (id) { return { id: id, meta: '1 entry' }; });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id }; }) };
+        },
+      },
+
+      tickets: {
+        formula: 'weighted_random',
+        winners: 1,
+        build: function () {
+          var tickets = [12, 5, 40, 3, 21, 8];
+          return ids('holder_', 6).map(function (id, i) {
+            return { id: id, weight: tickets[i], meta: tickets[i] + ' tickets' };
+          });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id, weight: r.weight }; }) };
+        },
+      },
+
+      competition: {
+        formula: 'rank_desc',
+        use_case: 'competition',
+        winners: 2,
+        build: function () {
+          return ids('trader_', 6).map(function (id) {
+            var score = randInt(-420, 3200);
+            return { id: id, score: score, meta: score + ' PnL' };
+          });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id, score: r.score }; }) };
+        },
+      },
+
+      lowestbid: {
+        formula: 'rank_asc',
+        winners: 1,
+        build: function () {
+          return ids('bidder_', 6).map(function (id) {
+            var score = randInt(950, 4800);
+            return { id: id, score: score, meta: score + ' units' };
+          });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id, score: r.score }; }) };
+        },
+      },
+
+      guess: {
+        formula: 'closest_to',
+        winners: 1,
+        build: function (card) {
+          var target = randInt(18000, 26000);
+          card._target = target;
+          var note = card.querySelector('[data-target]');
+          if (note) note.textContent = 'target ' + target;
+          return ids('player_', 6).map(function (id) {
+            var score = target + randInt(-1800, 1800);
+            return { id: id, score: score, meta: String(score) };
+          });
+        },
+        payload: function (rows, card) {
+          return {
+            target: card._target,
+            participants: rows.map(function (r) { return { id: r.id, score: r.score }; }),
+          };
+        },
+      },
+
+      firstcome: {
+        formula: 'first_n',
+        use_case: 'airdrop',
+        winners: 3,
+        build: function () {
+          return ids('signup_', 8).map(function (id, i) {
+            return { id: id, meta: 'registered #' + (i + 1) };
+          });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id }; }) };
+        },
+      },
+
+      loot: {
+        formula: 'weighted_random',
+        winners: 1,
+        build: function () {
+          var table = [
+            { id: 'common', weight: 6000 },
+            { id: 'uncommon', weight: 2500 },
+            { id: 'rare', weight: 1000 },
+            { id: 'epic', weight: 400 },
+            { id: 'legendary', weight: 100 },
+          ];
+          return table.map(function (row) {
+            return { id: row.id, weight: row.weight, meta: (row.weight / 100).toFixed(2) + '%' };
+          });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id, weight: r.weight }; }) };
+        },
+      },
+
+      mint: {
+        formula: 'weighted_random',
+        use_case: 'airdrop',
+        winners: 5,
+        build: function () {
+          return ids('allowlist_', 12).map(function (id) { return { id: id, meta: '1 slot' }; });
+        },
+        payload: function (rows) {
+          return { participants: rows.map(function (r) { return { id: r.id }; }) };
+        },
+      },
+    };
+
+    function renderRows(card, rows, winners) {
+      var list = card.querySelector('[data-rows]');
+      var winnerIndex = {};
+      (winners || []).forEach(function (id, i) { winnerIndex[id] = i + 1; });
+      var many = (winners || []).length > 1;
+      list.innerHTML = rows.map(function (r) {
+        var place = winnerIndex[r.id];
+        // Keep the value that produced the result visible next to the win.
+        var meta = place ? (many ? 'winner #' + place : 'winner') + ' · ' + r.meta : r.meta;
+        return '<li class="ex-row"' + (place ? ' data-winner' : '') + '>' +
+          '<span>' + escHtml(r.id) + '</span>' +
+          '<span class="ex-row-meta">' + escHtml(meta) + '</span>' +
+          '</li>';
+      }).join('');
+    }
+
+    // The button keeps its label while it works — the progress line lives in the status
+    // region, which is also where the result or the error lands.
+    function setBusy(button, out, busy, message) {
+      button.setAttribute('aria-busy', String(busy));
+      if (busy) button.setAttribute('aria-disabled', 'true');
+      else button.removeAttribute('aria-disabled');
+      if (!busy) return;
+      out.removeAttribute('data-tone');
+      out.innerHTML = '<span class="spinner" aria-hidden="true"></span>' + escHtml(message);
+    }
+
+    function isBusy(button) { return button.getAttribute('aria-disabled') === 'true'; }
+
+    function showError(out, detail, message) {
+      out.setAttribute('data-tone', 'error');
+      out.textContent = message;
+      if (detail) { detail.innerHTML = ''; detail.hidden = true; }
+    }
+
+    function showResult(out, detail, data, winners) {
+      var sig = String(data.signature || '');
+      var slot = data.resolution_slot;
+      // Short summary in the live region; the signature and the widget sit outside it so
+      // screen readers don't read 88 base58 characters on every draw.
+      out.setAttribute('data-tone', 'ok');
+      out.innerHTML =
+        '<div>' + (winners.length > 1 ? 'winners' : 'winner') + ' <b>' + escHtml(winners.join(', ')) + '</b>' +
+        (slot ? ' · resolved at slot ' + escHtml(slot) : '') + '</div>';
+      detail.innerHTML =
+        '<div>' + escHtml(sig) + '</div>' +
+        '<a href="' + VERIFY_BASE + '?sig=' + encodeURIComponent(sig) + '" target="_blank" rel="noopener">Open in verifier →</a>' +
+        '<vre-verify sig="' + escHtml(sig) + '"></vre-verify>';
+      detail.hidden = false;
+    }
+
+    function errorMessage(status, body) {
+      if (status === 429) {
+        var seconds = Math.ceil(Number(body && body.retry_after_ms ? body.retry_after_ms : 15000) / 1000);
+        return 'One demo draw at a time from this address. Try again in ' +
+          seconds + (seconds === 1 ? ' second.' : ' seconds.');
+      }
+      if (status === 503) return 'Demo draws are switched off on this deployment.';
+      if (status === 504) return 'Devnet is slow right now. Try again in a moment.';
+      // Anything else is a server-side fault the reader cannot act on — keep the detail in
+      // the console for whoever is debugging, and say what to do here.
+      if (body && body.error) console.error('[examples] draw failed:', body.error);
+      return 'Unable to run this draw right now. Try again in a moment.';
+    }
+
+    function initCard(card) {
+      var key = card.getAttribute('data-ex');
+      var scenario = SCENARIOS[key];
+      if (!scenario) return;
+
+      var runBtn = card.querySelector('[data-run]');
+      var rerollBtn = card.querySelector('[data-reroll]');
+      var out = card.querySelector('[data-out]');
+      var detail = card.querySelector('[data-detail]');
+      var rows = [];
+
+      function reset() {
+        rows = scenario.build(card);
+        renderRows(card, rows, []);
+        out.removeAttribute('data-tone');
+        out.innerHTML = '';
+        detail.innerHTML = '';
+        detail.hidden = true;
+      }
+
+      runBtn.addEventListener('click', async function () {
+        if (isBusy(runBtn)) return;
+        detail.innerHTML = '';
+        detail.hidden = true;
+        setBusy(runBtn, out, true, 'Resolving on devnet…');
+        try {
+          var body = Object.assign(
+            {
+              formula: scenario.formula,
+              winners_count: scenario.winners,
+              label: 'examples-' + key + '-' + Date.now(),
+            },
+            scenario.use_case ? { use_case: scenario.use_case } : {},
+            scenario.payload(rows, card)
+          );
+          var res = await fetch(DRAW_URL, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          var json = await res.json().catch(function () { return {}; });
+          if (!res.ok || json.ok === false) throw new Error(errorMessage(res.status, json));
+          var winners = Array.isArray(json.outcome_ids) && json.outcome_ids.length
+            ? json.outcome_ids
+            : [json.outcome_id];
+          renderRows(card, rows, winners);
+          showResult(out, detail, json, winners);
+        } catch (err) {
+          showError(out, detail, err.message || 'Unable to run this draw right now. Try again in a moment.');
+        } finally {
+          setBusy(runBtn, out, false);
+        }
+      });
+
+      if (rerollBtn) rerollBtn.addEventListener('click', reset);
+      reset();
+    }
+
+    document.querySelectorAll('[data-ex]').forEach(initCard);
+
+    // ── Conditions scoring ────────────────────────────────────────────
+    // Two settled fixtures, three two-leg entries. Stat keys are the integration's own
+    // namespace; here 101/102 are goals scored by each side and 201 is total corners.
+    var CONDITIONS_BODY = {
+      fixtures: [
+        { fixture_id: 7001, stats: [{ stat_key: 101, value: 2 }, { stat_key: 102, value: 1 }, { stat_key: 201, value: 9 }] },
+        { fixture_id: 7002, stats: [{ stat_key: 101, value: 0 }, { stat_key: 102, value: 3 }, { stat_key: 201, value: 12 }] },
+      ],
+      entrants: [
+        {
+          wallet: '11'.repeat(32), tier: 0, entered_at: 1,
+          fixture_index: [0, 1],
+          legs: [
+            { term_kind: 0, stat_key_a: 101, op: 0, comparison: 0, threshold: 1, odds_milli: 1750 },
+            { term_kind: 0, stat_key_a: 201, op: 0, comparison: 0, threshold: 10, odds_milli: 1600 },
+          ],
+        },
+        {
+          wallet: '22'.repeat(32), tier: 0, entered_at: 2,
+          fixture_index: [0, 1],
+          legs: [
+            { term_kind: 0, stat_key_a: 201, op: 0, comparison: 0, threshold: 10, odds_milli: 1900 },
+            { term_kind: 0, stat_key_a: 102, op: 0, comparison: 0, threshold: 2, odds_milli: 1450 },
+          ],
+        },
+        {
+          wallet: '33'.repeat(32), tier: 0, entered_at: 3,
+          fixture_index: [0, 1],
+          legs: [
+            { term_kind: 0, stat_key_a: 102, op: 0, comparison: 0, threshold: 0, odds_milli: 1300 },
+            { term_kind: 0, stat_key_a: 201, op: 0, comparison: 0, threshold: 5, odds_milli: 1200 },
+          ],
+        },
+      ],
+    };
+
+    function shortId(value) {
+      var s = String(value || '');
+      return s.length > 14 ? s.slice(0, 6) + '…' + s.slice(-4) : s;
+    }
+
+    var conditionsCard = document.querySelector('[data-conditions]');
+    if (conditionsCard) {
+      var scoreBtn = conditionsCard.querySelector('[data-score]');
+      var rank = conditionsCard.querySelector('[data-rank]');
+      var condOut = conditionsCard.querySelector('[data-out]');
+      scoreBtn.addEventListener('click', async function () {
+        if (isBusy(scoreBtn)) return;
+        setBusy(scoreBtn, condOut, true, 'Scoring the round…');
+        try {
+          var res = await fetch(SCORE_URL, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(CONDITIONS_BODY),
+          });
+          var json = await res.json().catch(function () { return {}; });
+          if (!res.ok || json.ok === false) throw new Error(errorMessage(res.status, json));
+          rank.innerHTML = (json.ranking || []).map(function (r) {
+            return '<div class="ex-row"' + (r.all_hit ? ' data-winner' : '') + '>' +
+              '<span>#' + escHtml(r.rank) + ' ' + escHtml(shortId(r.wallet)) + '</span>' +
+              '<span class="ex-row-meta">' + escHtml(r.all_hit ? 'S = ' + r.score.toFixed(4) : 'leg missed') + '</span>' +
+              '</div>';
+          }).join('');
+          condOut.setAttribute('data-tone', 'ok');
+          condOut.innerHTML =
+            '<div>winners <b>' + escHtml(json.winners_count) + '</b> of ' + escHtml((json.ranking || []).length) + '</div>' +
+            '<div>artifact ' + escHtml(json.artifact ? json.artifact.bytes : 0) + ' bytes · sha256 ' +
+            escHtml(json.artifact ? shortId(json.artifact.hash) : '') + '</div>';
+        } catch (err) {
+          rank.innerHTML = '';
+          showError(condOut, null, err.message || 'Unable to score the round right now. Try again in a moment.');
+        } finally {
+          setBusy(scoreBtn, condOut, false);
+        }
+      });
+    }
+  })();
+  </script>
+</body>
+</html>

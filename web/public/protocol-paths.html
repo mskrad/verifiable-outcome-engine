@@ -9,36 +9,60 @@
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <style>
+    /* Token-driven so this page follows the site theme. The hard-coded
+       dark values it used before printed dark ink on light surfaces once
+       the theme switched. */
     .pp-banner {
       position: sticky; top: 0; z-index: 50;
-      background: #3a2a00; color: #ffd479;
-      border-bottom: 1px solid #6b4f00;
+      background: var(--amber-soft); color: var(--amber);
+      border-bottom: 1px solid var(--hairline-2);
+      -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
       padding: 10px 16px; font-size: 14px; text-align: center;
       font-weight: 600;
     }
     .pp-wrap { max-width: 960px; margin: 0 auto; padding: 28px 16px 80px; }
     .pp-wrap h1 { margin-top: 8px; }
-    table.pp-matrix { width: 100%; border-collapse: collapse; margin: 18px 0 28px; font-size: 14px; }
-    table.pp-matrix th, table.pp-matrix td { border: 1px solid rgba(255,255,255,0.14); padding: 8px 10px; text-align: left; vertical-align: top; }
-    table.pp-matrix th { background: rgba(255,255,255,0.05); }
+    .pp-matrix-wrap { overflow-x: auto; overscroll-behavior-x: contain; margin: 18px 0 28px; }
+    table.pp-matrix { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 14px; }
+    table.pp-matrix th, table.pp-matrix td { border: 1px solid var(--hairline-2); padding: 8px 10px; text-align: start; vertical-align: top; }
+    table.pp-matrix th { background: var(--surface-2); color: var(--text); }
     .pp-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .pp-tag.canonical { background: #0f3d24; color: #5ef0a0; }
-    .pp-tag.isolated { background: #3a2a00; color: #ffd479; }
-    .pp-tag.research { background: #2a1a3d; color: #d4a0ff; }
-    .pp-card { border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 18px; margin: 18px 0; background: rgba(255,255,255,0.02); }
+    .pp-tag.canonical { background: var(--teal-soft); color: var(--teal-text); border: 1px solid var(--teal-glow); }
+    .pp-tag.isolated { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-soft); }
+    .pp-tag.research { background: var(--violet-soft); color: var(--violet-text); border: 1px solid var(--violet-glow); }
+    .pp-card { border: 1px solid var(--hairline); border-radius: var(--r); padding: 18px; margin: 18px 0; background: var(--surface-1); }
     .pp-card h2 { margin-top: 0; }
     .pp-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
-    .pp-row label { display: flex; flex-direction: column; font-size: 12px; gap: 4px; flex: 1 1 220px; }
-    .pp-row input { padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: inherit; font-family: monospace; font-size: 12px; }
+    .pp-row label { display: flex; flex-direction: column; font-size: 12px; gap: 4px; flex: 1 1 220px; min-width: 0; color: var(--text-2); }
+    .pp-row input {
+      padding: 8px; border-radius: var(--r-xs); min-width: 0;
+      border: 1px solid var(--hairline-2); background: var(--surface-1);
+      color: var(--text); font-family: var(--font-mono); font-size: 13px;
+    }
+    .pp-row input::placeholder { color: var(--text-4); }
     .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .pp-actions button { padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: inherit; cursor: pointer; font-weight: 600; }
-    .pp-actions button:hover { background: rgba(255,255,255,0.12); }
-    pre.pp-out { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12px; max-height: 320px; }
-    .pp-note { font-size: 13px; opacity: 0.85; }
-    a.pp-default { color: #5ef0a0; font-weight: 700; }
+    .pp-actions button {
+      padding: 9px 14px; border-radius: var(--r-xs);
+      border: 1px solid var(--hairline-2); background: var(--surface-2);
+      color: var(--text); cursor: pointer; font-weight: 600;
+      font-family: inherit; font-size: 13px;
+    }
+    .pp-actions button:hover { background: var(--surface-3); border-color: var(--hairline-3); }
+    .pp-actions button:active { transform: scale(0.96); }
+    /* The response pane stays dark in both themes, so its ink is literal. */
+    pre.pp-out {
+      background: #0a0b10; color: rgba(255,255,255,0.85);
+      border: 1px solid var(--hairline-2); border-radius: var(--r-xs);
+      padding: 12px; overflow: auto; font-size: 12px; max-height: 320px;
+      font-family: var(--font-mono);
+    }
+    .pp-note { font-size: 13px; color: var(--text-2); max-width: 68ch; }
+    a.pp-default { color: var(--teal-text); font-weight: 700; }
+    @media (max-width: 720px) { .pp-row input { font-size: 16px; } }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="grain"></div>
 
   <div class="pp-banner" role="alert">
@@ -47,25 +71,37 @@
     Mainnet is a separate, later effort.
   </div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Primary">
     <div class="nav-inner">
       <a href="/" class="nav-brand" aria-label="VRE home">
-        <div class="nav-brand-mark"></div>
+        <div class="nav-brand-mark" aria-hidden="true"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
           <div class="nav-brand-caption">Verifiable Outcome Engine</div>
         </div>
       </a>
-      <ul class="nav-links">
-        <li><a href="/play"   data-nav="play">Demo</a></li>
-        <li><a href="/build"  data-nav="build">Build</a></li>
-        <li><a href="/verify" data-nav="verify">Verify</a></li>
-        <li><a href="/spec"   data-nav="spec">Spec</a></li>
-      </ul>
+
+      <button class="nav-toggle" type="button" data-nav-toggle
+              aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+      </button>
+
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li><a href="/play" data-nav="play">Demo</a></li>
+          <li><a href="/examples" data-nav="examples">Examples</a></li>
+          <li><a href="/build" data-nav="build">Build</a></li>
+          <li><a href="/verify" data-nav="verify">Verify</a></li>
+          <li><a href="/spec" data-nav="spec">Spec</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a href="mailto:hello@verifiableoutcome.online" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
     </div>
   </nav>
 
-  <main class="pp-wrap">
+  <main id="main" tabindex="-1" class="pp-wrap">
     <h1>Resolution Paths</h1>
     <p class="pp-note">
       The default path is
@@ -74,6 +110,7 @@
       <code>README.md</code> "Resolution Paths" and <code>RUNBOOK.md</code> §6b–§6c.
     </p>
 
+    <div class="pp-matrix-wrap">
     <table class="pp-matrix">
       <thead>
         <tr><th>Path</th><th>Version</th><th>Status</th><th>Program</th></tr>
@@ -105,6 +142,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
 
     <div class="pp-card">
       <h2>Sortition-by-Claim flow <span class="pp-tag canonical">canonical</span></h2>
@@ -238,5 +276,6 @@
 
     generate();
   </script>
+  <script src="/js/main.js"></script>
 </body>
 </html>

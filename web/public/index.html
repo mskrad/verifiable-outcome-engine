@@ -25,35 +25,42 @@
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="grain"></div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Primary">
     <div class="nav-inner">
       <a href="/" class="nav-brand" aria-label="VRE home">
-        <div class="nav-brand-mark"></div>
+        <div class="nav-brand-mark" aria-hidden="true"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
           <div class="nav-brand-caption">Verifiable Outcome Engine</div>
         </div>
       </a>
-      <ul class="nav-links">
-        <li><a href="/play"   data-nav="play">Demo</a></li>
-        <li><a href="/build"  data-nav="build">Build</a></li>
-        <li><a href="/verify" data-nav="verify">Verify</a></li>
-        
-        <li><a href="/widget" data-nav="widget">Widget</a></li>
-        <li><a href="/spec"   data-nav="spec">Spec</a></li>
-        <li><a href="/protocol-paths" data-nav="protocol-paths" title="Canonical resolution paths">Paths</a></li>
-      </ul>
-      <div class="nav-actions">
-        <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <a href="/build" class="nav-cta">Launch App <span aria-hidden>→</span></a>
+
+      <button class="nav-toggle" type="button" data-nav-toggle
+              aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+      </button>
+
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li><a href="/play" data-nav="play">Demo</a></li>
+          <li><a href="/examples" data-nav="examples">Examples</a></li>
+          <li><a href="/build" data-nav="build">Build</a></li>
+          <li><a href="/verify" data-nav="verify">Verify</a></li>
+          <li><a href="/widget" data-nav="widget">Widget</a></li>
+          <li><a href="/spec" data-nav="spec">Spec</a></li>
+          <li><a href="/protocol-paths" data-nav="protocol-paths" title="Canonical resolution paths">Paths</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a href="mailto:hello@verifiableoutcome.online" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
+        </div>
       </div>
     </div>
   </nav>
+
+  <main id="main" tabindex="-1">
 
   <header class="hero">
     <div class="container">
@@ -80,7 +87,7 @@
 
           <div class="ticker" aria-hidden="true">
             <span class="ticker-dot"></span>
-            <span style="color:var(--text-3);font-size:10.5px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;">Devnet · Live</span>
+            <span style="color:var(--text-3);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;">Devnet · Live</span>
             <div class="ticker-track">
               <div class="ticker-track-inner">
                 <span><b>5KJp…9vW2</b> resolved · winner 7FHkp…3GnV</span>
@@ -98,38 +105,45 @@
         </div>
 
         <div class="hero-visual">
-          <div class="flow-stage">
-            <div class="flow-grid"></div>
-            <div class="flow-track">
-              <div class="flow-node" data-state="active">
-                <div class="flow-num">1</div>
+          <figure class="flow-stage">
+            <figcaption class="flow-head">
+              <span>outcome</span>
+              <span class="flow-head-id">rt_8a1f…c4d2</span>
+              <span class="flow-head-net">devnet</span>
+            </figcaption>
+
+            <ol class="flow-track">
+              <li class="flow-node">
                 <div class="flow-label">
-                  <div class="flow-label-name">commit</div>
-                  <div class="flow-label-meta">slot 455 663 125 · rs_2e7b…9f01</div>
+                  <span class="flow-label-name">commit</span>
+                  <span class="flow-label-meta">slot 455 663 125 · rs_2e7b…9f01</span>
                 </div>
-                <div class="flow-status">locked</div>
-              </div>
-              <div class="flow-arrow"></div>
-              <div class="flow-node">
-                <div class="flow-num">2</div>
+                <span class="flow-status">locked</span>
+              </li>
+              <li class="flow-node">
                 <div class="flow-label">
-                  <div class="flow-label-name">resolve</div>
-                  <div class="flow-label-meta">slot 455 693 113 · winner 7FHkp…3GnV</div>
+                  <span class="flow-label-name">resolve</span>
+                  <span class="flow-label-meta">slot 455 693 113 · winner 7FHkp…3GnV</span>
                 </div>
-                <div class="flow-status">drawn</div>
-              </div>
-              <div class="flow-arrow"></div>
-              <div class="flow-node">
-                <div class="flow-num">3</div>
+                <span class="flow-status">drawn</span>
+              </li>
+              <li class="flow-node" data-state="last">
                 <div class="flow-label">
-                  <div class="flow-label-name">replay</div>
-                  <div class="flow-label-meta">5KJp…9vW2 · 248 ms</div>
+                  <span class="flow-label-name">replay</span>
+                  <span class="flow-label-meta">5KJp…9vW2 · 248 ms</span>
                 </div>
-                <div class="flow-status">match · ok</div>
+                <span class="flow-status">rerun</span>
+              </li>
+            </ol>
+
+            <div class="flow-verdict">
+              <svg class="flow-verdict-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              <div>
+                <div class="flow-verdict-title">match</div>
+                <div class="flow-verdict-meta">recomputed from public RPC data — same winner, byte for byte</div>
               </div>
             </div>
-            <div class="flow-mascot">VRE</div>
-          </div>
+          </figure>
         </div>
       </div>
 
@@ -189,6 +203,7 @@
         <span class="eyebrow"><span class="dot"></span> Use cases</span>
         <h2>Same engine. Four live proofs.</h2>
         <p>Every example below is a real transaction on Solana devnet. Click any signature to verify it yourself.</p>
+        <p class="mt-4"><a href="/examples" class="text-teal">See all examples →</a></p>
       </div>
 
       <div class="feature-grid">
@@ -274,6 +289,7 @@
       </div>
     </div>
   </section>
+  </main>
 
   <footer>
     <div class="container">
@@ -284,6 +300,7 @@
         </div>
         <ul class="footer-links">
           <li><a href="/play">Demo</a></li>
+          <li><a href="/examples">Examples</a></li>
           <li><a href="/build">Build</a></li>
           <li><a href="/verify">Verify</a></li>
           <li><a href="/spec">Spec</a></li>

@@ -35,6 +35,8 @@ const CORS_API_PATHS = new Set([
   "/api/resolutions",
   "/api/participant",
   "/api/partner/draw",
+  // public /examples page — keyless demo draws, rate limited per IP
+  "/api/examples/draw",
   "/api/partner/snapshot/init",
   "/api/partner/snapshot/chunk",
   "/api/partner/snapshot/finalize",
@@ -83,8 +85,14 @@ const LIVE_RAFFLE_PRESETS = [
 
 const liveRaffleRateLimit = new Map();
 const partnerDrawRateLimit = new Map(); // partnerKey → blockedUntil ms
+const examplesDrawRateLimit = new Map(); // ip → blockedUntil ms
 const apiRateLimit = new Map();
 const PARTNER_DRAW_RATE_LIMIT_MS = 10_000;
+// /examples runs every visitor through one shared demo key, so the throttle has
+// to be per-IP — a per-key limit would let one clicker lock out the whole page.
+const EXAMPLES_DRAW_RATE_LIMIT_MS = Number(
+  process.env.EXAMPLES_DRAW_RATE_LIMIT_MS || 15_000
+);
 const PARTNER_SNAPSHOT_JSON_BODY_LIMIT_BYTES = Number(
   process.env.PARTNER_SNAPSHOT_JSON_BODY_LIMIT_BYTES || 2_000_000
 );
@@ -195,7 +203,20 @@ function readJsonBody(req, limitBytes = JSON_BODY_LIMIT_BYTES) {
   });
 }
 
+// Permanent moves of public pages. /showcase was the pre-design-system demo page;
+// its live scenarios now live on /examples.
+const STATIC_REDIRECTS = new Map([
+  ["/showcase", "/examples"],
+  ["/showcase.html", "/examples"],
+]);
+
 function sendStatic(req, res, pathname) {
+  const redirectTo = STATIC_REDIRECTS.get(pathname);
+  if (redirectTo) {
+    res.writeHead(301, { location: redirectTo });
+    res.end();
+    return;
+  }
   const localPath = pathname === "/" ? "/index.html"
     : (!path.extname(pathname) && fs.existsSync(path.join(STATIC_DIR, pathname.replace(/^\/+/, "") + ".html")))
       ? pathname + ".html"
@@ -1265,6 +1286,20 @@ function checkLiveRaffleRateLimit(req) {
   return { ok: true, retryAfterMs: 0 };
 }
 
+function checkExamplesDrawRateLimit(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  for (const [key, until] of examplesDrawRateLimit) {
+    if (until <= now) examplesDrawRateLimit.delete(key);
+  }
+  const blockedUntil = examplesDrawRateLimit.get(ip) || 0;
+  if (blockedUntil > now) {
+    return { ok: false, retryAfterMs: blockedUntil - now };
+  }
+  examplesDrawRateLimit.set(ip, now + EXAMPLES_DRAW_RATE_LIMIT_MS);
+  return { ok: true, retryAfterMs: 0 };
+}
+
 function checkPartnerDrawRateLimit(partnerKey) {
   const now = Date.now();
   for (const [key, until] of partnerDrawRateLimit) {
@@ -2119,8 +2154,19 @@ async function handleLiveRaffle(req, res) {
   }
 }
 
-async function handlePartnerDraw(req, res) {
-  const partner = requirePartnerApiKey(req, "/api/partner/draw");
+// opts.demoKey — server-side partner key used by the keyless /api/examples/draw route.
+// When set, the request carries no x-api-key and the per-partner draw rate limit is skipped:
+// the demo partner is shared by every visitor, so /examples throttles per IP instead.
+async function handlePartnerDraw(req, res, opts = {}) {
+  const demoKey = String(opts.demoKey || "").trim();
+  let partner;
+  if (demoKey) {
+    if (!partnerConfig?.configured) throw httpError(503, "Partner API not configured");
+    partner = partnerConfig.partnersByKey.get(demoKey);
+    if (!partner) throw httpError(503, "demo draws are not configured");
+  } else {
+    partner = requirePartnerApiKey(req, "/api/partner/draw");
+  }
   if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
 
   const body = await readJsonBody(req);
@@ -2218,10 +2264,12 @@ async function handlePartnerDraw(req, res) {
     return;
   }
 
-  const rateCheck = checkPartnerDrawRateLimit(partner.key);
-  if (!rateCheck.ok) {
-    json(res, 429, { ok: false, error: "rate limit exceeded; retry in 60s", retry_after_ms: rateCheck.retryAfterMs });
-    return;
+  if (!demoKey) {
+    const rateCheck = checkPartnerDrawRateLimit(partner.key);
+    if (!rateCheck.ok) {
+      json(res, 429, { ok: false, error: "rate limit exceeded; retry in 60s", retry_after_ms: rateCheck.retryAfterMs });
+      return;
+    }
   }
 
   const config = buildPartnerDrawConfig(participants, winnersCount, formula, target);
@@ -3032,6 +3080,27 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/partner/draw") {
       await handlePartnerDraw(req, res);
+      return;
+    }
+
+    // Keyless demo draws for the public /examples page. The partner key stays server-side
+    // and every visitor shares one demo partner, so the throttle is per IP.
+    if (req.method === "POST" && pathname === "/api/examples/draw") {
+      const rate = checkExamplesDrawRateLimit(req);
+      if (!rate.ok) {
+        json(res, 429, {
+          ok: false,
+          error: "one demo draw per 15s from this IP",
+          retry_after_ms: rate.retryAfterMs,
+        });
+        return;
+      }
+      const demoKey = String(process.env.EXAMPLES_DEMO_API_KEY || "").trim();
+      if (!demoKey) {
+        json(res, 503, { ok: false, error: "demo draws are not configured" });
+        return;
+      }
+      await handlePartnerDraw(req, res, { demoKey });
       return;
     }
 

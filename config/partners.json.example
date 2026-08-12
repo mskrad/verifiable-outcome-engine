@@ -5,5 +5,12 @@
     "tier": 1,
     "created": "2026-04-28",
     "draw_enabled": false
+  },
+  {
+    "key": "vresk_replace_with_a_random_demo_key",
+    "name": "VRE Public Demo",
+    "tier": 0,
+    "created": "2026-08-11",
+    "draw_enabled": true
   }
 ]

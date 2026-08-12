@@ -99,6 +99,19 @@
           .ok { color: #14f195; }
           .bad { color: #f14d4d; }
           .load { color: #e8eaf0; }
+          /* Host pages that declare a light theme (our own site does) get a light box —
+             a black rectangle inside a white card reads as a broken embed. Keyed on the
+             host's explicit attribute, not the OS preference, so a third-party dark page
+             on a light-mode machine keeps the dark default. */
+          :host-context([data-theme="light"]) .box {
+            background: #ffffff;
+            color: #0c0e16;
+            border-color: rgba(20, 22, 35, 0.14);
+          }
+          :host-context([data-theme="light"]) .meta { color: #5f6577; }
+          :host-context([data-theme="light"]) .ok   { color: #016c43; }
+          :host-context([data-theme="light"]) .bad  { color: #b91c1c; }
+          :host-context([data-theme="light"]) .load { color: #0c0e16; }
         </style>
         <div class="box" role="status" aria-live="polite">
           <div class="top ${tone}" id="title"></div>

@@ -22,34 +22,41 @@
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div class="grain"></div>
 
-  <nav class="nav">
+  <nav class="nav" aria-label="Primary">
     <div class="nav-inner">
       <a href="/" class="nav-brand" aria-label="VRE home">
-        <div class="nav-brand-mark"></div>
+        <div class="nav-brand-mark" aria-hidden="true"></div>
         <div>
           <div class="nav-brand-wordmark">VRE</div>
           <div class="nav-brand-caption">Verifiable Outcome Engine</div>
         </div>
       </a>
-      <ul class="nav-links">
-        <li><a href="/play"   data-nav="play">Demo</a></li>
-        <li><a href="/build"  data-nav="build">Build</a></li>
-        <li><a href="/verify" data-nav="verify">Verify</a></li>
-        
-        <li><a href="/widget" data-nav="widget">Widget</a></li>
-        <li><a href="/spec"   data-nav="spec">Spec</a></li>
-      </ul>
-      <div class="nav-actions">
-        <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
-        <a href="/build" class="nav-cta">Launch App <span aria-hidden>→</span></a>
+
+      <button class="nav-toggle" type="button" data-nav-toggle
+              aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">
+        <span class="nav-toggle-bars" aria-hidden="true"></span>
+      </button>
+
+      <div class="nav-menu" id="nav-menu">
+        <ul class="nav-links">
+          <li><a href="/play" data-nav="play">Demo</a></li>
+          <li><a href="/examples" data-nav="examples">Examples</a></li>
+          <li><a href="/build" data-nav="build">Build</a></li>
+          <li><a href="/verify" data-nav="verify">Verify</a></li>
+          <li><a href="/widget" data-nav="widget">Widget</a></li>
+          <li><a href="/spec" data-nav="spec">Spec</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a href="mailto:hello@verifiableoutcome.online" class="nav-cta">Get an API key <span aria-hidden="true">→</span></a>
+        </div>
       </div>
     </div>
   </nav>
+
+  <main id="main" tabindex="-1">
 
   <header class="page-head">
     <div class="container-narrow">
@@ -156,6 +163,7 @@
 
     </div>
   </section>
+  </main>
 
   <footer>
     <div class="container">
@@ -166,6 +174,7 @@
         </div>
         <ul class="footer-links">
           <li><a href="/play">Demo</a></li>
+          <li><a href="/examples">Examples</a></li>
           <li><a href="/build">Build</a></li>
           <li><a href="/verify">Verify</a></li>
           <li><a href="/spec">Spec</a></li>
