@@ -7,14 +7,6 @@
   <meta name="description" content="Every resolution path on the canonical devnet program, its status, and a console for the sortition-by-claim flow." />
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <style>
-    /* Console-only additions. Everything else uses the shared system components. */
-    .pp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 16px; }
-    .pp-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
-    .pp-out { margin-top: 20px; max-height: 340px; overflow: auto; white-space: pre-wrap; }
-    /* 16px keeps iOS from zooming the page when a field takes focus. */
-    @media (max-width: 720px) { .form-input { font-size: 16px; } }
-  </style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -119,57 +111,16 @@
     </div>
   </section>
 
-  <!-- Sortition console -->
+  <!-- Console lives on /examples, where everything runnable is collected -->
   <section>
     <div class="container container-narrow">
-      <div class="section-heading">
+      <div class="card center" style="padding: 34px;">
         <span class="eyebrow"><span class="dot pulse"></span> Console</span>
-        <h2>Sortition by claim, step by step.</h2>
-        <p>Four calls against the canonical program: create the draw, register a ticket commitment, seal the draw against slot hashes that do not exist yet, then claim. No key needed — this console goes through the same public demo endpoint as the examples page, and the operator wallet signs server-side.</p>
-      </div>
-
-      <div class="card">
-        <div class="form-row pp-grid">
-          <div>
-            <label class="form-label" for="pp-draw">Draw id <span class="hint">16-byte hex</span></label>
-            <input class="form-input" id="pp-draw" type="text" spellcheck="false" />
-          </div>
-          <div>
-            <label class="form-label" for="pp-ticket">Ticket id <span class="hint">16-byte hex</span></label>
-            <input class="form-input" id="pp-ticket" type="text" spellcheck="false" />
-          </div>
-          <div>
-            <label class="form-label" for="pp-secret">Secret <span class="hint">32-byte hex</span></label>
-            <input class="form-input" id="pp-secret" type="text" spellcheck="false" />
-          </div>
-          <div>
-            <label class="form-label" for="pp-threshold">Threshold <span class="hint">32-byte hex</span></label>
-            <input class="form-input" id="pp-threshold" type="text" spellcheck="false" />
-          </div>
-          <div>
-            <label class="form-label" for="pp-commitment">Commitment <span class="hint">derived</span></label>
-            <input class="form-input" id="pp-commitment" type="text" readonly aria-describedby="pp-commitment-note" />
-          </div>
-        </div>
-        <p id="pp-commitment-note" class="text-faint" style="font-size:12.5px;margin-top:-6px;">
-          Derived in your browser as <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> — the same preimage the program recomputes when the ticket is claimed. The secret never leaves this page until step 4. The threshold is set to half the 256-bit space, so a ticket wins about half the time.
+        <h3 style="margin: 14px 0 10px;">Run the sortition flow</h3>
+        <p class="text-faint" style="max-width: 56ch; margin: 0 auto 20px;">
+          Four calls against this program — create the draw, register a ticket commitment, seal against slot hashes that do not exist yet, then claim. No key needed. It sits with the rest of the runnable examples.
         </p>
-
-        <div class="pp-actions">
-          <button class="btn btn-secondary btn-sm" type="button" id="pp-gen">Generate fixtures</button>
-          <button class="btn btn-primary btn-sm" type="button" id="pp-create">1 · Create draw</button>
-          <button class="btn btn-primary btn-sm" type="button" id="pp-register">2 · Register ticket</button>
-          <button class="btn btn-primary btn-sm" type="button" id="pp-seal">3 · Seal draw</button>
-          <button class="btn btn-primary btn-sm" type="button" id="pp-claim">4 · Claim ticket</button>
-        </div>
-
-        <p id="pp-wait" class="text-faint" style="font-size:12.5px;margin-top:14px;" hidden></p>
-
-        <pre class="raw-json pp-out" id="pp-out" role="status" aria-live="polite">Responses appear here.</pre>
-
-        <p class="text-faint" style="font-size:12.5px;margin-top:18px;">
-          Sealing cannot be rushed: the draw commits to three slots roughly 40 seconds ahead, and the program refuses to seal until those slot hashes exist. That wait is the guarantee — at registration time nobody, operator included, can know the seed.
-        </p>
+        <a href="/examples#sortition" class="btn btn-primary">Open the console <span aria-hidden="true">→</span></a>
       </div>
     </div>
   </section>
@@ -197,193 +148,5 @@
   </footer>
 
   <script src="/js/main.js"></script>
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const out = $("pp-out");
-
-    function show(obj) {
-      out.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-    }
-
-    // A program error is not always a failure. A ticket whose predicate misses the threshold
-    // is the losing half of a fair draw, and the console should say so rather than present
-    // a 500 as if the call broke.
-    const VERDICTS = [
-      ["SortitionPredicateNotMet", "This ticket did not win — sha256(secret ‖ Ω) did not sort below the threshold. That is the losing half of the draw, not a failed call. Generate fresh fixtures to run another one."],
-      ["SortitionRegistrationClosed", "Registration for this draw already closed. Generate fresh fixtures and register within the countdown."],
-      ["SortitionClaimWindowClosed", "The claim window for this draw has passed. Generate fresh fixtures and run the four steps again."],
-      ["InvalidSortitionStatus", "The draw is not sealed yet — run step 3 before claiming."],
-      ["SortitionAlreadyClaimed", "This ticket was already claimed once."],
-    ];
-
-    function readVerdict(data) {
-      const text = typeof data?.error === "string" ? data.error : "";
-      const hit = VERDICTS.find(([code]) => text.includes(code));
-      return hit ? hit[1] : null;
-    }
-
-    function randHex(bytes) {
-      const a = new Uint8Array(bytes);
-      crypto.getRandomValues(a);
-      return [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    async function sha256Hex(...hexParts) {
-      const total = hexParts.reduce((n, h) => n + h.length / 2, 0);
-      const buf = new Uint8Array(total);
-      let off = 0;
-      for (const h of hexParts) {
-        for (let i = 0; i < h.length; i += 2) buf[off++] = parseInt(h.slice(i, i + 2), 16);
-      }
-      const digest = await crypto.subtle.digest("SHA-256", buf);
-      return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    async function refreshCommitment() {
-      const secret = $("pp-secret").value.trim();
-      const ticket = $("pp-ticket").value.trim();
-      const draw = $("pp-draw").value.trim();
-      if (secret.length === 64 && ticket.length === 32 && draw.length === 32) {
-        $("pp-commitment").value = await sha256Hex(secret, ticket, draw);
-      }
-    }
-
-    async function generate() {
-      $("pp-draw").value = randHex(16);
-      $("pp-ticket").value = randHex(16);
-      $("pp-secret").value = randHex(32);
-      // Half the 256-bit space, big-endian: a claim wins when sha256(secret ‖ Ω) sorts
-      // below this. 0x80·00… is exactly a coin flip, which makes the demo land on both
-      // outcomes often enough to show what each one looks like.
-      $("pp-threshold").value = "80" + "00".repeat(31);
-      await refreshCommitment();
-    }
-
-    async function post(path, body) {
-      show("Requesting " + path + " …");
-      try {
-        const res = await fetch(path, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json().catch(() => ({ ok: false, error: "non-JSON response" }));
-        const verdict = res.status === 404
-          ? "This deployment does not expose the demo endpoints yet — the server is running an older build."
-          : readVerdict(data);
-        show(verdict ? { status: res.status, result: verdict, ...data } : { status: res.status, ...data });
-        return data;
-      } catch (err) {
-        show({ ok: false, error: String(err) });
-        return null;
-      }
-    }
-
-    // The draw has two clocks, both enforced on-chain and neither of them skippable:
-    //   • registration closes at created_slot + REGISTRATION_SLOTS;
-    //   • sealing needs the third committed slot, created_slot + 105, to exist.
-    // At ~400ms per slot that is roughly 36s and 42s. Drive both from the buttons so a
-    // mistimed click never turns into SortitionRegistrationClosed or a failed seal.
-    // create_sortition_draw requires registration_duration_slots < RNG_V2_TARGET_OFFSETS[0]
-    // (75), so the window can never reach the first committed slot. 70 is the practical
-    // maximum: about 28s of registration before the 42s seal point.
-    const REGISTRATION_SLOTS = 70;
-    // claim_deadline = target_slots[2] + claim_duration_slots. The 120-slot default leaves
-    // barely 48s to claim after sealing becomes possible; 1200 slots (~8 min) is a window a
-    // person can actually use without changing anything the program enforces.
-    const CLAIM_SLOTS = 1200;
-    const SLOT_MS = 400;
-    const REGISTER_UNTIL_MS = REGISTRATION_SLOTS * SLOT_MS - 4000;
-    const SEAL_AFTER_MS = 105 * SLOT_MS + 5000;
-
-    const registerBtn = $("pp-register");
-    const sealBtn = $("pp-seal");
-    const registerIdle = registerBtn.innerHTML;
-    const sealIdle = sealBtn.innerHTML;
-    const waitNote = $("pp-wait");
-    let phaseTimer;
-
-    function startPhases(startedAt) {
-      clearInterval(phaseTimer);
-      waitNote.hidden = false;
-      const tick = () => {
-        const elapsed = performance.now() - startedAt;
-        const registerLeft = Math.max(0, Math.ceil((REGISTER_UNTIL_MS - elapsed) / 1000));
-        const sealLeft = Math.max(0, Math.ceil((SEAL_AFTER_MS - elapsed) / 1000));
-
-        if (registerLeft > 0) {
-          registerBtn.removeAttribute("aria-disabled");
-          registerBtn.innerHTML = "2 · Register ticket (" + registerLeft + "s)";
-        } else {
-          registerBtn.setAttribute("aria-disabled", "true");
-          registerBtn.innerHTML = "2 · Register ticket (closed)";
-        }
-
-        if (sealLeft > 0) {
-          sealBtn.setAttribute("aria-disabled", "true");
-          sealBtn.innerHTML = "3 · Seal draw (" + sealLeft + "s)";
-        } else {
-          sealBtn.removeAttribute("aria-disabled");
-          sealBtn.innerHTML = sealIdle;
-        }
-
-        waitNote.textContent = registerLeft > 0
-          ? "Registration is open for " + registerLeft + "s more; the draw can be sealed in " + sealLeft + "s."
-          : sealLeft > 0
-            ? "Registration is closed. The committed slot hashes exist in " + sealLeft + "s."
-            : "The committed slots have passed — seal the draw, then claim the ticket (about 8 minutes to do it).";
-
-        if (registerLeft === 0 && sealLeft === 0) clearInterval(phaseTimer);
-      };
-      tick();
-      phaseTimer = setInterval(tick, 1000);
-    }
-
-    function resetPhases() {
-      clearInterval(phaseTimer);
-      waitNote.hidden = true;
-      registerBtn.removeAttribute("aria-disabled");
-      registerBtn.innerHTML = registerIdle;
-      sealBtn.removeAttribute("aria-disabled");
-      sealBtn.innerHTML = sealIdle;
-    }
-
-    $("pp-gen").onclick = async () => { resetPhases(); await generate(); };
-    for (const id of ["pp-secret", "pp-ticket", "pp-draw"]) $(id).oninput = refreshCommitment;
-
-    $("pp-create").onclick = async () => {
-      const startedAt = performance.now();
-      const data = await post("/api/examples/sortition/draw", {
-        draw_id: $("pp-draw").value.trim(),
-        threshold: $("pp-threshold").value.trim(),
-        registration_duration_slots: REGISTRATION_SLOTS,
-        claim_duration_slots: CLAIM_SLOTS,
-      });
-      if (data && data.ok) startPhases(startedAt);
-      return data;
-    };
-    registerBtn.onclick = async () => {
-      if (registerBtn.getAttribute("aria-disabled") === "true") return;
-      await refreshCommitment();
-      return post("/api/examples/sortition/register", {
-        draw_id: $("pp-draw").value.trim(),
-        ticket_id: $("pp-ticket").value.trim(),
-        commitment: $("pp-commitment").value.trim(),
-      });
-    };
-    sealBtn.onclick = () => {
-      if (sealBtn.getAttribute("aria-disabled") === "true") return;
-      return post("/api/examples/sortition/seal", {
-        draw_id: $("pp-draw").value.trim(),
-      });
-    };
-    $("pp-claim").onclick = () => post("/api/examples/sortition/claim", {
-      draw_id: $("pp-draw").value.trim(),
-      ticket_id: $("pp-ticket").value.trim(),
-      secret: $("pp-secret").value.trim(),
-    });
-
-    generate();
-  </script>
 </body>
 </html>

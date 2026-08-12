@@ -64,6 +64,12 @@
 
     .ex-rank { display: grid; gap: 3px; margin-top: 18px; }
 
+    /* Sortition console */
+    .sx-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 16px; }
+    .sx-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    .sx-out { margin-top: 20px; max-height: 340px; overflow: auto; white-space: pre-wrap; }
+    @media (max-width: 720px) { .sx-grid .form-input { font-size: 16px; } }
+
     /* Heading that keeps the document outline complete without adding visual weight. */
     .ex-sr {
       position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -294,22 +300,71 @@
     </div>
   </section>
 
+  <!-- Sortition console -->
+  <section id="sortition" style="scroll-margin-top: 96px;">
+    <div class="container container-narrow">
+      <div class="section-heading">
+        <span class="eyebrow"><span class="dot pulse"></span> Console</span>
+        <h2>Sortition by claim, step by step.</h2>
+        <p>Four calls against the canonical program: create the draw, register a ticket commitment, seal the draw against slot hashes that do not exist yet, then claim. No key needed — this console goes through the same public demo endpoint as the examples page, and the operator wallet signs server-side.</p>
+      </div>
+
+      <div class="card">
+        <div class="form-row sx-grid">
+          <div>
+            <label class="form-label" for="sx-draw">Draw id <span class="hint">16-byte hex</span></label>
+            <input class="form-input" id="sx-draw" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="sx-ticket">Ticket id <span class="hint">16-byte hex</span></label>
+            <input class="form-input" id="sx-ticket" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="sx-secret">Secret <span class="hint">32-byte hex</span></label>
+            <input class="form-input" id="sx-secret" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="sx-threshold">Threshold <span class="hint">32-byte hex</span></label>
+            <input class="form-input" id="sx-threshold" type="text" spellcheck="false" />
+          </div>
+          <div>
+            <label class="form-label" for="sx-commitment">Commitment <span class="hint">derived</span></label>
+            <input class="form-input" id="sx-commitment" type="text" readonly aria-describedby="sx-commitment-note" />
+          </div>
+        </div>
+        <p id="sx-commitment-note" class="text-faint" style="font-size:12.5px;margin-top:-6px;">
+          Derived in your browser as <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> — the same preimage the program recomputes when the ticket is claimed. The secret never leaves this page until step 4. The threshold is set to half the 256-bit space, so a ticket wins about half the time.
+        </p>
+
+        <div class="sx-actions">
+          <button class="btn btn-secondary btn-sm" type="button" id="sx-gen">Generate fixtures</button>
+          <button class="btn btn-primary btn-sm" type="button" id="sx-create">1 · Create draw</button>
+          <button class="btn btn-primary btn-sm" type="button" id="sx-register">2 · Register ticket</button>
+          <button class="btn btn-primary btn-sm" type="button" id="sx-seal">3 · Seal draw</button>
+          <button class="btn btn-primary btn-sm" type="button" id="sx-claim">4 · Claim ticket</button>
+        </div>
+
+        <p id="sx-wait" class="text-faint" style="font-size:12.5px;margin-top:14px;" hidden></p>
+
+        <pre class="raw-json sx-out" id="sx-out" role="status" aria-live="polite">Responses appear here.</pre>
+
+        <p class="text-faint" style="font-size:12.5px;margin-top:18px;">
+          Sealing cannot be rushed: the draw commits to three slots roughly 40 seconds ahead, and the program refuses to seal until those slot hashes exist. That wait is the guarantee — at registration time nobody, operator included, can know the seed.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- Roadmap -->
   <section style="padding-top: 0;">
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> More paths</span>
         <h2>Beyond a single call.</h2>
-        <p>Every card above resolves in one request. These take several, so this page does not drive them yet: two are built and running on the same program, one is still on paper.</p>
+        <p>The cards above resolve in one request and the console right above this takes four. What is left is one direction that is still on paper, and one entropy source you can select per draw.</p>
       </div>
 
       <div class="feature-grid feature-grid-compact">
-        <div class="feature-card">
-          <span class="badge badge-match ex-chip">on devnet</span>
-          <h3>Sortition by claim</h3>
-          <p>Tickets are committed, the draw is sealed against a slot hash that does not exist yet, and each winner claims their own ticket. Nobody — the operator included — can choose a winner after the fact.</p>
-          <p class="mt-4"><a href="/protocol-paths" class="text-teal">Run the sortition flow →</a></p>
-        </div>
         <div class="feature-card">
           <span class="badge badge-pending ex-chip">implemented · opt-in</span>
           <h3>Unicorn-G entropy</h3>
@@ -709,6 +764,197 @@
         }
       });
     }
+  })();
+  </script>
+  <script>
+  (function () {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const out = $("sx-out");
+
+    function show(obj) {
+      out.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+    }
+
+    // A program error is not always a failure. A ticket whose predicate misses the threshold
+    // is the losing half of a fair draw, and the console should say so rather than present
+    // a 500 as if the call broke.
+    const VERDICTS = [
+      ["SortitionPredicateNotMet", "This ticket did not win — sha256(secret ‖ Ω) did not sort below the threshold. That is the losing half of the draw, not a failed call. Generate fresh fixtures to run another one."],
+      ["SortitionRegistrationClosed", "Registration for this draw already closed. Generate fresh fixtures and register within the countdown."],
+      ["SortitionClaimWindowClosed", "The claim window for this draw has passed. Generate fresh fixtures and run the four steps again."],
+      ["InvalidSortitionStatus", "The draw is not sealed yet — run step 3 before claiming."],
+      ["SortitionAlreadyClaimed", "This ticket was already claimed once."],
+    ];
+
+    function readVerdict(data) {
+      const text = typeof data?.error === "string" ? data.error : "";
+      const hit = VERDICTS.find(([code]) => text.includes(code));
+      return hit ? hit[1] : null;
+    }
+
+    function randHex(bytes) {
+      const a = new Uint8Array(bytes);
+      crypto.getRandomValues(a);
+      return [...a].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function sha256Hex(...hexParts) {
+      const total = hexParts.reduce((n, h) => n + h.length / 2, 0);
+      const buf = new Uint8Array(total);
+      let off = 0;
+      for (const h of hexParts) {
+        for (let i = 0; i < h.length; i += 2) buf[off++] = parseInt(h.slice(i, i + 2), 16);
+      }
+      const digest = await crypto.subtle.digest("SHA-256", buf);
+      return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function refreshCommitment() {
+      const secret = $("sx-secret").value.trim();
+      const ticket = $("sx-ticket").value.trim();
+      const draw = $("sx-draw").value.trim();
+      if (secret.length === 64 && ticket.length === 32 && draw.length === 32) {
+        $("sx-commitment").value = await sha256Hex(secret, ticket, draw);
+      }
+    }
+
+    async function generate() {
+      $("sx-draw").value = randHex(16);
+      $("sx-ticket").value = randHex(16);
+      $("sx-secret").value = randHex(32);
+      // Half the 256-bit space, big-endian: a claim wins when sha256(secret ‖ Ω) sorts
+      // below this. 0x80·00… is exactly a coin flip, which makes the demo land on both
+      // outcomes often enough to show what each one looks like.
+      $("sx-threshold").value = "80" + "00".repeat(31);
+      await refreshCommitment();
+    }
+
+    async function post(path, body) {
+      show("Requesting " + path + " …");
+      try {
+        const res = await fetch(path, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({ ok: false, error: "non-JSON response" }));
+        const verdict = res.status === 404
+          ? "This deployment does not expose the demo endpoints yet — the server is running an older build."
+          : readVerdict(data);
+        show(verdict ? { status: res.status, result: verdict, ...data } : { status: res.status, ...data });
+        return data;
+      } catch (err) {
+        show({ ok: false, error: String(err) });
+        return null;
+      }
+    }
+
+    // The draw has two clocks, both enforced on-chain and neither of them skippable:
+    //   • registration closes at created_slot + REGISTRATION_SLOTS;
+    //   • sealing needs the third committed slot, created_slot + 105, to exist.
+    // At ~400ms per slot that is roughly 36s and 42s. Drive both from the buttons so a
+    // mistimed click never turns into SortitionRegistrationClosed or a failed seal.
+    // create_sortition_draw requires registration_duration_slots < RNG_V2_TARGET_OFFSETS[0]
+    // (75), so the window can never reach the first committed slot. 70 is the practical
+    // maximum: about 28s of registration before the 42s seal point.
+    const REGISTRATION_SLOTS = 70;
+    // claim_deadline = target_slots[2] + claim_duration_slots. The 120-slot default leaves
+    // barely 48s to claim after sealing becomes possible; 1200 slots (~8 min) is a window a
+    // person can actually use without changing anything the program enforces.
+    const CLAIM_SLOTS = 1200;
+    const SLOT_MS = 400;
+    const REGISTER_UNTIL_MS = REGISTRATION_SLOTS * SLOT_MS - 4000;
+    const SEAL_AFTER_MS = 105 * SLOT_MS + 5000;
+
+    const registerBtn = $("sx-register");
+    const sealBtn = $("sx-seal");
+    const registerIdle = registerBtn.innerHTML;
+    const sealIdle = sealBtn.innerHTML;
+    const waitNote = $("sx-wait");
+    let phaseTimer;
+
+    function startPhases(startedAt) {
+      clearInterval(phaseTimer);
+      waitNote.hidden = false;
+      const tick = () => {
+        const elapsed = performance.now() - startedAt;
+        const registerLeft = Math.max(0, Math.ceil((REGISTER_UNTIL_MS - elapsed) / 1000));
+        const sealLeft = Math.max(0, Math.ceil((SEAL_AFTER_MS - elapsed) / 1000));
+
+        if (registerLeft > 0) {
+          registerBtn.removeAttribute("aria-disabled");
+          registerBtn.innerHTML = "2 · Register ticket (" + registerLeft + "s)";
+        } else {
+          registerBtn.setAttribute("aria-disabled", "true");
+          registerBtn.innerHTML = "2 · Register ticket (closed)";
+        }
+
+        if (sealLeft > 0) {
+          sealBtn.setAttribute("aria-disabled", "true");
+          sealBtn.innerHTML = "3 · Seal draw (" + sealLeft + "s)";
+        } else {
+          sealBtn.removeAttribute("aria-disabled");
+          sealBtn.innerHTML = sealIdle;
+        }
+
+        waitNote.textContent = registerLeft > 0
+          ? "Registration is open for " + registerLeft + "s more; the draw can be sealed in " + sealLeft + "s."
+          : sealLeft > 0
+            ? "Registration is closed. The committed slot hashes exist in " + sealLeft + "s."
+            : "The committed slots have passed — seal the draw, then claim the ticket (about 8 minutes to do it).";
+
+        if (registerLeft === 0 && sealLeft === 0) clearInterval(phaseTimer);
+      };
+      tick();
+      phaseTimer = setInterval(tick, 1000);
+    }
+
+    function resetPhases() {
+      clearInterval(phaseTimer);
+      waitNote.hidden = true;
+      registerBtn.removeAttribute("aria-disabled");
+      registerBtn.innerHTML = registerIdle;
+      sealBtn.removeAttribute("aria-disabled");
+      sealBtn.innerHTML = sealIdle;
+    }
+
+    $("sx-gen").onclick = async () => { resetPhases(); await generate(); };
+    for (const id of ["sx-secret", "sx-ticket", "sx-draw"]) $(id).oninput = refreshCommitment;
+
+    $("sx-create").onclick = async () => {
+      const startedAt = performance.now();
+      const data = await post("/api/examples/sortition/draw", {
+        draw_id: $("sx-draw").value.trim(),
+        threshold: $("sx-threshold").value.trim(),
+        registration_duration_slots: REGISTRATION_SLOTS,
+        claim_duration_slots: CLAIM_SLOTS,
+      });
+      if (data && data.ok) startPhases(startedAt);
+      return data;
+    };
+    registerBtn.onclick = async () => {
+      if (registerBtn.getAttribute("aria-disabled") === "true") return;
+      await refreshCommitment();
+      return post("/api/examples/sortition/register", {
+        draw_id: $("sx-draw").value.trim(),
+        ticket_id: $("sx-ticket").value.trim(),
+        commitment: $("sx-commitment").value.trim(),
+      });
+    };
+    sealBtn.onclick = () => {
+      if (sealBtn.getAttribute("aria-disabled") === "true") return;
+      return post("/api/examples/sortition/seal", {
+        draw_id: $("sx-draw").value.trim(),
+      });
+    };
+    $("sx-claim").onclick = () => post("/api/examples/sortition/claim", {
+      draw_id: $("sx-draw").value.trim(),
+      ticket_id: $("sx-ticket").value.trim(),
+      secret: $("sx-secret").value.trim(),
+    });
+
+    generate();
   })();
   </script>
 </body>
