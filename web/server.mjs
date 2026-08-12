@@ -209,9 +209,12 @@ function readJsonBody(req, limitBytes = JSON_BODY_LIMIT_BYTES) {
 
 // Permanent moves of public pages. /showcase was the pre-design-system demo page;
 // its live scenarios now live on /examples.
+// Browsers ask for /favicon.ico regardless of the <link rel="icon"> in the pages,
+// so point it at the icon we do ship instead of logging a 404 on every visit.
 const STATIC_REDIRECTS = new Map([
   ["/showcase", "/examples"],
   ["/showcase.html", "/examples"],
+  ["/favicon.ico", "/assets/favicon.svg"],
 ]);
 
 function sendStatic(req, res, pathname) {

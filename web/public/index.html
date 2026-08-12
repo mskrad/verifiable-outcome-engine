@@ -246,19 +246,18 @@
         </div>
         <div class="terminal-body"><span class="comment"># 1. Lock the ruleset on-chain — participants, weights, seed function</span>
 <span class="prompt">$</span> vre commit --config raffle.json
-  <span class="out">→ runtime_id: rt_8a1f…c4d2</span>
-  <span class="out">→ ruleset_id: rs_2e7b…9f01</span>
-  <span class="out">→ artifact_hash: 0x14f195…b4d8d</span>
-  <span class="out">→ committed at slot 455663125</span>
+  <span class="out">→ runtime_id: 515240d5…08e20d</span>
+  <span class="out">→ artifact_hash: 4a3304a5…688ed7</span>
+  <span class="out">→ committed before the draw</span>
 
 <span class="comment"># 2. When it's time, resolve — the program picks deterministically</span>
-<span class="prompt">$</span> vre resolve --runtime-id rt_8a1f…c4d2
-  <span class="out">→ outcome_id: out_9c3d…a1e7</span>
-  <span class="out">→ winner: 7FHkp…3GnV</span>
-  <span class="out">→ drawn at slot 455693113 <span class="comment">(+29,988 slots after commit)</span></span>
+<span class="prompt">$</span> vre resolve --runtime-id 515240d5…08e20d
+  <span class="out">→ outcome_id: Aip3wC…tPvEU</span>
+  <span class="out">→ formula: weighted_random</span>
+  <span class="out">→ drawn at slot 473659234</span>
 
 <span class="comment"># 3. Anyone — not you — verifies. Public RPC is the source of truth.</span>
-<span class="prompt">$</span> vre verify --sig 5KJp…9vW2
+<span class="prompt">$</span> vre verify --sig 47S5Q3…FHdcF
   <span class="ok">✓ MATCH / OK</span>
   <span class="out">  rules committed before draw</span>
   <span class="out">  replay of public data reproduces the same winner</span></div>
