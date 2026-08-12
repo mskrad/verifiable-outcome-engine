@@ -345,8 +345,9 @@
         <div class="did-win-head">
           <div>
             <div class="result-section-title">Did I win?</div>
-            <p class="did-win-copy">Connected: <span class="wallet-pill">${escapeHtml(state.shortAddress || window.vreWallet?.shortAddress?.(state.address) || state.address)}</span></p>
+            <p class="did-win-copy">Connected: <span class="wallet-pill">${escapeHtml(state.shortAddress || window.vreWallet?.shortAddress?.(state.address) || state.address)}</span>${state.wallet ? ` · ${escapeHtml(state.wallet)}` : ''}</p>
           </div>
+          <button class="btn btn-ghost btn-sm" type="button" data-disconnect-wallet>Disconnect</button>
         </div>
         <div class="did-win-status ${modifier}">
           <strong>${escapeHtml(title)}</strong>
@@ -559,6 +560,11 @@
     form.addEventListener('submit', (e) => { e.preventDefault(); runFromForm(); });
 
     document.addEventListener('click', async (event) => {
+      if (event.target.closest('[data-disconnect-wallet]')) {
+        walletState = await window.vreWallet.disconnect();
+        if (lastVerifyResult) renderDetails(lastVerifyResult);
+        return;
+      }
       const btn = event.target.closest('[data-connect-wallet]');
       if (!btn) return;
       btn.disabled = true;

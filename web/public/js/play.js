@@ -287,7 +287,8 @@
         </div>
         <div class="live-raffle-cta">
           ${connected
-            ? `<button class="btn btn-primary btn-lg" type="button" data-live-raffle-start>${worldIdRequired ? 'Verify & Start Raffle' : 'Start Raffle'} <span aria-hidden>→</span></button>`
+            ? `<button class="btn btn-primary btn-lg" type="button" data-live-raffle-start>${worldIdRequired ? 'Verify & Start Raffle' : 'Start Raffle'} <span aria-hidden>→</span></button>
+               <button class="btn btn-ghost btn-lg" type="button" data-live-raffle-disconnect>Disconnect${liveRaffleWallet.wallet ? ` ${escapeHtml(liveRaffleWallet.wallet)}` : ''}</button>`
             : renderConnectButtons()}
           <a class="btn btn-secondary btn-lg" href="/verify">Open verifier</a>
           <span class="text-faint" style="font-size:12.5px;">The result is a real devnet transaction you can replay independently.</span>
@@ -536,6 +537,15 @@
       .catch(() => {});
 
     document.addEventListener('click', (event) => {
+      if (event.target.closest('[data-live-raffle-disconnect]')) {
+        walletChoice = undefined;
+        Promise.resolve(window.vreWallet?.disconnect?.()).then((state) => {
+          liveRaffleWallet = state || { status: 'not-connected' };
+          resetWorldIdState();
+          renderLiveRaffle(liveRaffleWallet.status === 'not-installed' ? 'not-installed' : 'idle');
+        });
+        return;
+      }
       const connectBtn = event.target.closest('[data-live-raffle-connect]');
       if (connectBtn) {
         walletChoice = connectBtn.getAttribute('data-live-raffle-connect') || undefined;

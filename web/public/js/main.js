@@ -143,6 +143,10 @@
   // side, which is why connect + accounts is the whole surface we need.
   const walletRegistry = new Map(); // name → wallet
   const walletListeners = new Set();
+  // Wallets keep reporting an account after standard:disconnect if they don't
+  // implement it (it is optional). This flag makes "disconnect" mean the same
+  // thing on every wallet from the page's point of view.
+  let walletDetached = false;
   const walletUnsubscribers = new Map(); // name → () => void
   const SELECTED_WALLET_KEY = 'vre.wallet.name';
 
@@ -229,6 +233,7 @@
   }
 
   function readConnected() {
+    if (walletDetached) return { status: walletRegistry.size || legacyProvider() ? 'not-connected' : 'not-installed' };
     for (const wallet of walletRegistry.values()) {
       const account = walletAccount(wallet);
       if (account) return connectedState(wallet, account);
@@ -244,6 +249,7 @@
   }
 
   async function connect(name) {
+    walletDetached = false;
     const wallet = name ? walletRegistry.get(name) : preferredWallet();
     if (wallet) {
       const result = await wallet.features['standard:connect'].connect();
@@ -263,6 +269,25 @@
     return { status: 'connected', address, shortAddress: shortAddress(address), wallet: 'Wallet' };
   }
 
+  // Ask the wallet to drop the session where it supports it, and forget the choice
+  // locally either way, so the next visit starts disconnected.
+  async function disconnect() {
+    walletDetached = true;
+    try { localStorage.removeItem(SELECTED_WALLET_KEY); } catch (_) { /* private mode */ }
+    for (const wallet of walletRegistry.values()) {
+      const feature = wallet.features?.['standard:disconnect'];
+      if (feature?.disconnect) {
+        try { await feature.disconnect(); } catch (_) { /* the wallet may refuse; local state still applies */ }
+      }
+    }
+    const provider = legacyProvider();
+    if (provider?.disconnect) {
+      try { await provider.disconnect(); } catch (_) { /* same */ }
+    }
+    notifyWalletChange();
+    return readConnected();
+  }
+
   function onWalletChange(callback) {
     if (typeof callback !== 'function') return () => {};
     walletListeners.add(callback);
@@ -273,6 +298,7 @@
     listWallets,
     readConnected,
     connect,
+    disconnect,
     onChange: onWalletChange,
     shortAddress,
     // Kept for one release so nothing breaks mid-deploy; callers moved to the names above.
