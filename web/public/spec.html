@@ -197,7 +197,7 @@
               <table class="spec-table">
                 <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">admin</td><td class="mono">Pubkey</td><td>Authority allowed to update config, and the only signer <span class="mono">review_compiled_artifact</span> accepts. Current devnet value: <span class="mono">HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava</span>.</td></tr>
+                  <tr><td class="mono">admin</td><td class="mono">Pubkey</td><td>Authority allowed to update config, and the only signer <span class="mono">review_compiled_artifact</span> accepts. Current devnet value: <span class="mono">CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y</span> — an operator key held separately from the program's upgrade authority.</td></tr>
                   <tr><td class="mono">allow_unreviewed_binding</td><td class="mono">bool</td><td>Whether unreviewed artifacts can be bound.</td></tr>
                   <tr><td class="mono">fee_lamports</td><td class="mono">u64</td><td>Protocol fee per <span class="mono">resolveOutcome</span> call. Current devnet value: <span class="mono">0</span>.</td></tr>
                   <tr><td class="mono">treasury</td><td class="mono">Pubkey</td><td>Recipient of protocol fees when <span class="mono">fee_lamports &gt; 0</span>. Current devnet value: <span class="mono">GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm</span>.</td></tr>
@@ -212,7 +212,7 @@
                 <thead><tr><th>Layer</th><th>Mechanism</th><th>Address</th></tr></thead>
                 <tbody>
                   <tr><td>Program upgrades</td><td>Single operator upgrade key on devnet. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time.</td><td class="mono">devnet: single operator key</td></tr>
-                  <tr><td>Operator signing</td><td>A single operator key on devnet. It is the <span class="mono">admin</span> in ProgramConfig, which is what lets it review an artifact before binding.</td><td class="mono">HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava</td></tr>
+                  <tr><td>Operator signing</td><td>A single operator key on devnet. It is the <span class="mono">admin</span> in ProgramConfig, which is what lets it review an artifact before binding. It cannot upgrade the program, so a compromised operator host cannot replace the code.</td><td class="mono">CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y</td></tr>
                 </tbody>
               </table>
             </div>

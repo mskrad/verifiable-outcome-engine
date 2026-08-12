@@ -1,0 +1,15 @@
+{
+  "program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
+  "program_config": "8uJAPBGiUK1kNRxm3fNn78XhezJjyyT4PC7Z4SMBqMm3",
+  "current_admin": "HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava",
+  "new_admin": "CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y",
+  "signer": "HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava",
+  "preserved": {
+    "allow_unreviewed_binding": false,
+    "fee_lamports": "0",
+    "treasury": "GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm"
+  },
+  "applied": true,
+  "signature": "3xSjzyWrXiCRk2z87Gu9ja5cesh9p8k4L11PZKDwir1qcUaBsn6MPGS8xWpCFGE79juHecngnjSGYUpMnWpBuJ8f",
+  "admin_after": "CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y"
+}
