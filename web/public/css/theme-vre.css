@@ -2524,6 +2524,17 @@ footer {
   color: var(--text);
   letter-spacing: -0.01em;
 }
+/* Addresses, hashes and formula names share the row with words like "Devnet", so
+   they have to read as one line of information rather than as a different
+   component — which is what the old inline 14px looked like next to 22px text.
+   Mono sits two pixels down because its larger x-height makes it read bigger at
+   the same size; that lands on optical parity while still fitting a truncated
+   signature inside the cell. */
+.lr-stat-value.mono {
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  word-break: break-all;
+}
 .live-raffle-cta {
   display: flex;
   align-items: center;

@@ -229,7 +229,7 @@
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Program</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">6QtLot…CP6B</div>
+            <div class="lr-stat-value mono">6QtLot…CP6B</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Flow</div>
@@ -338,7 +338,7 @@
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Wallet</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(liveRaffleWallet.shortAddress || 'pending')}</div>
+            <div class="lr-stat-value mono">${escapeHtml(liveRaffleWallet.shortAddress || 'pending')}</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Verifier</div>
@@ -401,15 +401,15 @@
         <div class="live-raffle-stats">
           <div class="lr-stat">
             <div class="lr-stat-label">Signature</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(window.vreShort(data.signature || '—', 8, 8))}</div>
+            <div class="lr-stat-value mono">${escapeHtml(window.vreShort(data.signature || '—', 8, 8))}</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Runtime ID</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(window.vreShort(data.runtimeId || '—', 8, 8))}</div>
+            <div class="lr-stat-value mono">${escapeHtml(window.vreShort(data.runtimeId || '—', 8, 8))}</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Artifact</div>
-            <div class="lr-stat-value mono" style="font-size:14px;">${escapeHtml(window.vreShort(data.artifactHash || '—', 10, 6))}</div>
+            <div class="lr-stat-value mono">${escapeHtml(window.vreShort(data.artifactHash || '—', 10, 6))}</div>
           </div>
           <div class="lr-stat">
             <div class="lr-stat-label">Verifier</div>
