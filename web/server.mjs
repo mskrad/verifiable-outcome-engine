@@ -35,8 +35,12 @@ const CORS_API_PATHS = new Set([
   "/api/resolutions",
   "/api/participant",
   "/api/partner/draw",
-  // public /examples page — keyless demo draws, rate limited per IP
+  // public /examples and /protocol-paths — keyless demo calls, rate limited per IP
   "/api/examples/draw",
+  "/api/examples/sortition/draw",
+  "/api/examples/sortition/register",
+  "/api/examples/sortition/seal",
+  "/api/examples/sortition/claim",
   "/api/partner/snapshot/init",
   "/api/partner/snapshot/chunk",
   "/api/partner/snapshot/finalize",
@@ -2154,19 +2158,23 @@ async function handleLiveRaffle(req, res) {
   }
 }
 
+// Resolves the server-side partner behind the keyless /api/examples/* routes. The public
+// pages never see this key; it is read from EXAMPLES_DEMO_API_KEY at the route.
+function requireDemoPartner(demoKey) {
+  if (!partnerConfig?.configured) throw httpError(503, "Partner API not configured");
+  const partner = partnerConfig.partnersByKey.get(demoKey);
+  if (!partner) throw httpError(503, "demo draws are not configured");
+  return partner;
+}
+
 // opts.demoKey — server-side partner key used by the keyless /api/examples/draw route.
 // When set, the request carries no x-api-key and the per-partner draw rate limit is skipped:
 // the demo partner is shared by every visitor, so /examples throttles per IP instead.
 async function handlePartnerDraw(req, res, opts = {}) {
   const demoKey = String(opts.demoKey || "").trim();
-  let partner;
-  if (demoKey) {
-    if (!partnerConfig?.configured) throw httpError(503, "Partner API not configured");
-    partner = partnerConfig.partnersByKey.get(demoKey);
-    if (!partner) throw httpError(503, "demo draws are not configured");
-  } else {
-    partner = requirePartnerApiKey(req, "/api/partner/draw");
-  }
+  const partner = demoKey
+    ? requireDemoPartner(demoKey)
+    : requirePartnerApiKey(req, "/api/partner/draw");
   if (!partner.draw_enabled) throw httpError(403, "draw not enabled for this partner");
 
   const body = await readJsonBody(req);
@@ -2772,8 +2780,10 @@ function sortitionBoundedSlots(value, label, fallback) {
   return value;
 }
 
-async function handlePartnerSortitionDraw(req, res) {
-  requirePartnerApiKey(req, "/api/partner/sortition/draw");
+async function handlePartnerSortitionDraw(req, res, opts = {}) {
+  const demoKey = String(opts.demoKey || "").trim();
+  if (demoKey) requireDemoPartner(demoKey);
+  else requirePartnerApiKey(req, "/api/partner/sortition/draw");
   const body = await readJsonBody(req);
   const sortition = await loadSortitionOps();
   const client = buildSortitionClient(sortition);
@@ -2811,8 +2821,10 @@ async function handlePartnerSortitionDraw(req, res) {
   });
 }
 
-async function handlePartnerSortitionRegister(req, res) {
-  requirePartnerApiKey(req, "/api/partner/sortition/register");
+async function handlePartnerSortitionRegister(req, res, opts = {}) {
+  const demoKey = String(opts.demoKey || "").trim();
+  if (demoKey) requireDemoPartner(demoKey);
+  else requirePartnerApiKey(req, "/api/partner/sortition/register");
   const body = await readJsonBody(req);
   const sortition = await loadSortitionOps();
   const client = buildSortitionClient(sortition);
@@ -2836,8 +2848,10 @@ async function handlePartnerSortitionRegister(req, res) {
   });
 }
 
-async function handlePartnerSortitionSeal(req, res) {
-  requirePartnerApiKey(req, "/api/partner/sortition/seal");
+async function handlePartnerSortitionSeal(req, res, opts = {}) {
+  const demoKey = String(opts.demoKey || "").trim();
+  if (demoKey) requireDemoPartner(demoKey);
+  else requirePartnerApiKey(req, "/api/partner/sortition/seal");
   const body = await readJsonBody(req);
   const sortition = await loadSortitionOps();
   const client = buildSortitionClient(sortition);
@@ -2853,8 +2867,10 @@ async function handlePartnerSortitionSeal(req, res) {
   });
 }
 
-async function handlePartnerSortitionClaim(req, res) {
-  requirePartnerApiKey(req, "/api/partner/sortition/claim");
+async function handlePartnerSortitionClaim(req, res, opts = {}) {
+  const demoKey = String(opts.demoKey || "").trim();
+  if (demoKey) requireDemoPartner(demoKey);
+  else requirePartnerApiKey(req, "/api/partner/sortition/claim");
   const body = await readJsonBody(req);
   const sortition = await loadSortitionOps();
   const client = buildSortitionClient(sortition);
@@ -3101,6 +3117,41 @@ async function handleApi(req, res, pathname) {
         return;
       }
       await handlePartnerDraw(req, res, { demoKey });
+      return;
+    }
+
+    // Keyless sortition console on /protocol-paths. Creating a draw writes on-chain state
+    // and spends operator SOL, so that step carries the per-IP throttle; the three follow-up
+    // calls act on a draw that already exists and take the ordinary API limit.
+    const sortitionDemo = pathname.match(
+      /^\/api\/examples\/sortition\/(draw|register|seal|claim)$/
+    );
+    if (req.method === "POST" && sortitionDemo) {
+      if (sortitionDemo[1] === "draw") {
+        const rate = checkExamplesDrawRateLimit(req);
+        if (!rate.ok) {
+          json(res, 429, {
+            ok: false,
+            error: "one demo draw per 15s from this IP",
+            retry_after_ms: rate.retryAfterMs,
+          });
+          return;
+        }
+      } else {
+        enforceApiRateLimit(req, pathname);
+      }
+      const demoKey = String(process.env.EXAMPLES_DEMO_API_KEY || "").trim();
+      if (!demoKey) {
+        json(res, 503, { ok: false, error: "demo draws are not configured" });
+        return;
+      }
+      const handler = {
+        draw: handlePartnerSortitionDraw,
+        register: handlePartnerSortitionRegister,
+        seal: handlePartnerSortitionSeal,
+        claim: handlePartnerSortitionClaim,
+      }[sortitionDemo[1]];
+      await handler(req, res, { demoKey });
       return;
     }
 
