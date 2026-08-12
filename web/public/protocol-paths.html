@@ -101,7 +101,7 @@
 
       <div class="callout callout-amber mt-8">
         <div class="callout-title">Unicorn-G — read before selecting it</div>
-        <p>It is built and it runs: <span class="mono">seal_randomness_unicorn</span> verifies the proof on-chain, a devnet seal replays to MATCH, and a forged proof is rejected with <span class="mono">InvalidUnicornGProof</span> at the pairing check. What keeps it opt-in rather than default is the circuit itself — the Groth16 setup was done against a devnet RSA modulus, and a composite <span class="mono">l</span> still passes the in-circuit primality check. Until a multi-party ceremony and the corrected circuit land, SlotHashes stays the default entropy source and Unicorn-G is selected explicitly, per draw.</p>
+        <p>It is built and it runs on devnet: <span class="mono">seal_randomness_unicorn</span> verifies the proof on-chain, and a forged one is rejected with <span class="mono">InvalidUnicornGProof</span> at the pairing check. Two things keep it opt-in rather than default. The circuit: the Groth16 setup was done against a devnet RSA modulus, and a composite <span class="mono">l</span> still passes the in-circuit primality check. And the replay path: a Unicorn-G draw derives its randomness from the delay-function output rather than from slot hashes, which the public verifier does not implement yet — such a draw does <strong>not</strong> reproduce through <span class="mono">/verify</span> today. Until both land, SlotHashes stays the default and Unicorn-G is selected explicitly, per draw.</p>
       </div>
 
       <div class="callout mt-6">
