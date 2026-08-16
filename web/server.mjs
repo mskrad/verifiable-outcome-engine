@@ -121,9 +121,43 @@ const PARTNER_SNAPSHOT_MAX_WINNERS = Number(
   process.env.PARTNER_SNAPSHOT_MAX_WINNERS || 10
 );
 const resolutionsCache = new Map();
+// commit_slot никогда не меняется: артефакт коммитится один раз и остаётся тем же.
+// Держим его на диске, иначе каждый холодный запрос заново сканирует PDA артефакта —
+// а демо-сценарии переиспользуют одни и те же артефакты, так что после дня активности
+// на их PDA накапливаются сотни подписей и скан становится главным источником задержки.
+const commitSlotCache = new Map();
+const COMMIT_SLOT_CACHE_PATH = path.join(REF_ROOT, "tmp", "commit-slot-cache.json");
+let commitSlotCacheDirty = false;
+
+function loadCommitSlotCache() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(COMMIT_SLOT_CACHE_PATH, "utf8"));
+    for (const [hash, slot] of Object.entries(raw)) {
+      if (typeof slot === "number") commitSlotCache.set(hash, slot);
+    }
+  } catch (_) { /* первого запуска ещё не было — это нормально */ }
+}
+
+function persistCommitSlotCache() {
+  if (!commitSlotCacheDirty) return;
+  commitSlotCacheDirty = false;
+  try {
+    fs.mkdirSync(path.dirname(COMMIT_SLOT_CACHE_PATH), { recursive: true });
+    fs.writeFileSync(
+      COMMIT_SLOT_CACHE_PATH,
+      JSON.stringify(Object.fromEntries(commitSlotCache))
+    );
+  } catch (err) {
+    console.warn("[resolutions] commit_slot cache not persisted:", err?.message || err);
+  }
+}
 const worldIdNullifiers = new Set();
 const RESOLUTIONS_CACHE_TTL_MS = 60_000;
 const RESOLUTIONS_VERIFY_TIMEOUT_MS = 5_000;
+// Потолок на весь обход: лучше отдать меньше проверенных исходов, чем держать
+// пользователя в ожидании, пока проверяются все кандидаты.
+const RESOLUTIONS_DEADLINE_MS = Number(process.env.RESOLUTIONS_DEADLINE_MS || 8_000);
+const RESOLUTIONS_EMPTY_CACHE_TTL_MS = 10_000;
 let tsSdkRegistered = false;
 let resolveInlinePromise;
 let verifyOutcomePromise;
@@ -818,18 +852,73 @@ async function handlePartnerConditionsResolve(req, res) {
   });
 }
 
+const resolutionsInFlight = new Map();
+
+// Публичный devnet-RPC отвечает 429 и обрывает соединение под нагрузкой. Один
+// сорвавшийся вызов за списком сигнатур не должен ронять весь эндпоинт.
+async function rpcCallRetry(rpcUrl, payload, timeoutMs = 8000, attempts = 3) {
+  let lastErr;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await rpcCall(rpcUrl, payload, timeoutMs);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function fetchResolutions(limit, opts = {}) {
   const now = Date.now();
   const cacheKey = `${opts.preferBlessed ? "blessed" : "latest"}:${opts.includeBlessed === false ? "recent-only" : "with-blessed"}:${limit}:${typeof opts.recentLimit === "number" ? opts.recentLimit : "auto"}`;
   const cached = resolutionsCache.get(cacheKey);
   if (cached && cached.expireAt > now) return cached.data;
 
+  // Устаревшие данные лучше долгого ожидания: отдаём их немедленно и обновляем в фоне.
+  // Список исходов — витрина, а не источник истины; проверить любой из них всё равно
+  // можно только реплеем по сигнатуре.
+  if (cached) {
+    if (!resolutionsInFlight.has(cacheKey)) {
+      const refresh = computeResolutions(limit, opts, cacheKey)
+        .catch((err) => console.warn("[resolutions] background refresh failed:", err?.message || err))
+        .finally(() => resolutionsInFlight.delete(cacheKey));
+      resolutionsInFlight.set(cacheKey, refresh);
+    }
+    return cached.data;
+  }
+
+  // Холодный старт: параллельные запросы ждут один и тот же расчёт, а не запускают свой.
+  const existing = resolutionsInFlight.get(cacheKey);
+  if (existing) return existing;
+  const pending = computeResolutions(limit, opts, cacheKey)
+    .catch((err) => {
+      // Публичный devnet-RPC отвечает 429 под нагрузкой. Отдать вчерашний список
+      // лучше, чем 500: страница остаётся живой, а проверить любой исход всё равно
+      // можно только реплеем по сигнатуре.
+      const stale = resolutionsCache.get(cacheKey);
+      if (stale) {
+        console.warn("[resolutions] serving stale after error:", err?.message || err);
+        return stale.data;
+      }
+      throw err;
+    })
+    .finally(() => resolutionsInFlight.delete(cacheKey));
+  resolutionsInFlight.set(cacheKey, pending);
+  return pending;
+}
+
+async function computeResolutions(limit, opts, cacheKey) {
+  const startedAt = Date.now();
+
   const rpcUrl = defaultRpc();
   const programId = defaultProgramId();
   const verifyOutcome = await loadVerifyOutcome();
 
   const fetchLimit = Math.min(limit * 4, 100);
-  const rawSigs = await rpcCall(rpcUrl, {
+  const rawSigs = await rpcCallRetry(rpcUrl, {
     jsonrpc: "2.0",
     id: 1,
     method: "getSignaturesForAddress",
@@ -868,6 +957,10 @@ async function fetchResolutions(limit, opts = {}) {
   const VERIFY_BATCH_SIZE = 8;
   const matches = [];
   for (let i = 0; i < allSigs.length && matches.length < limit; i += VERIFY_BATCH_SIZE) {
+    if (Date.now() - startedAt > RESOLUTIONS_DEADLINE_MS) {
+      console.warn(`[resolutions] deadline hit with ${matches.length}/${limit} verified`);
+      break;
+    }
     const batch = allSigs.slice(i, i + VERIFY_BATCH_SIZE);
     const batchResults = await Promise.all(
       batch.map(async (sigEntry) => {
@@ -893,6 +986,11 @@ async function fetchResolutions(limit, opts = {}) {
   const uniqueHashes = [...new Set(matches.map((m) => m.verified.compiled_artifact_hash))];
   const commitSlotByHash = new Map();
   for (const hash of uniqueHashes) {
+    const cachedSlot = commitSlotCache.get(hash);
+    if (typeof cachedSlot === "number") {
+      commitSlotByHash.set(hash, cachedSlot);
+      continue;
+    }
     try {
       const [artifactPda] = PublicKey.findProgramAddressSync(
         [
@@ -901,14 +999,19 @@ async function fetchResolutions(limit, opts = {}) {
         ],
         new PublicKey(programId)
       );
-      const artifactSigs = await rpcCall(rpcUrl, {
+      const artifactSigs = await rpcCallRetry(rpcUrl, {
         jsonrpc: "2.0",
         id: 2,
         method: "getSignaturesForAddress",
         params: [artifactPda.toBase58(), { limit: 1000 }],
       }, 15_000);
       if (Array.isArray(artifactSigs) && artifactSigs.length > 0) {
-        commitSlotByHash.set(hash, artifactSigs[artifactSigs.length - 1].slot);
+        const commitSlot = artifactSigs[artifactSigs.length - 1].slot;
+        commitSlotByHash.set(hash, commitSlot);
+        if (typeof commitSlot === "number") {
+          commitSlotCache.set(hash, commitSlot);
+          commitSlotCacheDirty = true;
+        }
       }
     } catch (commitErr) {
       console.error("[resolutions] commit_slot lookup failed for hash", hash.slice(0, 12), ":", commitErr?.message || commitErr);
@@ -958,9 +1061,17 @@ async function fetchResolutions(limit, opts = {}) {
     })
   );
 
+  persistCommitSlotCache();
+
+  // Пустой ответ — почти всегда следствие сорвавшегося прохода (RPC отвечал 429 или
+  // не уложились в дедлайн), а не реального отсутствия исходов. Держать такую выдачу
+  // целую минуту значит показывать пустую страницу вместо медленной: даём ей короткий
+  // TTL, чтобы следующий проход попробовал снова.
   resolutionsCache.set(cacheKey, {
     data: results,
-    expireAt: Date.now() + RESOLUTIONS_CACHE_TTL_MS,
+    expireAt:
+      Date.now() +
+      (results.length > 0 ? RESOLUTIONS_CACHE_TTL_MS : RESOLUTIONS_EMPTY_CACHE_TTL_MS),
   });
   return results;
 }
@@ -3233,6 +3344,26 @@ loadEnvFile();
 swigOperatorConfig = parseSwigOperatorConfig();
 vanishConfig = parseVanishConfig();
 partnerConfig = loadPartnerConfig();
+loadCommitSlotCache();
+
+// Прогрев списка исходов в фоне. Расчёт упирается в реплей каждой сигнатуры на
+// публичном devnet-RPC и занимает секунды — пользователь /play не должен их ждать.
+// Параметры совпадают с теми, что подставляет маршрут `/api/recent-resolutions`
+// по умолчанию, иначе прогреется не тот ключ кеша.
+const RESOLUTIONS_WARM_INTERVAL_MS = Number(process.env.RESOLUTIONS_WARM_INTERVAL_MS || 45_000);
+
+function warmResolutions() {
+  fetchResolutions(6, {
+    preferBlessed: false,
+    includeBlessed: false,
+    recentLimit: 18,
+  }).catch((err) => console.warn("[resolutions] warm-up failed:", err?.message || err));
+}
+
+if (process.env.RESOLUTIONS_WARM_DISABLED !== "1") {
+  warmResolutions();
+  setInterval(warmResolutions, RESOLUTIONS_WARM_INTERVAL_MS).unref();
+}
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
