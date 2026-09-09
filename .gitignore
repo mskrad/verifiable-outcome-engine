@@ -58,6 +58,7 @@ programs/outcome/src/*
 !programs/outcome/src/errors.rs
 !programs/outcome/src/events.rs
 !programs/outcome/src/lib.rs
+!programs/outcome/src/heap.rs
 # Repo private again post-hackathon (2026-07) — track ALL outcome program source
 # (the previous per-file allowlist kept ~18 source files out of git).
 !programs/outcome/src/state/
@@ -72,3 +73,6 @@ programs/outcome/tests/*
 programs/outcome/tests/fixtures/*
 !programs/outcome/tests/fixtures/composite_rank_desc/
 !programs/outcome/tests/fixtures/composite_rank_desc/*.bin
+
+# Локальный леджер валидатора (каталог называется test-ledger-local)
+test-ledger*/
