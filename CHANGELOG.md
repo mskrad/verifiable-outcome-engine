@@ -28,6 +28,18 @@ Versions live on **two orthogonal axes**; don't conflate them:
 
 ---
 
+## 2026-09-09 — Hackathon-era integrations removed
+
+- **Removed:** Squads multisig helpers (`scripts/squads_*`), the Swig smart-wallet operator
+  path (server `SWIG_*` config, SDK delegate signing, setup scripts), the Vanish private-payout
+  route (`sdk/vanish.ts`, `/api/live-raffle` payout hook, `VANISH_*`), the Metaplex Agent
+  Registry integration (script, dependencies, `/agents/*.json`, spec section) and the empty
+  Arcium scaffold. None of them sat on a live product path: the canonical `6QtLot…` program is
+  upgraded with a single operator key, live draws are signed by the plain `ProgramConfig`
+  admin key (`LIVE_RAFFLE_WALLET`), and payouts stay with the integrator. `/api/health` no
+  longer reports `swig_*` fields; `operator.mode` is always `raw_keypair`.
+- **Kept:** World ID gating on live raffles and Irys publication for scale snapshots.
+
 ## 2026-07-04 — VRE-operated conditions endpoints + canon-id fix
 
 - **VRE-operated partner endpoints** for conditions: `POST /api/partner/conditions/commit`
