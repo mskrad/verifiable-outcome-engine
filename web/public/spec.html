@@ -87,14 +87,13 @@
             <li><a href="#canonical-program">05 · Canonical Program</a></li>
             <li><a href="#output">06 · Output</a></li>
             <li><a href="#error-codes">07 · Verification Reason Codes</a></li>
-            <li><a href="#metaplex">08 · Metaplex Agent Registry</a></li>
-            <li><a href="#sybil">09 · Sybil-Proof Participants</a></li>
-            <li><a href="#live-raffle">10 · Live Raffle API</a></li>
-            <li><a href="#sdk">11 · SDK</a></li>
-            <li><a href="#partner-api">12 · Partner API</a></li>
-            <li><a href="#w3o1-v3-layout">13 · W3O1 v3 Native Formula Layout</a></li>
-            <li><a href="#use-cases">14 · Use Cases &amp; Integrations</a></li>
-            <li><a href="#resolution-paths">15 · Resolution Paths &amp; Versions</a></li>
+            <li><a href="#sybil">08 · Sybil-Proof Participants</a></li>
+            <li><a href="#live-raffle">09 · Live Raffle API</a></li>
+            <li><a href="#sdk">10 · SDK</a></li>
+            <li><a href="#partner-api">11 · Partner API</a></li>
+            <li><a href="#w3o1-v3-layout">12 · W3O1 v3 Native Formula Layout</a></li>
+            <li><a href="#use-cases">13 · Use Cases &amp; Integrations</a></li>
+            <li><a href="#resolution-paths">14 · Resolution Paths &amp; Versions</a></li>
           </ol>
           <div class="spec-toc-foot">
             <a class="btn btn-ghost btn-sm" href="/verify">Open verifier <span aria-hidden>→</span></a>
@@ -301,54 +300,8 @@
             <p><a href="https://github.com/mskrad/verifiable-outcome-engine" target="_blank" rel="noopener">Full reference on GitHub →</a></p>
           </section>
 
-          <section id="metaplex" class="spec-section">
-            <div class="spec-section-num">08</div>
-            <h2>Metaplex Agent Registry</h2>
-            <p>VRE is registered in the Metaplex Agent Registry as a verification service. Other agents and dApps can discover VRE through the registry and call its endpoints to verify outcomes without trusting the operator.</p>
-
-            <h3>Agent Identity</h3>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Name</th><th>Value</th></tr></thead>
-                <tbody>
-                  <tr><td>Name</td><td>VRE Outcome Verification Agent</td></tr>
-                  <tr><td>Network</td><td class="mono">solana-devnet</td></tr>
-                  <tr><td>Asset address</td><td class="mono">C3qM2VVxR5dyjzqEvv9qHaaUDfTDneEaJCMTKV9bxQLX</td></tr>
-                  <tr><td>Mint tx</td><td class="mono">429YX7c7…jj ↗</td></tr>
-                  <tr><td>Registration</td><td><a href="https://api.metaplex.com" target="_blank" rel="noopener">api.metaplex.com ↗</a></td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>Exposed services</h3>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Type</th><th>Endpoint</th><th>Purpose</th></tr></thead>
-                <tbody>
-                  <tr><td>web</td><td class="mono">/verify</td><td>Browser-based outcome verifier</td></tr>
-                  <tr><td>replay-api</td><td class="mono">/api/replay</td><td>Programmatic verification — call from any agent</td></tr>
-                  <tr><td>web</td><td class="mono">/play</td><td>Live demo with active devnet signatures</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>Agent-to-agent use</h3>
-            <p>Any agent that selects a winner, assigns a task, or picks a DAO proposal can call <span class="mono">POST /api/replay</span> with the resolve transaction signature. VRE replays the outcome from public RPC and returns <span class="mono">MATCH / OK</span> — or an error code if the result was tampered with. No oracle, no operator trust required.</p>
-            <div class="terminal">
-              <div class="terminal-body"><span class="comment"># Any agent verifies a VRE outcome</span>
-curl -s https://verifiableoutcome.online/api/replay \
-  -H <span class="ok">"content-type: application/json"</span> \
-  -d <span class="ok">'{"signature":"&lt;resolve_tx_sig&gt;","programId":"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"}'</span>
-→ { <span class="key">"ok"</span>: <span class="ok">true</span>, <span class="key">"replay"</span>: { <span class="key">"verification_result"</span>: <span class="ok">"MATCH"</span>, <span class="key">"verification_reason"</span>: <span class="ok">"OK"</span>, … } }</div>
-            </div>
-
-            <h3>Partner API access</h3>
-            <p>Partner discovery endpoints <span class="mono">GET /api/resolutions</span> and <span class="mono">GET /api/participant</span> are not part of the public SDK surface. They require a partner-issued API key in <span class="mono">x-api-key: vresk_...</span> and are provisioned during partner onboarding.</p>
-            <p>Missing or unknown keys return <span class="mono">401 Unauthorized</span>. If partner config is absent on the host, the endpoints fail closed with <span class="mono">503 Partner API not configured</span>.</p>
-          </section>
-
           <section id="sybil" class="spec-section">
-            <div class="spec-section-num">09</div>
+            <div class="spec-section-num">08</div>
             <h2>Sybil-Proof Participants</h2>
             <p>VRE can optionally require a World ID 4.0 proof before a live raffle is sent on-chain. This blocks one human from entering the same action repeatedly through many wallets, while keeping the core raffle, replay semantics, and blessed signatures unchanged.</p>
 
@@ -382,7 +335,7 @@ curl -s https://verifiableoutcome.online/api/replay \
           </section>
 
           <section id="live-raffle" class="spec-section">
-            <div class="spec-section-num">10</div>
+            <div class="spec-section-num">09</div>
             <h2>Live Raffle API</h2>
             <p><span class="mono">POST /api/live-raffle</span> is the single-call path for the <span class="mono">play.html</span> demo. The server commits, resolves, and returns a blessed transaction signature — no operator wallet required from the caller.</p>
 
@@ -418,7 +371,7 @@ curl -s https://verifiableoutcome.online/api/live-raffle \
           </section>
 
           <section id="sdk" class="spec-section">
-            <div class="spec-section-num">11</div>
+            <div class="spec-section-num">10</div>
             <h2>SDK</h2>
             <p><span class="mono">verifiable-outcome-sdk</span> is the canonical TypeScript library for building and verifying outcomes. It targets Node ≥ 18 and any modern bundler.</p>
 
@@ -451,7 +404,7 @@ const result = <span class="key">await</span> verifyOutcome({
           </section>
 
           <section id="partner-api" class="spec-section">
-            <div class="spec-section-num">12</div>
+            <div class="spec-section-num">11</div>
             <h2>Partner API</h2>
             <p>Two discovery endpoints are gated behind a partner-issued API key. They allow external platforms to query resolution history and check participant outcomes without running their own indexer.</p>
 
@@ -602,10 +555,14 @@ curl https://verifiableoutcome.online/api/resolutions \
               <li><b><span class="mono">resolve</span></b> (after the match) — reveal facts; VRE builds the full fc7, submits + finalizes + self-reviews + binds an OutcomeConfig + calls <span class="mono">resolve_conditions</span>. Body: <span class="mono">{ round_id, fixtures:[{fixture_id, event_stat_root, stats:[{stat_key, value}]}] }</span>. Returns <span class="mono">{ signature, verify_url, winners, ranking, winning_score_sum, artifact }</span>. Resolve checks that the rules equal the ones committed at <span class="mono">commit</span> (facts cannot change the rules).</li>
             </ul>
             <p>The returned <span class="mono">signature</span> replays to <span class="ok">MATCH</span> at <span class="mono">/verify?sig=…</span> — same deterministic scoring as the off-chain endpoint, now attested on-chain. VRE proves the winner ranking; escrow and pro-rata payout stay with the partner — <b>no fund custody</b>.</p>
+
+            <h3>Partner API access</h3>
+            <p>Partner discovery endpoints <span class="mono">GET /api/resolutions</span> and <span class="mono">GET /api/participant</span> are not part of the public SDK surface. They require a partner-issued API key in <span class="mono">x-api-key: vresk_...</span> and are provisioned during partner onboarding.</p>
+            <p>Missing or unknown keys return <span class="mono">401 Unauthorized</span>. If partner config is absent on the host, the endpoints fail closed with <span class="mono">503 Partner API not configured</span>.</p>
           </section>
 
           <section id="w3o1-v3-layout" class="spec-section">
-            <div class="spec-section-num">13</div>
+            <div class="spec-section-num">12</div>
             <h2>W3O1 v3 Native Formula Layout</h2>
             <p>Formula draws are committed natively inside the artifact bytes. Old v1/v2 artifacts stay valid; v3 adds explicit formula metadata, signed scores, stable input order, and optional target support for <span class="mono">closest_to</span>.</p>
 
@@ -649,7 +606,7 @@ curl https://verifiableoutcome.online/api/resolutions \
           </section>
 
           <section id="use-cases" class="spec-section">
-            <div class="spec-section-num">14</div>
+            <div class="spec-section-num">13</div>
             <h2>Use Cases &amp; Integrations</h2>
             <p>Real-world patterns that map directly to W3O1 formulas. Each use case commits rules before resolution — anyone can replay from the transaction signature and confirm the outcome.</p>
 
@@ -697,11 +654,6 @@ curl https://verifiableoutcome.online/api/resolutions \
               <table class="spec-table">
                 <thead><tr><th>Sponsor</th><th>Role</th><th>Integration</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td><strong>Metaplex Agent Registry</strong></td>
-                    <td>Agent</td>
-                    <td>VRE registered as verifiable-outcome agent — discoverable by other agents and dApps</td>
-                  </tr>
                   <tr>
                     <td><strong>World ID</strong></td>
                     <td>Sybil resistance</td>
@@ -768,7 +720,7 @@ curl https://verifiableoutcome.online/api/resolutions \
           </section>
 
           <section id="resolution-paths" class="spec-section">
-            <div class="spec-section-num">15</div>
+            <div class="spec-section-num">14</div>
             <h2>Resolution Paths &amp; Versions</h2>
             <p class="lead-sm">The protocol carries several resolution paths, all canonical on the one devnet program <span class="mono">6QtLot…</span>. Replay-by-signature stays the <b>default</b>; the others are canonical alternatives selected per draw. Default entropy is SlotHashes — <b>Unicorn-G is opt-in</b>. On 2026-06-25 the whole protocol was promoted to this single canonical program (no separate isolated program).</p>
             <div class="spec-table-wrap">
