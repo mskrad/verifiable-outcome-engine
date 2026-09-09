@@ -217,9 +217,6 @@
               </table>
             </div>
 
-            <h3>Swig — smart-wallet operator</h3>
-            <p>The server can run its operator as a Swig smart-wallet actor: the hot delegate is scoped to the VRE program and carries a daily SOL cap, so a compromised delegate cannot drain the treasury or invoke unrelated programs, while the master keypair stays offline. That path is built and configurable through the <span class="mono">SWIG_*</span> environment, but it is <strong>not</strong> the devnet operator — on devnet the signer is the single admin key above, because artifact review is gated on that exact address.</p>
-
             <h3>Upgrade authority (devnet)</h3>
             <p>On devnet the program upgrade authority is a single operator key — multisig governance is not used on devnet, as it added ceremony without protecting real value while the protocol iterates. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time and is not implied by the devnet setup.</p>
 
@@ -700,11 +697,6 @@ curl https://verifiableoutcome.online/api/resolutions \
               <table class="spec-table">
                 <thead><tr><th>Sponsor</th><th>Role</th><th>Integration</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td><strong>Swig</strong></td>
-                    <td>Operator</td>
-                    <td>Delegated operator key scoped to VRE program with daily SOL cap — master keypair kept offline</td>
-                  </tr>
                   <tr>
                     <td><strong>Metaplex Agent Registry</strong></td>
                     <td>Agent</td>

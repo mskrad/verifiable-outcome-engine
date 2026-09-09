@@ -8,8 +8,6 @@ import {
   ComputeBudgetProgram,
   Keypair,
   PublicKey,
-  SendTransactionError,
-  sendAndConfirmTransaction,
   SystemProgram,
   Transaction,
   type TransactionInstruction,
@@ -55,16 +53,7 @@ type OutcomeClient = {
   programId: PublicKey;
 };
 
-type OperatorAuthority =
-  | { kind: "keypair"; keypair: Keypair; publicKey: PublicKey }
-  | {
-      kind: "swig";
-      swigAddress: PublicKey;
-      swigWalletAddress: PublicKey;
-      delegate: Keypair;
-      roleId?: number;
-      publicKey: PublicKey;
-    };
+type OperatorAuthority = { kind: "keypair"; keypair: Keypair; publicKey: PublicKey };
 
 type ApprovedArtifactResult = {
   blob: Buffer;
@@ -167,15 +156,7 @@ export type ResolveInlineOptions = {
   programId?: string;
   outputDir?: string;
   label?: string;
-  swigWallet?: ResolveInlineSwigWallet;
   vanishPayout?: VanishPayoutOptions;
-};
-
-export type ResolveInlineSwigWallet = {
-  swigAddress: string;
-  delegateKeypairPath?: string;
-  delegateKeypair?: Keypair;
-  roleId?: number;
 };
 
 export type ResolveInlineResult = {
@@ -223,14 +204,6 @@ function loadKeypair(walletPath: string): Keypair {
   return Keypair.fromSecretKey(Uint8Array.from(raw));
 }
 
-async function loadSwigClassic() {
-  const mod = await import("@swig-wallet/classic");
-  const loaded = mod as typeof import("@swig-wallet/classic") & {
-    default?: typeof import("@swig-wallet/classic");
-  };
-  return loaded.default ?? loaded;
-}
-
 function outcomeProgram(client: OutcomeClient): OutcomeProgram {
   return client.program as OutcomeProgram;
 }
@@ -254,49 +227,19 @@ async function loadOutcomeClient(opts: {
   rpcUrl?: string;
   walletPath?: string;
   programId?: string;
-  swigWallet?: ResolveInlineSwigWallet;
 }): Promise<OutcomeClient> {
   const url = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
   const connection = new anchor.web3.Connection(url, { commitment: "confirmed" });
-  let authority: OperatorAuthority;
-  let wallet: anchor.Wallet;
-
-  if (opts.swigWallet) {
-    const delegate =
-      opts.swigWallet.delegateKeypair ??
-      (opts.swigWallet.delegateKeypairPath
-        ? loadKeypair(expandHome(opts.swigWallet.delegateKeypairPath))
-        : undefined);
-    if (!delegate) {
-      throw new Error("Swig operator requires delegateKeypairPath or delegateKeypair");
-    }
-    const swigAddress = new PublicKey(opts.swigWallet.swigAddress);
-    const { fetchSwig, getSwigWalletAddress } = await loadSwigClassic();
-    const swig = await fetchSwig(connection, swigAddress, {
-      commitment: "confirmed",
-    });
-    const swigWalletAddress = await getSwigWalletAddress(swig);
-    authority = {
-      kind: "swig",
-      swigAddress,
-      swigWalletAddress,
-      delegate,
-      roleId: opts.swigWallet.roleId,
-      publicKey: swigWalletAddress,
-    };
-    wallet = new anchor.Wallet(delegate);
-  } else {
-    const walletPath = expandHome(
-      opts.walletPath ?? process.env.ANCHOR_WALLET ?? DEFAULT_WALLET_PATH
-    );
-    const keypair = loadKeypair(walletPath);
-    authority = {
-      kind: "keypair",
-      keypair,
-      publicKey: keypair.publicKey,
-    };
-    wallet = new anchor.Wallet(keypair);
-  }
+  const walletPath = expandHome(
+    opts.walletPath ?? process.env.ANCHOR_WALLET ?? DEFAULT_WALLET_PATH
+  );
+  const keypair = loadKeypair(walletPath);
+  const authority: OperatorAuthority = {
+    kind: "keypair",
+    keypair,
+    publicKey: keypair.publicKey,
+  };
+  const wallet = new anchor.Wallet(keypair);
 
   const provider = new anchor.AnchorProvider(
     connection,
@@ -329,48 +272,8 @@ async function sendOperatorInstructions(
   const priorityIx = ComputeBudgetProgram.setComputeUnitPrice({
     microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
   });
-  if (client.authority.kind === "keypair") {
-    const tx = new Transaction().add(priorityIx, ...instructions);
-    return client.provider.sendAndConfirm(tx, []);
-  }
-
-  const { fetchSwig, getSignInstructions } = await loadSwigClassic();
-  const swig = await fetchSwig(connection, client.authority.swigAddress, {
-    commitment: "confirmed",
-  });
-  const role =
-    typeof client.authority.roleId === "number"
-      ? swig.findRoleById(client.authority.roleId)
-      : swig.findRolesByEd25519SignerPk(client.authority.delegate.publicKey)[0];
-  if (!role) {
-    throw new Error(
-      `Swig delegate role not found for ${client.authority.delegate.publicKey.toBase58()}`
-    );
-  }
-  const signedInstructions = await getSignInstructions(
-    swig,
-    role.id,
-    [priorityIx, ...instructions],
-    false,
-    { payer: client.authority.delegate.publicKey }
-  );
-  const tx = new Transaction().add(...signedInstructions);
-  tx.feePayer = client.authority.delegate.publicKey;
-  try {
-    return await sendAndConfirmTransaction(connection, tx, [client.authority.delegate], {
-      commitment: "confirmed",
-    });
-  } catch (error) {
-    if (error instanceof SendTransactionError) {
-      const logs = await error.getLogs(connection).catch(() => error.logs ?? []);
-      if (logs?.length) {
-        throw new Error(
-          `${error.message}\nSwig logs:\n${logs.join("\n")}`
-        );
-      }
-    }
-    throw error;
-  }
+  const tx = new Transaction().add(priorityIx, ...instructions);
+  return client.provider.sendAndConfirm(tx, []);
 }
 
 async function ensureWalletFunds(
@@ -382,11 +285,6 @@ async function ensureWalletFunds(
     "confirmed"
   );
   if (balance >= minimumLamports) return;
-  if (client.authority.kind === "swig") {
-    throw new Error(
-      `Swig wallet ${client.authority.swigWalletAddress.toBase58()} has insufficient balance: ${balance} lamports`
-    );
-  }
   const endpoint = client.provider.connection.rpcEndpoint;
   if (!endpoint.includes("127.0.0.1") && !endpoint.includes("localhost")) {
     return;
@@ -1030,7 +928,6 @@ async function resolveConfig(
     programId?: string;
     outputDir?: string;
     label: string;
-    swigWallet?: ResolveInlineSwigWallet;
   }
 ): Promise<ResolveOperatorResult> {
   const inputLamports = asBigInt(config.input_lamports);
@@ -1038,7 +935,6 @@ async function resolveConfig(
     rpcUrl: opts.rpcUrl,
     walletPath: opts.walletPath,
     programId: opts.programId,
-    swigWallet: opts.swigWallet,
   });
   await ensureWalletFunds(client);
   await ensureProgramConfig(client);
@@ -1173,7 +1069,6 @@ export async function resolveInline(
     programId: opts.programId,
     outputDir: opts.outputDir,
     label: opts.label ?? `live-raffle-${Date.now()}`,
-    swigWallet: opts.swigWallet,
   });
 
   const verified = await verifyOutcome({
@@ -1206,11 +1101,7 @@ export async function resolveInline(
       rpcUrl,
       walletPath: opts.walletPath,
       programId: opts.programId,
-      swigWallet: opts.swigWallet,
     });
-    if (client.authority.kind !== "keypair") {
-      throw new Error("Vanish payout requires a raw keypair operator (walletPath)");
-    }
     const payout = await vanishPayoutRoute({
       apiKey: vp.apiKey,
       amountLamports: vp.amountLamports,

@@ -165,7 +165,6 @@ let snapshotHelpersPromise;
 let artifactBuilderPromise;
 let sortitionOpsPromise;
 let conditionsOpsPromise;
-let swigOperatorConfig;
 let vanishConfig;
 let partnerConfig;
 
@@ -1089,32 +1088,6 @@ function validateSolanaAddress(value) {
   return address;
 }
 
-function parseSwigOperatorConfig() {
-  const swigAddress = String(process.env.SWIG_WALLET_ADDRESS || "").trim();
-  const delegateKeypairPath = String(process.env.SWIG_DELEGATE_KEYPAIR || "").trim();
-  if ((swigAddress && !delegateKeypairPath) || (!swigAddress && delegateKeypairPath)) {
-    throw new Error(
-      "SWIG_WALLET_ADDRESS and SWIG_DELEGATE_KEYPAIR must be set together"
-    );
-  }
-  if (!swigAddress) return undefined;
-
-  const roleRaw = String(process.env.SWIG_ROLE_ID || "").trim();
-  let roleId;
-  if (roleRaw) {
-    roleId = Number(roleRaw);
-    if (!Number.isSafeInteger(roleId) || roleId < 0) {
-      throw new Error("SWIG_ROLE_ID must be a non-negative integer");
-    }
-  }
-
-  return {
-    swigAddress: validateSolanaAddress(swigAddress),
-    delegateKeypairPath,
-    roleId,
-  };
-}
-
 function parseVanishConfig() {
   const apiKey = String(process.env.VANISH_API_KEY || "").trim();
   if (!apiKey) return undefined;
@@ -1218,11 +1191,9 @@ function worldIdCapability() {
 function operatorModeCapability() {
   const walletPath = process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || null;
   return {
-    mode: swigOperatorConfig ? "swig" : "raw_keypair",
+    mode: "raw_keypair",
     program_id: process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId(),
-    swig_address: swigOperatorConfig?.swigAddress || null,
-    swig_role_id: swigOperatorConfig?.roleId ?? null,
-    wallet_path: swigOperatorConfig ? null : walletPath,
+    wallet_path: walletPath,
   };
 }
 
@@ -2196,16 +2167,14 @@ async function handleLiveRaffle(req, res) {
     const resolveInline = await loadResolveInline();
     const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
     const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
-    const walletPath = swigOperatorConfig
-      ? undefined
-      : process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
+    const walletPath =
+      process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
     const label = `live-raffle-${Date.now()}`;
     const result = await withTimeout(
       resolveInline(config, {
         rpcUrl,
         programId,
         walletPath,
-        swigWallet: swigOperatorConfig,
         outputDir: process.env.LIVE_RAFFLE_OUTPUT_DIR || LIVE_RAFFLE_OUTPUT_DIR,
         label,
       }),
@@ -2421,9 +2390,7 @@ async function handlePartnerDraw(req, res, opts = {}) {
   const resolveInline = await loadResolveInline();
   const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
   const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
-  const walletPath = swigOperatorConfig
-    ? undefined
-    : process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
+  const walletPath = process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
 
   let result;
   try {
@@ -2432,7 +2399,6 @@ async function handlePartnerDraw(req, res, opts = {}) {
         rpcUrl,
         programId,
         walletPath,
-        swigWallet: swigOperatorConfig,
         outputDir: PARTNER_DRAW_OUTPUT_DIR,
         label,
       }),
@@ -2592,9 +2558,8 @@ async function handlePartnerSnapshotFinalize(req, res) {
   const resolveInline = await loadResolveInline();
   const rpcUrl = resolveSnapshotRpcUrl();
   const programId = resolveSnapshotProgramId(rpcUrl);
-  const walletPath = swigOperatorConfig
-    ? undefined
-    : process.env.PARTNER_SNAPSHOT_WALLET ||
+  const walletPath =
+    process.env.PARTNER_SNAPSHOT_WALLET ||
       process.env.LIVE_RAFFLE_WALLET ||
       process.env.ANCHOR_WALLET ||
       undefined;
@@ -2602,7 +2567,6 @@ async function handlePartnerSnapshotFinalize(req, res) {
     rpcUrl,
     programId,
     walletPath,
-    swigWallet: swigOperatorConfig,
     outputDir: sessionDir,
     label: meta.label || `partner-snapshot-${Date.now()}`,
   });
@@ -3341,7 +3305,6 @@ async function handleApi(req, res, pathname) {
 }
 
 loadEnvFile();
-swigOperatorConfig = parseSwigOperatorConfig();
 vanishConfig = parseVanishConfig();
 partnerConfig = loadPartnerConfig();
 loadCommitSlotCache();

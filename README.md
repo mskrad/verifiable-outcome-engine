@@ -71,7 +71,7 @@ Canonical devnet program id:
 - Upgrade authority (devnet): a single operator key. Multisig governance is not
   used on devnet — it added ceremony without protecting real value while the
   protocol is still iterating.
-- Live operator: Swig actor wallet `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf`; VPS delegate is scoped to the VRE program with a daily SOL spending limit.
+- Live operator: a dedicated operator key (`CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y`) that is the `ProgramConfig` admin and cannot upgrade the program.
 - Mainnet governance is decided separately at mainnet time (multisig / immutable /
   timelock) — the devnet single-key simplification is **not** carried to mainnet.
 

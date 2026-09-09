@@ -190,69 +190,7 @@ solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
 | Name | Address |
 |---|---|
 | Program | `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` |
-| ProgramConfig admin | `E8wB17KxBi89Noz74eypjbcrAJXhmPeA7e7oYHZSbjzf` (Swig actor wallet, separate from upgrade authority) |
-
-## 8) Swig operator setup
-
-Honest claim: VPS server key is Swig-delegated, scoped to VRE program with daily SOL spending limit. Admin keypair (esjx.json) kept offline.
-
-Create a delegate keypair for the VPS:
-
-```bash
-solana-keygen new \
-  --no-bip39-passphrase \
-  --outfile ~/.config/solana/vre-swig-delegate.json
-```
-
-Create the Swig wallet and delegate role on devnet:
-
-```bash
-cd verifiable-outcome-engine
-ROOT_KEYPAIR=~/.config/solana/esjx.json \
-SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
-ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-VRE_PROGRAM_ID=6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
-yarn -s swig:operator:create
-```
-
-For production cutover of the live raffle operator, also move ProgramConfig admin to the Swig wallet during setup:
-
-```bash
-cd verifiable-outcome-engine
-ROOT_KEYPAIR=~/.config/solana/esjx.json \
-SWIG_DELEGATE_KEYPAIR=~/.config/solana/vre-swig-delegate.json \
-ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-VRE_PROGRAM_ID=6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
-SWIG_TRANSFER_PROGRAM_CONFIG_ADMIN=1 \
-yarn -s swig:operator:create
-```
-
-If the Swig account already exists and you only need to add a corrected delegate policy, pass `EXISTING_SWIG_ADDRESS=<SWIG_ACCOUNT_ADDRESS>`.
-
-The script prints:
-
-```text
-SWIG_WALLET_ADDRESS=<SWIG_ACCOUNT_ADDRESS>
-SWIG_ROLE_ID=<DELEGATE_ROLE_ID>
-```
-
-Set these on the VPS:
-
-```bash
-SWIG_WALLET_ADDRESS=<SWIG_ACCOUNT_ADDRESS>
-SWIG_DELEGATE_KEYPAIR=/path/to/vre-swig-delegate.json
-SWIG_ROLE_ID=<DELEGATE_ROLE_ID>
-```
-
-Without `SWIG_WALLET_ADDRESS` and `SWIG_DELEGATE_KEYPAIR`, the server keeps the raw keypair fallback path:
-
-```bash
-LIVE_RAFFLE_WALLET=~/.config/solana/esjx.json
-```
-
-Evidence is written to `artifacts/swig_operator_evidence.json` after setup and updated after a successful live raffle replay.
-
-The active policy uses `programLimit` for the VRE program and `solRecurringLimit` for the daily SOL cap. Swig `programScopeRecurringLimit` is target-account scoped in SDK `1.9.1`, so it is not used for the live raffle flow that creates and writes multiple VRE accounts.
+| ProgramConfig admin | `CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y` (operator key, separate from the upgrade authority) |
 
 ## 9) Vanish private payout (optional)
 
