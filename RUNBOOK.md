@@ -185,19 +185,6 @@ solana program show 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
   --url https://api.devnet.solana.com
 ```
 
-### One-time: drop the multisig (if the authority is still a Squads vault)
-
-If the upgrade authority is still the old Squads vault PDA, transfer it to the single
-operator key once (this final action goes through the multisig), then upgrades use the
-single-key flow above:
-
-```bash
-# Executed via the multisig: set-upgrade-authority -> <operator pubkey>
-solana program set-upgrade-authority 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
-  --new-upgrade-authority <operator pubkey> \
-  --url https://api.devnet.solana.com
-```
-
 ### Key addresses
 
 | Name | Address |
