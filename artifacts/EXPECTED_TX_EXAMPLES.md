@@ -6,8 +6,8 @@ All four blessed signatures below were produced on the canonical program and rep
 `verification_result : MATCH` / `verification_reason : OK`. Source of truth:
 `artifacts/outcome_devnet_blessed_signatures.json`.
 
-> Legacy note: an earlier blessed set lived on `9tEram…` (a 608 KB pre-Unicorn-G binary under a
-> Squads multisig). The protocol moved to `6QtLot…` (full feature set, team-held upgrade
+> Legacy note: an earlier blessed set lived on `9tEram…` (a 608 KB pre-Unicorn-G binary whose upgrade
+> authority is a multisig vault). The protocol moved to `6QtLot…` (full feature set, team-held upgrade
 > authority) and all four outcomes were re-blessed there. The old `9tEram` signatures remain
 > valid on that legacy program but are no longer the canonical set.
 

@@ -3,7 +3,7 @@
   "program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
   "rpc_url": "https://api.devnet.solana.com",
   "updated_utc": "2026-07-03T00:00:00Z",
-  "notes": "New canonical program 6QtLot… (full feature set: rng/global-Ω + Sortition + economics + Unicorn-G + conditions; upgrade authority HvVtTyqH…, held by the team). Supersedes legacy 9tEram… (608 KB pre-Unicorn-G binary under a Squads multisig). All four re-blessed on 6QtLot and replay to MATCH.",
+  "notes": "New canonical program 6QtLot… (full feature set: rng/global-Ω + Sortition + economics + Unicorn-G + conditions; upgrade authority HvVtTyqH…, held by the team). Supersedes legacy 9tEram… (608 KB pre-Unicorn-G binary whose upgrade authority is a multisig vault). All four re-blessed on 6QtLot and replay to MATCH.",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",
