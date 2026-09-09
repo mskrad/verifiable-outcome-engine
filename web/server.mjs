@@ -165,7 +165,6 @@ let snapshotHelpersPromise;
 let artifactBuilderPromise;
 let sortitionOpsPromise;
 let conditionsOpsPromise;
-let vanishConfig;
 let partnerConfig;
 
 function loadEnvFile() {
@@ -1086,15 +1085,6 @@ function validateSolanaAddress(value) {
     throw new Error("invalid address");
   }
   return address;
-}
-
-function parseVanishConfig() {
-  const apiKey = String(process.env.VANISH_API_KEY || "").trim();
-  if (!apiKey) return undefined;
-  const amountRaw = String(process.env.VANISH_PAYOUT_LAMPORTS || "100000").trim();
-  const amountLamports = BigInt(amountRaw);
-  if (amountLamports <= 0n) throw new Error("VANISH_PAYOUT_LAMPORTS must be > 0");
-  return { apiKey, amountLamports };
 }
 
 function loadPartnerConfig() {
@@ -2200,33 +2190,6 @@ async function handleLiveRaffle(req, res) {
       };
     }
 
-    if (vanishConfig) {
-      try {
-        const { vanishPayoutRoute: routePayout } = await import(
-          pathToFileURL(path.join(REF_ROOT, "sdk", "vanish.ts")).href
-        );
-        const walletPath =
-          process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET;
-        if (walletPath) {
-          const { Keypair } = await import("@solana/web3.js");
-          const raw = JSON.parse(fs.readFileSync(walletPath, "utf8"));
-          const operatorKeypair = Keypair.fromSecretKey(Uint8Array.from(raw));
-          const payout = await routePayout({
-            apiKey: vanishConfig.apiKey,
-            amountLamports: vanishConfig.amountLamports,
-            winnerAddress: result.outcome,
-            operatorKeypair,
-            rpcUrl,
-          });
-          responseBody.vanish_deposit_tx = payout.depositTx;
-          responseBody.vanish_tx = payout.withdrawTx;
-        }
-      } catch (vanishErr) {
-        console.error("[vanish] payout failed (non-fatal):", vanishErr?.message || vanishErr);
-        responseBody.vanish_error = vanishErr?.message || String(vanishErr);
-      }
-    }
-
     json(res, 200, responseBody);
   } catch (error) {
     if (reservedWorldIdNullifier) {
@@ -3305,7 +3268,6 @@ async function handleApi(req, res, pathname) {
 }
 
 loadEnvFile();
-vanishConfig = parseVanishConfig();
 partnerConfig = loadPartnerConfig();
 loadCommitSlotCache();
 

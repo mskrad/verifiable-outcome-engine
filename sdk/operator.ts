@@ -22,7 +22,6 @@ import {
   deriveResolveRandomness,
 } from "./snapshot.js";
 import { verifyOutcome } from "./verify.js";
-import { vanishPayoutRoute } from "./vanish.js";
 import {
   CHUNK_SIZE,
   DEFAULT_PROGRAM_ID,
@@ -144,19 +143,12 @@ export type ResolveOperatorResult = {
   result_path: string;
 };
 
-export type VanishPayoutOptions = {
-  apiKey: string;
-  amountLamports: bigint;
-  winnerAddress?: string;
-};
-
 export type ResolveInlineOptions = {
   walletPath?: string;
   rpcUrl?: string;
   programId?: string;
   outputDir?: string;
   label?: string;
-  vanishPayout?: VanishPayoutOptions;
 };
 
 export type ResolveInlineResult = {
@@ -171,8 +163,6 @@ export type ResolveInlineResult = {
   programId: string;
   artifactPath: string;
   resultPath: string;
-  vanishDepositTx?: string;
-  vanishWithdrawTx?: string;
 };
 
 function expandHome(inputPath: string): string {
@@ -1093,25 +1083,6 @@ export async function resolveInline(
     artifactPath: base.artifact_path,
     resultPath: base.result_path,
   };
-
-  if (opts.vanishPayout) {
-    const vp = opts.vanishPayout;
-    const winnerAddress = vp.winnerAddress ?? verified.outcome_id;
-    const client = await loadOutcomeClient({
-      rpcUrl,
-      walletPath: opts.walletPath,
-      programId: opts.programId,
-    });
-    const payout = await vanishPayoutRoute({
-      apiKey: vp.apiKey,
-      amountLamports: vp.amountLamports,
-      winnerAddress,
-      operatorKeypair: client.authority.keypair,
-      rpcUrl,
-    });
-    result.vanishDepositTx = payout.depositTx;
-    result.vanishWithdrawTx = payout.withdrawTx;
-  }
 
   return result;
 }
