@@ -120,6 +120,39 @@ pub struct OutcomeResolvedV4 {
 }
 
 #[event]
+/// rng_v2 resolution of a **compact** artifact (fmt 1/2/3/5/8): same prefix as
+/// `OutcomeResolvedV4`, plus the full program-selected winner list. `winner_claim_hash`
+/// is `rng_v2::winner_claim_digest` over that list.
+pub struct OutcomeResolvedV5 {
+    pub runtime_id: [u8; 16],
+    pub resolve_id: u64,
+    pub actor: Pubkey,
+    pub input_lamports: u64,
+    pub total_output_lamports: u64,
+    pub rng_version: u8,
+    pub randomness: [u8; 32],
+    pub compiled_artifact_hash: [u8; 32],
+    pub artifact_format_version: u16,
+    pub winner_count: u16,
+    pub winner_claim_hash: [u8; 32],
+    pub outcome_id_len: u8,
+    pub outcome_id: [u8; MAX_OUTCOME_ID_BYTES],
+    pub effect_count: u16,
+    pub effects_digest: [u8; 32],
+    pub snapshot_hash: [u8; 32],
+    pub resolved_slots: [u64; 3],
+    pub slot_hashes: [[u8; 32]; 3],
+    pub operator_commit_present: bool,
+    pub operator_commit_hash: [u8; 32],
+    pub operator_reveal_len: u8,
+    pub operator_reveal: [u8; 32],
+    pub entropy_source: u8,
+    pub protocol_revision: u8,
+    pub outcome_id_lens: Vec<u8>,
+    pub outcome_ids: Vec<[u8; MAX_OUTCOME_ID_BYTES]>,
+}
+
+#[event]
 pub struct RngV2Sealed {
     pub runtime_id: [u8; 16],
     pub resolve_id: u64,

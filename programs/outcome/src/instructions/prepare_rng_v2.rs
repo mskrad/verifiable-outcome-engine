@@ -142,21 +142,16 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
         sha256(&blob) == artifact.compiled_artifact_hash,
         OutcomeError::InvalidCompiledArtifactHash
     );
-    let parsed = compiled_outcome_v1::parse_snapshot_v4(&blob)?;
+    // INFRA-021: every artifact format (scale fmt 7 or compact fmt 1/2/3/5/8), all
+    // payout-free — v1.3.2 B-2: vault holds only Σ input → expire/expire_sealed always covered.
+    let parsed = compiled_outcome_v1::parse_for_rng_v2(&blob)?;
     require!(
-        parsed.format_version == compiled_outcome_v1::FORMAT_VERSION_V1_2_1_SCALE,
-        OutcomeError::InvalidCompiledArtifactFormat
-    );
-    require!(
-        parsed.min_input_lamports == config.min_input_lamports
-            && parsed.max_input_lamports == config.max_input_lamports,
+        parsed.min_input_lamports() == config.min_input_lamports
+            && parsed.max_input_lamports() == config.max_input_lamports,
         OutcomeError::ArtifactBindingMismatch
     );
-    // v1.3.2 B-2: vault holds only Σ input → expire/expire_sealed always covered.
-    require!(
-        parsed.payout_lamports == 0,
-        OutcomeError::RngV2PayoutMustBeZero
-    );
+    let artifact_format_version = parsed.format_version();
+    let snapshot_hash = parsed.snapshot_hash();
 
     // v1.3.2 PATCH v3.1: snapshot the protocol fee at prepare. The fee is taken out of
     // the stake at attest (vault → treasury), so the stake must cover it. The bounty is
@@ -211,8 +206,8 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
     state.input_lamports = args.input_lamports;
     state.status = RNG_V2_STATUS_PREPARED;
     state.compiled_artifact_hash = config.compiled_artifact_hash;
-    state.artifact_format_version = parsed.format_version;
-    state.snapshot_hash = parsed.snapshot_hash;
+    state.artifact_format_version = artifact_format_version;
+    state.snapshot_hash = snapshot_hash;
     state.target_slots = target_slots;
     state.expiry_slot = expiry_slot;
     state.operator_commit_present = args.operator_commit_present;
@@ -243,7 +238,7 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
         actor: ctx.accounts.actor.key(),
         input_lamports: args.input_lamports,
         compiled_artifact_hash: config.compiled_artifact_hash,
-        snapshot_hash: parsed.snapshot_hash,
+        snapshot_hash,
         target_slots,
         expiry_slot,
         operator_commit_present: args.operator_commit_present,

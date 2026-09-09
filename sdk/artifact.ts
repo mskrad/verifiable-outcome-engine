@@ -81,8 +81,15 @@ function parseLamports(value: LamportsValue | undefined, label: string): bigint 
   throw new TypeError(`${label} must be a bigint or safe integer number`);
 }
 
+// Payout is optional and may be explicitly zero: rng_v2 draws are payout-free (the vault holds
+// only Σ input), so a compact artifact with `payout_lamports: 0` carries zero-amount effects.
+function parsePayoutLamports(value: LamportsValue | undefined, label: string): bigint {
+  if ((typeof value === "bigint" && value === 0n) || value === 0) return 0n;
+  return parseLamports(value, label);
+}
+
 function parseOptionalLamports(value: LamportsValue | undefined, label: string): bigint {
-  return value === undefined ? DEFAULT_PAYOUT_LAMPORTS : parseLamports(value, label);
+  return value === undefined ? DEFAULT_PAYOUT_LAMPORTS : parsePayoutLamports(value, label);
 }
 
 function parseSignedInteger(value: SignedIntegerValue | undefined, label: string): bigint {
@@ -354,7 +361,7 @@ function buildLootConfig(config: LootConfig): W3O1Config {
     return {
       id: validateOutcomeId(raw.id, `outcomes[${index}].id`),
       weight: validateWeight(raw.weight, `outcomes[${index}].weight`),
-      payoutLamports: parseLamports(
+      payoutLamports: parsePayoutLamports(
         raw.payout_lamports as LamportsValue | undefined,
         `outcomes[${index}].payout_lamports`
       ),

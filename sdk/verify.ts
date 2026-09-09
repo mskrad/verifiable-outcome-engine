@@ -183,6 +183,8 @@ type OutcomeResolvedEvent = {
   operatorCommitHash?: Buffer;
   operatorRevealLen?: number;
   operatorReveal?: Buffer;
+  entropySource?: number;
+  protocolRevision?: number;
 };
 
 type RngV2StateAccount = {
@@ -565,6 +567,7 @@ function decodeOutcomeResolvedV4(line: string): OutcomeResolvedEvent | null {
   const operatorCommitHash = readBytes(buf, offset, 32);
   const operatorRevealLen = readU8(buf, offset);
   const operatorReveal = readBytes(buf, offset, 32);
+  const entropySource = offset.value < buf.length ? readU8(buf, offset) : undefined;
 
   return {
     runtimeId,
@@ -591,7 +594,88 @@ function decodeOutcomeResolvedV4(line: string): OutcomeResolvedEvent | null {
     operatorCommitHash,
     operatorRevealLen,
     operatorReveal,
+    ...(entropySource === undefined ? {} : { entropySource }),
   };
+}
+
+// rng_v2 resolution of a compact artifact (fmt 1/2/3/5/8): V4 prefix + entropy/revision +
+// the program-selected winner list. `winner_claim_hash` is the on-chain digest of that list.
+function decodeOutcomeResolvedV5(line: string): OutcomeResolvedEvent | null {
+  if (!line.startsWith("Program data: ")) return null;
+  const encoded = line.slice("Program data: ".length).trim();
+  const buf = Buffer.from(encoded, "base64");
+  const discriminator = anchorEventDiscriminator("OutcomeResolvedV5");
+  if (buf.length < 8 || !buf.subarray(0, 8).equals(discriminator)) return null;
+
+  const offset = { value: 8 };
+  const runtimeId = readBytes(buf, offset, 16);
+  const resolveId = readU64LE(buf, offset);
+  const actor = new PublicKey(readBytes(buf, offset, 32));
+  const inputLamports = readU64LE(buf, offset);
+  const totalOutputLamports = readU64LE(buf, offset);
+  const rngVersion = readU8(buf, offset);
+  const randomness = readBytes(buf, offset, 32);
+  const compiledArtifactHash = readBytes(buf, offset, 32);
+  const artifactFormatVersion = readU16LE(buf, offset);
+  const winnerCount = readU16LE(buf, offset);
+  const winnerClaimHash = readBytes(buf, offset, 32);
+  const outcomeIdLen = readU8(buf, offset);
+  const outcomeId = readBytes(buf, offset, MAX_OUTCOME_ID_BYTES);
+  const effectCount = readU16LE(buf, offset);
+  const effectsDigest = readBytes(buf, offset, 32);
+  const snapshotHash = readBytes(buf, offset, 32);
+  const resolvedSlots = readFixedU64Array(buf, offset, 3);
+  const slotHashes = readFixedHashArray(buf, offset, 3);
+  const operatorCommitPresent = readU8(buf, offset) !== 0;
+  const operatorCommitHash = readBytes(buf, offset, 32);
+  const operatorRevealLen = readU8(buf, offset);
+  const operatorReveal = readBytes(buf, offset, 32);
+  const entropySource = readU8(buf, offset);
+  const protocolRevision = readU8(buf, offset);
+  const outcomeIdLens = readVecU8(buf, offset);
+  const outcomeIds = readVecOutcomeIds(buf, offset);
+
+  return {
+    runtimeId,
+    resolveId,
+    actor,
+    inputLamports,
+    totalOutputLamports,
+    rngVersion,
+    randomness,
+    compiledArtifactHash,
+    artifactFormatVersion,
+    winnerCount,
+    outcomeIdLen,
+    outcomeId,
+    outcomeIdLens,
+    outcomeIds,
+    winnerClaimHash,
+    effectCount,
+    effectsDigest,
+    snapshotHash,
+    resolvedSlots,
+    slotHashes,
+    operatorCommitPresent,
+    operatorCommitHash,
+    operatorRevealLen,
+    operatorReveal,
+    entropySource,
+    protocolRevision,
+  };
+}
+
+// Mirror of `rng_v2::winner_claim_digest`: SHA256(domain ‖ count:u16le ‖ Σ(len:u8 ‖ id[..len])).
+const RNG_V2_WINNERS_DOMAIN = "VRE_RNG_V2_WINNERS";
+export function winnerClaimDigest(outcomeIdLens: number[], outcomeIds: Buffer[]): Buffer {
+  const count = Buffer.alloc(2);
+  count.writeUInt16LE(outcomeIdLens.length, 0);
+  const chunks: Buffer[] = [Buffer.from(RNG_V2_WINNERS_DOMAIN, "ascii"), count];
+  outcomeIdLens.forEach((len, index) => {
+    chunks.push(Buffer.from([len]));
+    chunks.push(outcomeIds[index].subarray(0, len));
+  });
+  return sha256(Buffer.concat(chunks));
 }
 
 function findOutcomeResolvedEvent(
@@ -626,6 +710,7 @@ function findOutcomeResolvedEvent(
     if (stack.length === 0) continue;
     const currentProgramId = stack[stack.length - 1];
     const event =
+      decodeOutcomeResolvedV5(line) ??
       decodeOutcomeResolvedV4(line) ??
       decodeOutcomeResolvedV3(line) ??
       decodeOutcomeResolvedV2(line) ??
@@ -1916,6 +2001,72 @@ async function verifySlot(
   };
 }
 
+function verifyRngV2ResolutionEvidence(
+  outcomeResolutionAccount: { accountName: string },
+  outcomeResolution: Record<string, unknown>,
+  event: OutcomeResolvedEvent
+): void {
+  if (event.rngVersion === RNG_VERSION_V2) {
+    if (outcomeResolutionAccount.accountName !== "OutcomeResolutionV4") {
+      mismatch(
+        "ERR_RNG_V2_RESOLUTION_MISMATCH",
+        "RNG v2 event must be backed by OutcomeResolutionV4"
+      );
+    }
+    const resolutionRngVersion = Number(
+      pick(outcomeResolution, "rng_version", "rngVersion")
+    );
+    const resolutionSnapshotHash = Buffer.from(
+      pick<number[]>(outcomeResolution, "snapshot_hash", "snapshotHash")
+    );
+    const resolutionResolvedSlots = (
+      pick<any[]>(outcomeResolution, "resolved_slots", "resolvedSlots") ?? []
+    ).map(asBigInt);
+    const resolutionSlotHashes = (
+      pick<number[][]>(outcomeResolution, "slot_hashes", "slotHashes") ?? []
+    ).map((hash) => Buffer.from(hash));
+    const eventResolvedSlots = event.resolvedSlots ?? [];
+    const eventSlotHashes = event.slotHashes ?? [];
+    if (
+      resolutionRngVersion !== RNG_VERSION_V2 ||
+      !event.snapshotHash ||
+      !resolutionSnapshotHash.equals(event.snapshotHash) ||
+      resolutionResolvedSlots.length !== eventResolvedSlots.length ||
+      resolutionSlotHashes.length !== eventSlotHashes.length ||
+      resolutionResolvedSlots.some((slot, index) => slot !== eventResolvedSlots[index]) ||
+      resolutionSlotHashes.some((hash, index) => !hash.equals(eventSlotHashes[index]))
+    ) {
+      mismatch(
+        "ERR_RNG_V2_RESOLUTION_MISMATCH",
+        "RNG v2 evidence differs between event and resolution account"
+      );
+    }
+    const resolutionCommitPresent = Boolean(
+      pick(outcomeResolution, "operator_commit_present", "operatorCommitPresent")
+    );
+    const resolutionCommitHash = Buffer.from(
+      pick<number[]>(outcomeResolution, "operator_commit_hash", "operatorCommitHash")
+    );
+    const resolutionRevealLen = Number(
+      pick(outcomeResolution, "operator_reveal_len", "operatorRevealLen")
+    );
+    const resolutionReveal = Buffer.from(
+      pick<number[]>(outcomeResolution, "operator_reveal", "operatorReveal")
+    );
+    if (
+      resolutionCommitPresent !== Boolean(event.operatorCommitPresent) ||
+      !resolutionCommitHash.equals(event.operatorCommitHash ?? Buffer.alloc(32, 0)) ||
+      resolutionRevealLen !== (event.operatorRevealLen ?? 0) ||
+      !resolutionReveal.equals(event.operatorReveal ?? Buffer.alloc(32, 0))
+    ) {
+      mismatch(
+        "ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH",
+        "RNG v2 commit/reveal evidence differs between event and resolution account"
+      );
+    }
+  }
+}
+
 async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promise<VerifyResult> {
   const programId = new PublicKey(opts.programId);
   const connection = new anchor.web3.Connection(opts.rpcUrl, { commitment: "confirmed" });
@@ -2133,13 +2284,10 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   const recomputedRandomness =
     event.rngVersion === RNG_VERSION_V2
       ? (() => {
-          if (!parsedV4) {
-            mismatch(
-              "ERR_RNG_V2_ARTIFACT_UNSUPPORTED",
-              "RNG v2 replay requires a snapshot artifact"
-            );
-          }
-          if (!event.snapshotHash || !event.snapshotHash.equals(parsedV4.snapshotHash)) {
+          // Scale (fmt 7) binds the Merkle snapshot hash; compact artifacts have no snapshot,
+          // the seed is bound to compiled_artifact_hash and the snapshot field is all-zero.
+          const expectedSnapshotHash = parsedV4 ? parsedV4.snapshotHash : Buffer.alloc(32, 0);
+          if (!event.snapshotHash || !event.snapshotHash.equals(expectedSnapshotHash)) {
             mismatch(
               "ERR_RNG_V2_SNAPSHOT_HASH_MISMATCH",
               "RNG v2 snapshot hash differs between event and artifact"
@@ -2166,7 +2314,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
               );
             }
           }
-          return deriveRngV2Randomness(event, parsedV4.snapshotHash);
+          return deriveRngV2Randomness(event, expectedSnapshotHash);
         })()
       : (() => {
           if (!event.masterSeed) {
@@ -2274,65 +2422,7 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
       pick<number[]>(outcomeResolution, "effects_digest", "effectsDigest")
     );
 
-    if (event.rngVersion === RNG_VERSION_V2) {
-      if (outcomeResolutionAccount.accountName !== "OutcomeResolutionV4") {
-        mismatch(
-          "ERR_RNG_V2_RESOLUTION_MISMATCH",
-          "RNG v2 event must be backed by OutcomeResolutionV4"
-        );
-      }
-      const resolutionRngVersion = Number(
-        pick(outcomeResolution, "rng_version", "rngVersion")
-      );
-      const resolutionSnapshotHash = Buffer.from(
-        pick<number[]>(outcomeResolution, "snapshot_hash", "snapshotHash")
-      );
-      const resolutionResolvedSlots = (
-        pick<any[]>(outcomeResolution, "resolved_slots", "resolvedSlots") ?? []
-      ).map(asBigInt);
-      const resolutionSlotHashes = (
-        pick<number[][]>(outcomeResolution, "slot_hashes", "slotHashes") ?? []
-      ).map((hash) => Buffer.from(hash));
-      const eventResolvedSlots = event.resolvedSlots ?? [];
-      const eventSlotHashes = event.slotHashes ?? [];
-      if (
-        resolutionRngVersion !== RNG_VERSION_V2 ||
-        !event.snapshotHash ||
-        !resolutionSnapshotHash.equals(event.snapshotHash) ||
-        resolutionResolvedSlots.length !== eventResolvedSlots.length ||
-        resolutionSlotHashes.length !== eventSlotHashes.length ||
-        resolutionResolvedSlots.some((slot, index) => slot !== eventResolvedSlots[index]) ||
-        resolutionSlotHashes.some((hash, index) => !hash.equals(eventSlotHashes[index]))
-      ) {
-        mismatch(
-          "ERR_RNG_V2_RESOLUTION_MISMATCH",
-          "RNG v2 evidence differs between event and resolution account"
-        );
-      }
-      const resolutionCommitPresent = Boolean(
-        pick(outcomeResolution, "operator_commit_present", "operatorCommitPresent")
-      );
-      const resolutionCommitHash = Buffer.from(
-        pick<number[]>(outcomeResolution, "operator_commit_hash", "operatorCommitHash")
-      );
-      const resolutionRevealLen = Number(
-        pick(outcomeResolution, "operator_reveal_len", "operatorRevealLen")
-      );
-      const resolutionReveal = Buffer.from(
-        pick<number[]>(outcomeResolution, "operator_reveal", "operatorReveal")
-      );
-      if (
-        resolutionCommitPresent !== Boolean(event.operatorCommitPresent) ||
-        !resolutionCommitHash.equals(event.operatorCommitHash ?? Buffer.alloc(32, 0)) ||
-        resolutionRevealLen !== (event.operatorRevealLen ?? 0) ||
-        !resolutionReveal.equals(event.operatorReveal ?? Buffer.alloc(32, 0))
-      ) {
-        mismatch(
-          "ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH",
-          "RNG v2 commit/reveal evidence differs between event and resolution account"
-        );
-      }
-    }
+    verifyRngV2ResolutionEvidence(outcomeResolutionAccount, outcomeResolution, event);
 
     let cleanupSnapshot = () => {};
     try {
@@ -2610,16 +2700,37 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     );
   }
 
-  const resolutionOutcomeIdLens =
+  let resolutionOutcomeIdLens =
     outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
       ? (pick<number[]>(outcomeResolution, "outcome_id_lens", "outcomeIdLens") ?? [])
       : [resolutionOutcomeIdLen];
-  const resolutionOutcomeIds =
+  let resolutionOutcomeIds: Buffer[] =
     outcomeResolutionAccount.accountName === "OutcomeResolutionV2"
       ? (pick<number[][]>(outcomeResolution, "outcome_ids", "outcomeIds") ?? []).map((id) =>
           Buffer.from(id)
         )
       : [resolutionOutcomeId];
+  if (event.rngVersion === RNG_VERSION_V2) {
+    // Compact rng_v2 draw: OutcomeResolutionV4 stores the primary id plus the on-chain digest
+    // of the full program-selected list; the list itself travels in OutcomeResolvedV5.
+    verifyRngV2ResolutionEvidence(outcomeResolutionAccount, outcomeResolution, event);
+    const expectedClaimHash = winnerClaimDigest(selected.outcomeIdLens, selected.outcomeIds);
+    const resolutionWinnerClaimHash = Buffer.from(
+      pick<number[]>(outcomeResolution, "winner_claim_hash", "winnerClaimHash")
+    );
+    if (
+      !event.winnerClaimHash ||
+      !event.winnerClaimHash.equals(expectedClaimHash) ||
+      !resolutionWinnerClaimHash.equals(expectedClaimHash)
+    ) {
+      mismatch(
+        "ERR_WINNER_CLAIM_HASH_MISMATCH",
+        "Winner claim hash differs between event, resolution, and replay recomputation"
+      );
+    }
+    resolutionOutcomeIdLens = selected.outcomeIdLens;
+    resolutionOutcomeIds = selected.outcomeIds;
+  }
   if (
     event.outcomeIdLens.length !== event.winnerCount ||
     event.outcomeIds.length !== event.winnerCount ||
@@ -2709,6 +2820,16 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
     ...(parsed!.formatVersion === FORMAT_VERSION_V3 || parsed!.formatVersion === FORMAT_VERSION_V5
       ? {
           target: signedBigIntToSafeNumber(parsed!.targetScore, "target"),
+        }
+      : {}),
+    ...rngV2ResultFields(event, rngV2State ?? undefined),
+    ...(event.rngVersion === RNG_VERSION_V2 && event.winnerClaimHash
+      ? {
+          winner_claim_hash: event.winnerClaimHash.toString("hex"),
+          entropy_source: event.entropySource === 1 ? "unicorn_g" : "slot_hash",
+          ...(event.protocolRevision === undefined
+            ? {}
+            : { protocol_revision: event.protocolRevision }),
         }
       : {}),
     outcomes: parsed!.outcomes.map((outcome) => ({

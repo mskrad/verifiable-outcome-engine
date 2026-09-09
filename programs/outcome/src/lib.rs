@@ -81,6 +81,20 @@ use instructions::write_compiled_artifact_chunk::{
 
 include!(concat!(env!("OUT_DIR"), "/program_id.rs"));
 
+// INFRA-021: compact rng_v2 draws parse a full 8 KiB outcome table on-chain and the SBF heap
+// is never freed, so 103-entry draws overflow the default 32 KiB frame. With `custom-heap`
+// the runtime's allocator is not installed; ours grows from the bottom (see `heap.rs`) so
+// ordinary transactions keep working unchanged and heavy ones raise the frame with
+// `ComputeBudgetInstruction::request_heap_frame` (≤ 256 KiB).
+pub mod heap;
+
+#[cfg(all(target_os = "solana", feature = "custom-heap"))]
+#[global_allocator]
+static ALLOCATOR: heap::BottomUpBumpAllocator = heap::BottomUpBumpAllocator {
+    start: anchor_lang::solana_program::entrypoint::HEAP_START_ADDRESS as usize,
+    len: 256 * 1024,
+};
+
 #[program]
 pub mod outcome {
     use super::*;

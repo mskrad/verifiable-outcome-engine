@@ -343,6 +343,10 @@ export type VerifyResult = {
   resolved_slots?: string[];
   slot_hashes?: string[];
   operator_commit_hash?: string;
+  // rng_v2 on a compact artifact: on-chain digest of the program-selected winner list.
+  winner_claim_hash?: string;
+  entropy_source?: "slot_hash" | "unicorn_g";
+  protocol_revision?: number;
   snapshot_count?: number;
   snapshot_uri?: string;
   entry_count?: number;

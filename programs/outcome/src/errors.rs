@@ -116,4 +116,6 @@ pub enum OutcomeError {
     InvalidConditionsArtifact,
     #[msg("Vault balance below the max-win exposure for this spin")]
     SlotVaultReserveInsufficient,
+    #[msg("RNG v2 compact draw: winner args must be empty, the program selects winners")]
+    RngV2CompactArgsMustBeEmpty,
 }

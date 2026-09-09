@@ -9,7 +9,9 @@ crate-type = ["cdylib", "lib"]
 name = "outcome"
 
 [features]
-default = []
+# custom-heap: the program defines its own bump allocator (see lib.rs) so callers may raise
+# the heap with ComputeBudget::request_heap_frame — compact rng_v2 draws need more than 32 KB.
+default = ["custom-heap"]
 # Unicorn-G (VDF + on-chain Groth16/alt_bn128 verify) is heavy (~500 KB) and opt-in
 # (trusted-setup pending). Off by default so the canonical binary stays light + deployable.
 unicorn-g = ["dep:solana-bn254"]

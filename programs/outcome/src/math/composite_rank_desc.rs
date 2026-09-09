@@ -290,7 +290,9 @@ pub fn parse(blob: &[u8]) -> Result<ParsedCompositeRankDescArtifact> {
     );
 
     let mut participants = Vec::with_capacity(participant_count as usize);
-    let mut previous_id: Option<Vec<u8>> = None;
+    // Heap-neutral ordering check: remember the previous id as a (start, len) window into
+    // `blob` instead of cloning every id (the SBF bump allocator never frees).
+    let mut previous_id: Option<(usize, usize)> = None;
     let mut seen_orders = std::collections::BTreeSet::new();
     for _ in 0..participant_count {
         let id_len = read_u8(blob, &mut off)? as usize;
@@ -298,15 +300,15 @@ pub fn parse(blob: &[u8]) -> Result<ParsedCompositeRankDescArtifact> {
             (1..=MAX_COMPOSITE_PARTICIPANT_ID_BYTES).contains(&id_len),
             OutcomeError::InvalidOutcomeId
         );
+        let id_start = off;
         let id_bytes = read_bytes(blob, &mut off, MAX_COMPOSITE_PARTICIPANT_ID_BYTES)?;
         ensure_zero(&id_bytes[id_len..])?;
         let id_slice = &id_bytes[..id_len];
         ensure_printable_ascii(id_slice)?;
-        let current_id = id_slice.to_vec();
-        if let Some(previous) = &previous_id {
-            require!(previous < &current_id, OutcomeError::InvalidOutcomeId);
+        if let Some((start, len)) = previous_id {
+            require!(&blob[start..start + len] < id_slice, OutcomeError::InvalidOutcomeId);
         }
-        previous_id = Some(current_id);
+        previous_id = Some((id_start, id_len));
         let order = read_u16_le(blob, &mut off)?;
         require!(
             seen_orders.insert(order),

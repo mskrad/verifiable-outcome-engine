@@ -146,6 +146,24 @@ pub fn resolve_slot_hashes(
     Ok((resolved_slots, slot_hashes))
 }
 
+
+/// Domain separator for the on-chain digest of a compact draw's winner list.
+pub const RNG_V2_WINNERS_DOMAIN: &[u8] = b"VRE_RNG_V2_WINNERS";
+
+/// `winner_claim_hash` for compact draws (INFRA-021 decision D-B): the program selects
+/// the winners and binds the full list into `OutcomeResolutionV4.winner_claim_hash`.
+/// Encoding: SHA256(domain ‖ count:u16le ‖ Σ(len:u8 ‖ id[..len])).
+pub fn winner_claim_digest(outcome_id_lens: &[u8], outcome_ids: &[[u8; 64]]) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(RNG_V2_WINNERS_DOMAIN);
+    hasher.update((outcome_id_lens.len() as u16).to_le_bytes());
+    for (len, id) in outcome_id_lens.iter().zip(outcome_ids.iter()) {
+        hasher.update([*len]);
+        hasher.update(&id[..*len as usize]);
+    }
+    hasher.finalize().into()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -213,6 +231,28 @@ mod tests {
             [
                 12, 255, 242, 121, 68, 204, 238, 124, 73, 130, 53, 72, 140, 174, 75, 80, 55,
                 62, 141, 32, 225, 158, 16, 89, 118, 54, 16, 254, 178, 138, 237, 80
+            ]
+        );
+    }
+
+    #[test]
+    fn winner_claim_digest_matches_reference_vector() {
+        let mut alice = [0u8; 64];
+        alice[..5].copy_from_slice(b"alice");
+        let mut bob = [0u8; 64];
+        bob[..3].copy_from_slice(b"bob");
+        assert_eq!(
+            winner_claim_digest(&[5, 3], &[alice, bob]),
+            [
+                156, 89, 97, 221, 182, 200, 69, 233, 72, 56, 105, 119, 220, 131, 213, 160, 181,
+                38, 66, 129, 154, 12, 85, 224, 183, 121, 158, 68, 254, 69, 227, 60
+            ]
+        );
+        assert_eq!(
+            winner_claim_digest(&[], &[]),
+            [
+                223, 127, 59, 242, 0, 25, 160, 78, 232, 237, 34, 55, 73, 48, 109, 166, 0, 210,
+                24, 232, 157, 210, 13, 45, 68, 251, 135, 143, 17, 100, 42, 30
             ]
         );
     }

@@ -27,6 +27,7 @@ pub mod resolve_outcome_v121;
 pub mod resolve_conditions;
 pub mod resolve_outcome_v4;
 pub mod review_compiled_artifact;
+pub mod rng_v2_winners;
 pub mod seal_randomness;
 #[cfg(feature = "unicorn-g")]
 pub mod seal_randomness_unicorn;
