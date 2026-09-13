@@ -12,22 +12,42 @@ pub const RNG_V2_EXPIRY_AFTER_LAST_TARGET: u64 = 480;
 pub const RNG_V2_ATTEST_DEADLINE_AFTER_EXPIRY: u64 = 480;
 pub const SLOT_HASHES_ENTRY_BYTES: usize = 40;
 
-pub fn derive_target_slots(current_slot: u64) -> Result<([u64; 3], u64)> {
+/// Target offsets for `prepare_rng_v2` draws (INFRA-021, 2026-09-13).
+///
+/// A Solana leader produces `NUM_CONSECUTIVE_LEADER_SLOTS` (4) slots in a row. The prepare
+/// transaction lands in slot N inside some group `[4k, 4k+3]`; `N + 8 >= 4k + 8`, so the first
+/// target is always at least two groups later and the leader that included prepare never
+/// produces a target slot. A step of 8 puts the three targets in three different groups.
+/// The last target matures ~10 s after prepare instead of ~42 s. Sortition keeps
+/// `RNG_V2_TARGET_OFFSETS`: its registration window must stay shorter than the first offset.
+pub const RNG_V2_DRAW_TARGET_OFFSETS: [u64; 3] = [8, 16, 24];
+
+fn target_slots_from(current_slot: u64, offsets: [u64; 3]) -> Result<([u64; 3], u64)> {
     let target_slots = [
         current_slot
-            .checked_add(RNG_V2_TARGET_OFFSETS[0])
+            .checked_add(offsets[0])
             .ok_or(OutcomeError::MathOverflow)?,
         current_slot
-            .checked_add(RNG_V2_TARGET_OFFSETS[1])
+            .checked_add(offsets[1])
             .ok_or(OutcomeError::MathOverflow)?,
         current_slot
-            .checked_add(RNG_V2_TARGET_OFFSETS[2])
+            .checked_add(offsets[2])
             .ok_or(OutcomeError::MathOverflow)?,
     ];
     let expiry_slot = target_slots[2]
         .checked_add(RNG_V2_EXPIRY_AFTER_LAST_TARGET)
         .ok_or(OutcomeError::MathOverflow)?;
     Ok((target_slots, expiry_slot))
+}
+
+/// Sortition and Unicorn-G targets: `RNG_V2_TARGET_OFFSETS`.
+pub fn derive_target_slots(current_slot: u64) -> Result<([u64; 3], u64)> {
+    target_slots_from(current_slot, RNG_V2_TARGET_OFFSETS)
+}
+
+/// `prepare_rng_v2` draw targets: `RNG_V2_DRAW_TARGET_OFFSETS`.
+pub fn derive_draw_target_slots(current_slot: u64) -> Result<([u64; 3], u64)> {
+    target_slots_from(current_slot, RNG_V2_DRAW_TARGET_OFFSETS)
 }
 
 pub fn hash_operator_reveal(reveal: &[u8]) -> [u8; 32] {
@@ -255,5 +275,31 @@ mod tests {
                 24, 232, 157, 210, 13, 45, 68, 251, 135, 143, 17, 100, 42, 30
             ]
         );
+    }
+
+    #[test]
+    fn draw_offsets_avoid_the_including_leader_and_spread_across_groups() {
+        use anchor_lang::solana_program::clock::NUM_CONSECUTIVE_LEADER_SLOTS as LEADER_SLOTS;
+        // solana-slot-hashes 2.2.1: `pub const MAX_ENTRIES: usize = 512`; not re-exported by anchor_lang.
+        const MAX_ENTRIES: usize = 512;
+        for offsets in [RNG_V2_DRAW_TARGET_OFFSETS, RNG_V2_TARGET_OFFSETS] {
+            // First target at least two leader groups after the prepare slot.
+            assert!(offsets[0] >= 2 * LEADER_SLOTS, "{offsets:?}");
+            // Each target in a different leader group from the previous one.
+            assert!(offsets.windows(2).all(|w| w[1] - w[0] >= LEADER_SLOTS), "{offsets:?}");
+            // The first target's hash is still in the SlotHashes sysvar at expiry.
+            assert!(
+                RNG_V2_EXPIRY_AFTER_LAST_TARGET + (offsets[2] - offsets[0]) < MAX_ENTRIES as u64,
+                "{offsets:?}"
+            );
+        }
+        // Worst and best landing positions inside a leader group.
+        for prepare_slot in [4_000u64, 4_003] {
+            let (targets, expiry) = derive_draw_target_slots(prepare_slot).unwrap();
+            let groups: Vec<u64> = targets.iter().map(|slot| slot / LEADER_SLOTS).collect();
+            assert!(groups[0] >= prepare_slot / LEADER_SLOTS + 2);
+            assert!(groups[0] < groups[1] && groups[1] < groups[2]);
+            assert_eq!(expiry, targets[2] + RNG_V2_EXPIRY_AFTER_LAST_TARGET);
+        }
     }
 }

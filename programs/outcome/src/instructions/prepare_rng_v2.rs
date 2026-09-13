@@ -167,7 +167,7 @@ pub fn handler(ctx: Context<PrepareRngV2>, args: PrepareRngV2Args) -> Result<()>
     );
 
     let clock = Clock::get()?;
-    let (target_slots, expiry_slot) = rng_v2::derive_target_slots(clock.slot)?;
+    let (target_slots, expiry_slot) = rng_v2::derive_draw_target_slots(clock.slot)?;
     let attest_deadline_slot = expiry_slot
         .checked_add(rng_v2::RNG_V2_ATTEST_DEADLINE_AFTER_EXPIRY)
         .ok_or(OutcomeError::MathOverflow)?;
