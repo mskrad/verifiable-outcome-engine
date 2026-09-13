@@ -3327,6 +3327,12 @@ if (process.env.RESOLUTIONS_WARM_DISABLED !== "1") {
   setInterval(warmResolutions, RESOLUTIONS_WARM_INTERVAL_MS).unref();
 }
 
+// A promise that rejects with no handler must not take down every draw in flight. Library code
+// can leave one behind (web3.js confirmTransaction does on a 429); log it and keep serving.
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason?.stack || reason);
+});
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   if (url.pathname.startsWith("/api/")) {
