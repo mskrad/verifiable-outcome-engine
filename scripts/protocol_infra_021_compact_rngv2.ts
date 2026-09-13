@@ -109,6 +109,16 @@ async function withRetry<T>(label: string, fn: () => Promise<T>, attempts = 4): 
   throw last;
 }
 
+async function sendIxOnce(client: Client, builder: { instruction: () => Promise<anchor.web3.TransactionInstruction> }): Promise<string> {
+  const ix = await builder.instruction();
+  const tx = new Transaction().add(
+    ComputeBudgetProgram.setComputeUnitLimit({ units: CU_LIMIT }),
+    ComputeBudgetProgram.requestHeapFrame({ bytes: HEAP_FRAME_BYTES }),
+    ix
+  );
+  return client.provider.sendAndConfirm(tx, []);
+}
+
 async function sendIx(client: Client, label: string, builder: { instruction: () => Promise<anchor.web3.TransactionInstruction> }): Promise<string> {
   return withRetry(label, async () => {
     const ix = await builder.instruction();
@@ -365,10 +375,17 @@ async function main(): Promise<void> {
     console.log(`  prepared ${c.id} fmt=${rt.formatVersion} resolve_id=${id} targets=${prepared[prepared.length - 1].targetSlots.join(",")}`);
   }
 
-  // Negative 1: settle before the target slot (v1.2 case, fmt 5).
-  const early = prepared.find((p) => p.c.lifecycle === "v1_2_settle" && p.c.kind === "formula_draw_v5");
+  // Negatives run on dedicated draws so no main-loop case is consumed, and send once without
+  // retries: with draw offsets [8, 16, 24] a retried call can outlive the not-ready window.
   const negatives: any[] = [];
-  if (!skipNegatives && early) negatives.push(await expectFailure("settle_before_target_slot", () => sendIx(client, "neg-early", settleBuilder(client, early.rt, early.id, emptyClaim(early.rt.winnersCount))), "RngV2TargetSlotNotReady"));
+
+  // Negative 1: settle right after prepare, before the target slots exist.
+  if (!skipNegatives) {
+    const c: Case = { id: "neg-early-fmt5", kind: "formula_draw_v5", formula: "weighted_random", winnersCount: 1, lifecycle: "v1_2_settle" };
+    const rt = await createRuntime(client, c, outDir);
+    const id = await prepare(client, rt);
+    negatives.push(await expectFailure("settle_before_target_slot", () => sendIxOnce(client, settleBuilder(client, rt, id, emptyClaim(rt.winnersCount))), "RngV2TargetSlotNotReady"));
+  }
 
   // Negative 2: paying compact artifact rejected at prepare.
   if (!skipNegatives) {
@@ -377,17 +394,20 @@ async function main(): Promise<void> {
     negatives.push(await expectFailure("prepare_rejects_paying_compact_artifact", () => prepare(client, rt), "RngV2PayoutMustBeZero"));
   }
 
+  // Negative 3: caller-supplied winner args on a matured compact draw.
+  if (!skipNegatives) {
+    const c: Case = { id: "neg-args-fmt5", kind: "formula_draw_v5", formula: "weighted_random", winnersCount: 1, lifecycle: "v1_2_settle" };
+    const rt = await createRuntime(client, c, outDir);
+    const id = await prepare(client, rt);
+    const st = await fetchState(client, rt, id);
+    await waitUntilSlot(client, asBigInt(st.targetSlots[2]) + 1n);
+    const bogus: ClaimArgs = { winnerCount: rt.winnersCount, winnerClaimHash: [...Buffer.alloc(32, 1)], outcomeIdLen: 6, outcomeId: [...Buffer.concat([Buffer.from("p_0000"), Buffer.alloc(58)])] };
+    negatives.push(await expectFailure("settle_rejects_caller_winner_args_on_compact", () => sendIxOnce(client, settleBuilder(client, rt, id, bogus)), "RngV2CompactArgsMustBeEmpty"));
+  }
+
   const maxTarget = prepared.reduce((m, p) => (p.targetSlots[2] > m ? p.targetSlots[2] : m), 0n);
   console.log(`[021] waiting for slot ${maxTarget + 1n}`);
   await waitUntilSlot(client, maxTarget + 1n);
-
-  // Negative 3: caller-supplied winner args on a compact draw (v1.2, fmt 5, 1 winner).
-  const argsTarget = prepared.find((x) => x.c.lifecycle === "v1_2_settle" && x.c.id.startsWith("fmt5-weighted_random-w1"));
-  if (!skipNegatives && argsTarget) {
-    const p = argsTarget;
-    const bogus: ClaimArgs = { winnerCount: p.rt.winnersCount, winnerClaimHash: [...Buffer.alloc(32, 1)], outcomeIdLen: 6, outcomeId: [...Buffer.concat([Buffer.from("p_0000"), Buffer.alloc(58)])] };
-    negatives.push(await expectFailure("settle_rejects_caller_winner_args_on_compact", () => sendIx(client, "neg-args", settleBuilder(client, p.rt, p.id, bogus)), "RngV2CompactArgsMustBeEmpty"));
-  }
 
   const rows: any[] = [];
   for (const p of prepared) {
