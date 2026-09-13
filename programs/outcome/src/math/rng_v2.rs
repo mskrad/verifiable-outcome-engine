@@ -16,8 +16,8 @@ pub const SLOT_HASHES_ENTRY_BYTES: usize = 40;
 ///
 /// A Solana leader produces `NUM_CONSECUTIVE_LEADER_SLOTS` (4) slots in a row. The prepare
 /// transaction lands in slot N inside some group `[4k, 4k+3]`; `N + 8 >= 4k + 8`, so the first
-/// target is always at least two groups later and the leader that included prepare never
-/// produces a target slot. A step of 8 puts the three targets in three different groups.
+/// target is at least two groups later and the targets fall in three different leader groups.
+/// Groups are not validators: one validator can still produce several of the hashes (see spec).
 /// The last target matures ~10 s after prepare instead of ~42 s. Sortition keeps
 /// `RNG_V2_TARGET_OFFSETS`: its registration window must stay shorter than the first offset.
 pub const RNG_V2_DRAW_TARGET_OFFSETS: [u64; 3] = [8, 16, 24];

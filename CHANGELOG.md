@@ -35,8 +35,11 @@ Versions live on **two orthogonal axes**; don't conflate them:
   after prepare instead of 42. A Solana leader produces four consecutive slots: the first target
   is always at least two leader groups after the slot that included prepare, and the three targets
   sit in three different groups. A skipped target resolves to the next produced slot after the
-  previous resolved one, so a long run of skipped slots can put two resolved hashes in one group. The longer offset added no protection, because the leader
-  schedule is public an epoch ahead. Sortition keeps `[75, 90, 105]`, since its registration window
+  previous resolved one. Groups are not validators. Measured over 5,000 slots on 2026-09-13, one mainnet
+  validator produced two of the three hashes in 3.1% of draws with 8/16/24 against 2.3% with
+  75/90/105, and never all three; on devnet (12 leaders, 22.5% skipped slots) one validator
+  produced two or more in about 73% of draws whatever the offsets. The first offset itself buys
+  nothing, because the leader schedule is public an epoch ahead. Sortition keeps `[75, 90, 105]`, since its registration window
   must close before the first target. Slot spins keep `[3, 4, 5]`. Verification is unchanged: the
   verifier reads the recorded target slots.
 - **Public draw endpoints resolve through rng_v2 single phase.** `POST /api/examples/draw`,
