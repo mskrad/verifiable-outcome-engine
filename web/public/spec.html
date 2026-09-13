@@ -178,7 +178,7 @@ randomness   = SHA256(master_seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
 <span class="comment"># rng_v2</span>
 <span class="comment"># offsets by path: draws { 8, 16, 24 } · sortition { 75, 90, 105 } · slot spins { 3, 4, 5 }</span>
 target_slots = prepare_slot + offsets
-<span class="comment"># each target resolves to that slot, or the nearest later slot present in SlotHashes</span>
+<span class="comment"># each target resolves to itself, or to the next produced slot after the previous resolved one</span>
 seed         = SHA256("VRE_RNG_V2" ‖ runtime_id ‖ resolve_id_u64le ‖ compiled_artifact_hash
                       ‖ snapshot_hash ‖ (slot_u64le ‖ slot_hash) × 3 [‖ operator_commit_hash])
 randomness   = SHA256(seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
@@ -507,7 +507,7 @@ expiry_slot  = target_slots[2] + 480
             </div>
 
             <h3>Single-phase settle (v1.2) · default</h3>
-            <p><span class="mono">prepare_rng_v2</span> fixes the rules, the stake and three future target slots, 8, 16 and 24 slots ahead. A Solana leader produces four slots in a row, so the first target is always at least two leader groups after the slot that included prepare, and the three targets fall in three different groups. After the last target slot and before expiry, the same operator calls <span class="mono">settle_rng_v2</span>, which reads SlotHashes, derives the randomness, resolves the artifact and writes the resolution. The operator cannot predict the result. It can still choose not to settle; the prepared draw then remains visible on-chain and expires through <span class="mono">expire_rng_v2</span>, which refunds the stake. The public draw endpoints run this path in one request.</p>
+            <p><span class="mono">prepare_rng_v2</span> fixes the rules, the stake and three future target slots, 8, 16 and 24 slots ahead. A Solana leader produces four slots in a row, so the first target is always at least two leader groups after the slot that included prepare, and the three targets fall in three different groups. A skipped target moves to the next produced slot after the previous resolved one, so a long run of skipped slots can put two of the three hashes in one leader group; a devnet draw on 2026-09-13 resolved targets 680, 688, 696 (last digits) to 688, 689, 696 after eight skipped slots. After the last target slot and before expiry, the same operator calls <span class="mono">settle_rng_v2</span>, which reads SlotHashes, derives the randomness, resolves the artifact and writes the resolution. The operator cannot predict the result. It can still choose not to settle; the prepared draw then remains visible on-chain and expires through <span class="mono">expire_rng_v2</span>, which refunds the stake. The public draw endpoints run this path in one request.</p>
 
             <h3>Two-phase seal and attest (v1.3.2)</h3>
             <ol class="spec-step-list">

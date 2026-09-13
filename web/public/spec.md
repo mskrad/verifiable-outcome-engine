@@ -51,7 +51,7 @@ randomness   = SHA256(master_seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
 # rng_v2
 # offsets by path: draws {8, 16, 24} · sortition {75, 90, 105} · slot spins {3, 4, 5}
 target_slots = prepare_slot + offsets
-# each target resolves to that slot, or the nearest later slot present in SlotHashes
+# each target resolves to itself, or to the next produced slot after the previous resolved one
 seed         = SHA256("VRE_RNG_V2" ‖ runtime_id ‖ resolve_id_u64le ‖ compiled_artifact_hash
                       ‖ snapshot_hash ‖ (slot_u64le ‖ slot_hash) × 3 [‖ operator_commit_hash])
 randomness   = SHA256(seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
@@ -309,7 +309,7 @@ Compact artifacts on rng_v2 (`prepare_rng_v2`, `settle_rng_v2`, `attest_winners`
 | B8 | Unicorn-G entropy | Research, not in current build |
 
 ### Single-phase settle (v1.2), default
-`prepare_rng_v2` fixes rules, stake and three future target slots, 8, 16 and 24 slots ahead. A Solana leader produces 4 slots in a row, so the first target is always ≥ 2 leader groups after the slot that included prepare, and the three targets fall in three different groups. After the last target slot and before expiry, the same operator calls `settle_rng_v2`: reads SlotHashes, derives randomness, resolves, writes the resolution. The operator cannot predict the result but can choose not to settle; the prepared draw stays visible and expires via `expire_rng_v2` (stake refunded). The public draw endpoints run this path in one request.
+`prepare_rng_v2` fixes rules, stake and three future target slots, 8, 16 and 24 slots ahead. A Solana leader produces 4 slots in a row, so the first target is always ≥ 2 leader groups after the slot that included prepare, and the three targets fall in three different groups. A skipped target moves to the next produced slot after the previous resolved one, so a long run of skipped slots can put two of the three hashes in one leader group (devnet 2026-09-13: targets …680/…688/…696 resolved to …688/…689/…696 after 8 skipped slots). After the last target slot and before expiry, the same operator calls `settle_rng_v2`: reads SlotHashes, derives randomness, resolves, writes the resolution. The operator cannot predict the result but can choose not to settle; the prepared draw stays visible and expires via `expire_rng_v2` (stake refunded). The public draw endpoints run this path in one request.
 
 ### Two-phase seal and attest (v1.3.2)
 1. prepare: operator opens the draw with a stake and a bounty.

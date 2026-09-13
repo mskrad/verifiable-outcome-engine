@@ -34,7 +34,8 @@ Versions live on **two orthogonal axes**; don't conflate them:
   8, 16 and 24 slots ahead instead of 75, 90 and 105, so a draw's entropy exists about 10 seconds
   after prepare instead of 42. A Solana leader produces four consecutive slots: the first target
   is always at least two leader groups after the slot that included prepare, and the three targets
-  sit in three different groups. The longer offset added no protection, because the leader
+  sit in three different groups. A skipped target resolves to the next produced slot after the
+  previous resolved one, so a long run of skipped slots can put two resolved hashes in one group. The longer offset added no protection, because the leader
   schedule is public an epoch ahead. Sortition keeps `[75, 90, 105]`, since its registration window
   must close before the first target. Slot spins keep `[3, 4, 5]`. Verification is unchanged: the
   verifier reads the recorded target slots.
