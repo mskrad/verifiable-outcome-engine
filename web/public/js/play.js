@@ -476,7 +476,7 @@
       }
       renderLiveRaffle('loading', {
         title: 'Creating your raffle on Solana devnet...',
-        message: 'This takes about 15-45 seconds.',
+        message: 'The rules are committed first, then the winner comes from future Solana slots. Usually under a minute.',
       });
       live = await postJson('/api/live-raffle', {
         address: liveRaffleWallet.address,
@@ -506,8 +506,8 @@
         worldIdStatus = { phase: 'error', message };
       }
       renderLiveRaffle('error', {
-        message: /rate|60/i.test(message)
-          ? 'Please wait 60 seconds between raffles'
+        message: /rate|wait \d+ seconds/i.test(message)
+          ? 'Please wait 10 seconds between raffles'
           : /world id/i.test(message)
           ? message
           : /slow|timeout/i.test(message)

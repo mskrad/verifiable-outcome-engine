@@ -652,7 +652,7 @@
         if (isBusy(runBtn)) return;
         detail.innerHTML = '';
         detail.hidden = true;
-        setBusy(runBtn, out, true, 'Resolving on devnet…');
+        setBusy(runBtn, out, true, 'Committing rules, then waiting for future Solana slots…');
         try {
           var body = Object.assign(
             {
