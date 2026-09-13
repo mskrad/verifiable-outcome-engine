@@ -4,20 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spec · VRE</title>
-  <meta name="description" content="Technical reference for on-chain proof of who won: W3O1 formats, replay semantics, canonical program, and API surface." />
+  <meta name="description" content="Protocol reference for on-chain proof of who won: guarantees, randomness paths, artifact formats, replay rules, reason codes, HTTP API and SDK." />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
-  <meta property="og:title"       content="VRE Spec · Protocol Technical Reference" />
-  <meta property="og:description" content="W3O1 artifact formats, replay semantics, canonical program, and full API surface for Verifiable Outcome Engine on Solana." />
+  <meta property="og:title"       content="VRE Spec · Protocol Reference" />
+  <meta property="og:description" content="Guarantees, randomness paths, artifact formats, replay rules, reason codes, HTTP API and SDK for Verifiable Outcome Engine on Solana devnet." />
   <meta property="og:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
   <meta property="og:url"         content="https://verifiableoutcome.online/spec" />
   <meta property="og:site_name"   content="Verifiable Outcome Engine" />
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="VRE Spec · Protocol Technical Reference" />
-  <meta name="twitter:description" content="W3O1 artifact formats, replay semantics, canonical program, and full API surface for Verifiable Outcome Engine on Solana." />
+  <meta name="twitter:title"       content="VRE Spec · Protocol Reference" />
+  <meta name="twitter:description" content="Guarantees, randomness paths, artifact formats, replay rules, reason codes, HTTP API and SDK for Verifiable Outcome Engine on Solana devnet." />
   <meta name="twitter:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
 
+  <link rel="alternate" type="text/markdown" href="/spec.md" title="VRE spec (Markdown, for agents)" />
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -35,8 +36,7 @@
         </div>
       </a>
 
-      <button class="nav-toggle" type="button" data-nav-toggle
-              aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu" aria-label="Open menu">
         <span class="nav-toggle-bars" aria-hidden="true"></span>
       </button>
 
@@ -61,15 +61,16 @@
 
   <header class="page-head page-head-dense">
     <div class="container">
-      <span class="eyebrow"><span class="dot"></span> W3O1 v1-v3 · technical reference</span>
+      <span class="eyebrow"><span class="dot"></span> Protocol reference · Solana devnet</span>
       <h1 class="page-title">Specification</h1>
-      <p class="lead">Technical reference for on-chain proof of who won: committed W3O1 rules, replay semantics, operator security, and public API surface.</p>
+      <p class="lead">On-chain proof of who won. What a verified result guarantees, how outcomes are resolved, the committed artifact formats, the replay rules and the public API surface.</p>
       <div class="spec-meta-row">
-        <span class="spec-meta-pill">W3O1 v1-v3</span>
         <span class="spec-meta-pill">solana devnet</span>
+        <span class="spec-meta-pill">SDK 0.8.1</span>
+        <span class="spec-meta-pill">rng_v1 · rng_v2</span>
         <span class="spec-meta-pill">SHA-256</span>
-        <span class="spec-meta-pill">ed25519</span>
-        <span class="spec-meta-pill">deterministic replay</span>
+        <span class="spec-meta-pill">replay by signature</span>
+        <a class="spec-meta-pill" href="/spec.md">Markdown for agents</a>
       </div>
     </div>
   </header>
@@ -80,100 +81,45 @@
         <aside class="spec-toc">
           <div class="spec-toc-label">Contents</div>
           <ol class="spec-toc-list">
-            <li><a href="#rules">01 · Rules</a></li>
-            <li><a href="#input">02 · Input Schema</a></li>
-            <li><a href="#determinism">03 · Determinism</a></li>
-            <li><a href="#replay">04 · Replay Process</a></li>
-            <li><a href="#canonical-program">05 · Canonical Program</a></li>
-            <li><a href="#output">06 · Output</a></li>
-            <li><a href="#error-codes">07 · Verification Reason Codes</a></li>
-            <li><a href="#sybil">08 · Sybil-Proof Participants</a></li>
-            <li><a href="#live-raffle">09 · Live Raffle API</a></li>
-            <li><a href="#sdk">10 · SDK</a></li>
-            <li><a href="#partner-api">11 · Partner API</a></li>
-            <li><a href="#w3o1-v3-layout">12 · W3O1 v3 Native Formula Layout</a></li>
-            <li><a href="#use-cases">13 · Use Cases &amp; Integrations</a></li>
-            <li><a href="#resolution-paths">14 · Resolution Paths &amp; Versions</a></li>
+            <li><a href="#overview">01 · Overview</a></li>
+            <li><a href="#resolution-model">02 · Resolution Model</a></li>
+            <li><a href="#formats">03 · Artifact Formats</a></li>
+            <li><a href="#verification">04 · Verification</a></li>
+            <li><a href="#program">05 · Canonical Program</a></li>
+            <li><a href="#paths">06 · Resolution Paths</a></li>
+            <li><a href="#api">07 · HTTP API</a></li>
+            <li><a href="#sdk">08 · SDK</a></li>
+            <li><a href="#use-cases">09 · Use Cases</a></li>
           </ol>
           <div class="spec-toc-foot">
             <a class="btn btn-ghost btn-sm" href="/verify">Open verifier <span aria-hidden>→</span></a>
+            <a class="btn btn-ghost btn-sm" href="/spec.md">spec.md <span aria-hidden>→</span></a>
           </div>
         </aside>
 
         <article class="spec-body">
-          <section id="rules" class="spec-section">
+
+          <!-- ============================================================ 01 -->
+          <section id="overview" class="spec-section">
             <div class="spec-section-num">01</div>
-            <h2>Rules</h2>
-            <p class="lead-sm">VRE commits binary W3O1 artifacts on-chain. The public input object is compiled into one of three currently active artifact families:</p>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">W3O1 v1</td><td class="mono">binary</td><td>Weighted-random single-winner artifacts.</td></tr>
-                  <tr><td class="mono">W3O1 v2</td><td class="mono">binary</td><td>Weighted-random multi-winner artifacts with ordered <span class="mono">outcome_ids</span>.</td></tr>
-                  <tr><td class="mono">W3O1 v3</td><td class="mono">binary</td><td>Native formula artifacts: <span class="mono">weighted_random</span>, <span class="mono">rank_desc</span>, <span class="mono">rank_asc</span>, <span class="mono">first_n</span>, <span class="mono">closest_to</span>.</td></tr>
-                  <tr><td class="mono">runtime_id</td><td class="mono">bytes16 / hex</td><td>Committed runtime identifier emitted in replay output.</td></tr>
-                  <tr><td class="mono">compiled_artifact_hash</td><td class="mono">sha256 hex</td><td>Canonical hash of the compiled bytes bound before resolution.</td></tr>
-                  <tr><td class="mono">outcome_ids</td><td class="mono">string[]</td><td>Selected outputs in deterministic order. Single-winner flows also expose <span class="mono">outcome_id</span>.</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+            <h2>Overview</h2>
+            <p class="lead-sm">VRE commits the rules of an outcome on Solana before the result exists. Anyone can later recompute the result from the transaction signature, using only public RPC data, and compare it with what the program recorded.</p>
 
-          <section id="input" class="spec-section">
-            <div class="spec-section-num">02</div>
-            <h2>Input Schema</h2>
-            <p>The human-facing config stays JSON, but the serialized on-chain contract is W3O1. Public API inputs differ by formula and artifact version.</p>
-            <div class="terminal">
-              <div class="terminal-head">
-                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>formula-config.json</span>
-              </div>
-              <div class="terminal-body">{
-  <span class="key">"formula"</span>: <span class="ok">"closest_to"</span>,
-  <span class="key">"target"</span>: <span class="num">22450</span>,
-  <span class="key">"winners_count"</span>: <span class="num">2</span>,
-  <span class="key">"participants"</span>: [
-    { <span class="key">"id"</span>: <span class="ok">"alice"</span>, <span class="key">"score"</span>: <span class="num">22300</span> },
-    { <span class="key">"id"</span>: <span class="ok">"bob"</span>, <span class="key">"score"</span>: <span class="num">22610</span> },
-    { <span class="key">"id"</span>: <span class="ok">"carol"</span>, <span class="key">"score"</span>: <span class="num">22480</span> }
-  ]
-}</div>
-            </div>
-          </section>
-
-          <section id="determinism" class="spec-section">
-            <div class="spec-section-num">03</div>
-            <h2>Determinism</h2>
-            <p>The kernel is a pure mapping <span class="mono">f(seed, artifact) → outcome_ids</span>. Three guarantees:</p>
+            <h3>What a MATCH proves</h3>
             <ul class="spec-rule-list">
-              <li><b>Referential transparency.</b> Same inputs always yield the same output, forever.</li>
-              <li><b>No hidden state.</b> Replay reads only public RPC data plus the committed W3O1 bytes.</li>
-              <li><b>Platform-neutral.</b> Browser, Node, and on-chain logic agree on weights, scores, stable order, and targets.</li>
+              <li><b>The rules did not change.</b> Participants, weights or scores, formula and winner count are the exact bytes stored on-chain under the committed artifact hash, and that artifact was bound to the runtime before resolution.</li>
+              <li><b>The winners follow from the rules.</b> Replaying the committed bytes with the randomness the program recorded yields the same winners, in the same order.</li>
+              <li><b>The records agree.</b> Input, output, winner count, winner ids and effect digests match across the event, the resolution account and the replay.</li>
             </ul>
-            <p>W3O1 v3 adds deterministic formulas without changing replay semantics: the verifier still reconstructs the exact committed bytes and compares replay output with the resolved transaction.</p>
-          </section>
 
-          <section id="replay" class="spec-section">
-            <div class="spec-section-num">04</div>
-            <h2>Replay Process</h2>
-            <p>Given a transaction signature, the verifier performs:</p>
-            <ol class="spec-step-list">
-              <li>Fetch the transaction from any Solana RPC endpoint.</li>
-              <li>Confirm it invokes the VRE program and is a resolve instruction.</li>
-              <li>Extract <span class="mono">runtime_id</span>, <span class="mono">compiled_artifact_hash</span>, resolution seed, and claimed outputs.</li>
-              <li>Fetch the referenced artifact-binding history; confirm the artifact was committed before resolution.</li>
-              <li>Re-hash the compiled W3O1 bytes and confirm they match the committed artifact hash.</li>
-              <li>Run <span class="mono">f(seed, artifact)</span> locally; compare the replayed outputs with the on-chain record.</li>
-            </ol>
-            <p>For W3O1 v3 responses, replay additionally exposes <span class="mono">resolution_formula</span>, <span class="mono">target</span>, per-outcome score, and stable order. If all checks pass: <span class="mono">MATCH / OK</span>.</p>
-          </section>
+            <h3>What it does not prove</h3>
+            <ul class="spec-rule-list">
+              <li><b>That the list was fair.</b> VRE proves the list did not change after commit, not that it was complete or honest when committed.</li>
+              <li><b>That the operator could not foresee the result on every path.</b> This depends on the randomness source; see <a href="#resolution-model">§02</a>.</li>
+              <li><b>That a prize was paid.</b> Attestation paths prove the winners. Paying them is the integrator's step.</li>
+            </ul>
 
-          <section id="canonical-program" class="spec-section">
-            <div class="spec-section-num">05</div>
-            <h2>Canonical Program</h2>
-            <p>VRE operates a canonical Solana program on devnet. Any developer can integrate against this deployed program without deploying a separate instance.</p>
-
+            <h3>Network</h3>
             <div class="spec-grid-2">
               <div class="spec-kv">
                 <div class="spec-kv-label">Program ID</div>
@@ -182,339 +128,462 @@
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">Cluster</div>
-                <div class="spec-kv-value">Solana devnet (mainnet pending)</div>
+                <div class="spec-kv-value">Solana devnet. Mainnet is a separate, later effort.</div>
               </div>
               <div class="spec-kv">
-                <div class="spec-kv-label">Upgrade authority</div>
-                <div class="spec-kv-value">Single operator key (devnet). Mainnet governance decided separately.</div>
+                <div class="spec-kv-label">Last program deploy</div>
+                <div class="spec-kv-value mono">slot 495662430 · 2026-09-09</div>
+              </div>
+              <div class="spec-kv">
+                <div class="spec-kv-label">SDK</div>
+                <div class="spec-kv-value mono">verifiable-outcome-sdk 0.8.1</div>
               </div>
             </div>
-
-            <h3>ProgramConfig</h3>
-            <p>Global configuration stored in a PDA at seeds <span class="mono">["outcome_program_config"]</span>. <span class="mono">ProgramConfig</span> admin is separate from the program upgrade authority.</p>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">admin</td><td class="mono">Pubkey</td><td>Authority allowed to update config, and the only signer <span class="mono">review_compiled_artifact</span> accepts. Current devnet value: <span class="mono">CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y</span> — an operator key held separately from the program's upgrade authority.</td></tr>
-                  <tr><td class="mono">allow_unreviewed_binding</td><td class="mono">bool</td><td>Whether unreviewed artifacts can be bound.</td></tr>
-                  <tr><td class="mono">fee_lamports</td><td class="mono">u64</td><td>Protocol fee per <span class="mono">resolveOutcome</span> call. Current devnet value: <span class="mono">0</span>.</td></tr>
-                  <tr><td class="mono">treasury</td><td class="mono">Pubkey</td><td>Recipient of protocol fees when <span class="mono">fee_lamports &gt; 0</span>. Current devnet value: <span class="mono">GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm</span>.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>Operator Security</h3>
-            <p>VRE separates two security concerns: who can upgrade the program and who can operate it.</p>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Layer</th><th>Mechanism</th><th>Address</th></tr></thead>
-                <tbody>
-                  <tr><td>Program upgrades</td><td>Single operator upgrade key on devnet. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time.</td><td class="mono">devnet: single operator key</td></tr>
-                  <tr><td>Operator signing</td><td>A single operator key on devnet. It is the <span class="mono">admin</span> in ProgramConfig, which is what lets it review an artifact before binding. It cannot upgrade the program, so a compromised operator host cannot replace the code.</td><td class="mono">CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>Upgrade authority (devnet)</h3>
-            <p>On devnet the program upgrade authority is a single operator key — multisig governance is not used on devnet, as it added ceremony without protecting real value while the protocol iterates. Mainnet governance (multisig / immutable / timelock) is decided separately at mainnet time and is not implied by the devnet setup.</p>
-
-            <h3>Protocol Fee</h3>
-            <p>Each <span class="mono">resolveOutcome</span> call may collect a protocol fee from the calling operator. The transfer happens before resolution; if the operator wallet cannot pay, the transaction fails and no outcome is recorded.</p>
-            <p>Current devnet fee: <span class="mono">0 lamports</span>. The value is configurable through <span class="mono">ProgramConfig.fee_lamports</span> by the program admin without a program upgrade.</p>
-            <p>Verification is always free: <span class="mono">/api/replay</span>, SDK verify, and <span class="mono">verify.html</span> do not require a wallet. Large platforms can deploy a dedicated instance under a partner agreement. <a href="mailto:hello@verifiableoutcome.online">Contact us →</a></p>
+            <p>A plain Markdown copy of this page for agents and tools lives at <a href="/spec.md"><span class="mono">/spec.md</span></a>, indexed from <a href="/llms.txt"><span class="mono">/llms.txt</span></a>.</p>
           </section>
 
-          <section id="output" class="spec-section">
-            <div class="spec-section-num">06</div>
-            <h2>Output</h2>
-            <p>Every <span class="mono">vre verify</span> call returns a stable JSON shape. <span class="mono">winner</span> / <span class="mono">replayed_winner</span> carry the single selected address; <span class="mono">outcome_ids</span> carries the ordered list when outputs &gt; 1.</p>
+          <!-- ============================================================ 02 -->
+          <section id="resolution-model" class="spec-section">
+            <div class="spec-section-num">02</div>
+            <h2>Resolution Model</h2>
+            <p>Every path has the same shape: commit the rules, bind a runtime to them, resolve, replay.</p>
+            <ol class="spec-step-list">
+              <li><b>Commit.</b> <span class="mono">submit_compiled_artifact</span>, <span class="mono">init_compiled_artifact_chunk</span>, <span class="mono">write_compiled_artifact_chunk</span> and <span class="mono">finalize_compiled_artifact</span> store the artifact bytes in chunk accounts keyed by their SHA-256. <span class="mono">review_compiled_artifact</span>, signed by the ProgramConfig admin, approves the artifact for binding.</li>
+              <li><b>Bind.</b> <span class="mono">initialize_outcome_config</span> creates a runtime, identified by <span class="mono">runtime_id</span>, bound to one artifact hash.</li>
+              <li><b>Resolve.</b> One of the paths in <a href="#paths">§06</a> writes an <span class="mono">OutcomeResolution</span> account and emits a resolution event.</li>
+              <li><b>Replay.</b> Any verifier rebuilds the artifact from its chunks, recomputes randomness and winners, and compares them with the records (<a href="#verification">§04</a>).</li>
+            </ol>
+
+            <h3>Randomness sources</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Source</th><th>Where the entropy comes from</th><th>Operator can / cannot</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">rng_v1</td><td>A <span class="mono">master_seed</span> set by the operator when the runtime is created.</td><td>Cannot change the rules or the recorded result. <b>Can</b> compute the result before sending the transaction.</td><td>Legacy. Used by the public demo endpoints today; not planned for mainnet.</td></tr>
+                  <tr><td class="mono">rng_v2 · single phase (v1.2)</td><td>Hashes of three Solana slots fixed at prepare, that do not exist yet.</td><td>Cannot predict the result. Can decline to settle after the slots land; an unsettled draw stays on-chain and expires.</td><td>Canonical. Default.</td></tr>
+                  <tr><td class="mono">rng_v2 · two phase (v1.3.2)</td><td>Same slot hashes; anyone may seal them in.</td><td>Cannot predict and cannot abort: after seal the outcome is fixed, and skipping attest forfeits the stake.</td><td>Canonical. Opt-in per draw.</td></tr>
+                  <tr><td class="mono">Unicorn-G (B8)</td><td>A VDF output verified with Groth16.</td><td>Designed to remove residual validator influence on the seed.</td><td>Research. Not in the current canonical build; see <a href="#paths">§06</a>.</td></tr>
+                </tbody>
+              </table>
+            </div>
 
             <div class="terminal">
               <div class="terminal-head">
                 <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>response.json — single winner</span>
+                <span>randomness derivation</span>
               </div>
-              <div class="terminal-body">{
-  <span class="key">"status"</span>:          <span class="ok">"MATCH"</span>,
-  <span class="key">"code"</span>:            <span class="ok">"OK"</span>,
-  <span class="key">"signature"</span>:       <span class="ok">"5KJp…9vW2"</span>,
-  <span class="key">"cluster"</span>:         <span class="ok">"devnet"</span>,
-  <span class="key">"commit_slot"</span>:     <span class="num">455663125</span>,
-  <span class="key">"resolve_slot"</span>:    <span class="num">455693113</span>,
-  <span class="key">"artifact_hash"</span>:   <span class="ok">"0x14f195…b4d8d"</span>,
-  <span class="key">"winner"</span>:          <span class="ok">"7FHkp…3GnV"</span>,
-  <span class="key">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
-  <span class="key">"elapsed_ms"</span>:      <span class="num">248</span>
-}</div>
-            </div>
+              <div class="terminal-body"><span class="comment"># rng_v1</span>
+randomness   = SHA256(master_seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
 
-            <div class="terminal" style="margin-top:18px;">
-              <div class="terminal-head">
-                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>response.json — multi-winner (outputs: 3)</span>
-              </div>
-              <div class="terminal-body">{
-  <span class="key">"status"</span>:          <span class="ok">"MATCH"</span>,
-  <span class="key">"code"</span>:            <span class="ok">"OK"</span>,
-  <span class="key">"signature"</span>:       <span class="ok">"9XAr…mQ3k"</span>,
-  <span class="key">"winner"</span>:          <span class="ok">"7FHkp…3GnV"</span>,
-  <span class="key">"outcome_ids"</span>:     [<span class="ok">"7FHkp…3GnV"</span>, <span class="ok">"AkB2…vR9t"</span>, <span class="ok">"9PLm…jJ1w"</span>],
-  <span class="key">"replayed_winner"</span>: <span class="ok">"7FHkp…3GnV"</span>,
-  <span class="key">"elapsed_ms"</span>:      <span class="num">261</span>
-}</div>
+<span class="comment"># rng_v2</span>
+target_slots = prepare_slot + { 75, 90, 105 }
+<span class="comment"># each target resolves to that slot, or the nearest later slot present in SlotHashes</span>
+seed         = SHA256("VRE_RNG_V2" ‖ runtime_id ‖ resolve_id_u64le ‖ compiled_artifact_hash
+                      ‖ snapshot_hash ‖ (slot_u64le ‖ slot_hash) × 3 [‖ operator_commit_hash])
+randomness   = SHA256(seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
+expiry_slot  = target_slots[2] + 480
+<span class="comment"># snapshot_hash is 32 zero bytes for compact artifacts</span></div>
+            </div>
+            <p>The resolved slots and slot hashes are written into the resolution account and the event, so replay never needs historical SlotHashes.</p>
+
+            <h3>Which path the public endpoints use today</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Endpoint</th><th>Resolution path</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">POST /api/examples/draw<br>POST /api/partner/draw<br>POST /api/live-raffle</td><td>rng_v1 resolve (<span class="mono">resolve_outcome</span>, <span class="mono">resolve_outcome_v4</span>, <span class="mono">resolve_outcome_v121</span>). Moving these to rng_v2 single phase is in progress.</td></tr>
+                  <tr><td class="mono">POST /api/partner/sortition/seal</td><td>Sortition seal on future slot hashes.</td></tr>
+                  <tr><td class="mono">POST /api/partner/conditions/resolve</td><td><span class="mono">resolve_conditions</span>: deterministic scoring of committed slips against revealed facts. No randomness.</td></tr>
+                </tbody>
+              </table>
             </div>
           </section>
 
-          <section id="error-codes" class="spec-section">
-            <div class="spec-section-num">07</div>
-            <h2>Verification Reason Codes</h2>
-            <p>Every verification returns a specific reason code. <span class="mono">MATCH</span> always carries <span class="mono">OK</span>. Any <span class="mono">MISMATCH</span> carries one of the error codes below.</p>
+          <!-- ============================================================ 03 -->
+          <section id="formats" class="spec-section">
+            <div class="spec-section-num">03</div>
+            <h2>Artifact Formats</h2>
+            <p>Rules are serialized into a binary artifact that starts with the magic <span class="mono">"W3O1"</span> and a <span class="mono">u16</span> format version. All integers are little-endian. An artifact is at most <span class="mono">8,192</span> bytes. Participant ids are printable ASCII, zero-padded to 64 bytes, and strictly ascending by bytes.</p>
+
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>fmt</th><th>Name</th><th>Winners selected by</th><th>Randomness</th><th>Shape</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">1</td><td>W3O1 v1</td><td>Program, from the on-chain table</td><td>rng_v1 · rng_v2</td><td>Weighted single winner, per-outcome SOL effects.</td></tr>
+                  <tr><td class="mono">2</td><td>W3O1 v2</td><td>Program</td><td>rng_v1 · rng_v2</td><td>Weighted multi-winner, without replacement.</td></tr>
+                  <tr><td class="mono">3</td><td>W3O1 v3</td><td>Program</td><td>rng_v1 · rng_v2</td><td>Native formulas with signed scores and stable order.</td></tr>
+                  <tr><td class="mono">4</td><td>Snapshot v4</td><td>Caller claim, checked by snapshot replay</td><td>rng_v1</td><td>Legacy snapshot line.</td></tr>
+                  <tr><td class="mono">5</td><td>Outcome Standard V1.1 compact</td><td>Program</td><td>rng_v1 · rng_v2</td><td>Named entries, one payout per winner, up to 103 entries.</td></tr>
+                  <tr><td class="mono">6</td><td>Outcome Standard V1.2 scale</td><td>Caller claim, snapshot replay</td><td>rng_v1</td><td>Snapshot hash and URI on-chain, list off-chain.</td></tr>
+                  <tr><td class="mono">7</td><td>Outcome Standard V1.2.1 scale</td><td>Caller claim bound by <span class="mono">winner_claim_hash</span>, snapshot and Merkle replay</td><td>rng_v1 · rng_v2</td><td>Large lists off-chain, optional Merkle root on-chain.</td></tr>
+                  <tr><td class="mono">8</td><td>composite_rank_desc</td><td>Program</td><td>rng_v1 · rng_v2 (accepted, not yet in the end-to-end suite)</td><td>Multi-field weighted score, ranked descending.</td></tr>
+                  <tr><td class="mono">9</td><td>Conditions fc7</td><td>Program scores slips against facts</td><td>none</td><td><span class="mono">resolve_conditions</span> only.</td></tr>
+                  <tr><td class="mono">10</td><td>Slot SF1</td><td>Program replays reels</td><td>future slot hashes</td><td><span class="mono">prepare_slot_spin</span> and <span class="mono">settle_slot_spin</span>.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Artifacts resolved through rng_v2 must be payout-free: the header payout and every effect amount are zero. The program then records who won, and the integrator pays.</p>
+
+            <h3>Selection rules</h3>
+            <ul class="spec-rule-list">
+              <li><b>weighted_random.</b> Round <span class="mono">r</span> takes a <span class="mono">u64</span> from the first 8 bytes of the randomness when <span class="mono">r = 0</span>, and from SHA-256 of a domain tag, the randomness and <span class="mono">r</span> otherwise. It selects the entry whose cumulative weight covers <span class="mono">u64 mod total_weight</span> among entries not yet chosen.</li>
+              <li><b>rank_desc.</b> Score descending, ties by <span class="mono">order</span> ascending.</li>
+              <li><b>rank_asc.</b> Score ascending, ties by <span class="mono">order</span> ascending.</li>
+              <li><b>first_n.</b> <span class="mono">order</span> ascending.</li>
+              <li><b>closest_to.</b> <span class="mono">|score − target|</span> ascending, computed in 128 bits, ties by <span class="mono">order</span> ascending.</li>
+              <li><b>Compact winner digest.</b> On rng_v2 the program binds the full winner list as <span class="mono">winner_claim_hash = SHA256("VRE_RNG_V2_WINNERS" ‖ count_u16le ‖ Σ(len_u8 ‖ id_bytes))</span>.</li>
+            </ul>
+
+            <h3>W3O1 v1–v3 layout (fmt 1, 2, 3)</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Header field</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">magic</td><td class="mono">bytes[4]</td><td><span class="mono">"W3O1"</span></td></tr>
+                  <tr><td class="mono">format_version</td><td class="mono">u16</td><td>1, 2 or 3</td></tr>
+                  <tr><td class="mono">min_input_lamports · max_input_lamports</td><td class="mono">u64 · u64</td><td>Must equal the runtime bounds.</td></tr>
+                  <tr><td class="mono">outcome_count · total_effect_count</td><td class="mono">u16 · u16</td><td></td></tr>
+                  <tr><td class="mono">v1: reserved</td><td class="mono">bytes[8]</td><td>Zero. One winner, weighted_random.</td></tr>
+                  <tr><td class="mono">v2: winners_count · reserved</td><td class="mono">u16 · bytes[6]</td><td>weighted_random.</td></tr>
+                  <tr><td class="mono">v3: winners_count · formula_code · reserved · target_score</td><td class="mono">u16 · u8 · bytes[5] · i64</td><td><span class="mono">1</span> weighted_random, <span class="mono">2</span> rank_desc, <span class="mono">3</span> rank_asc, <span class="mono">4</span> first_n, <span class="mono">5</span> closest_to.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Outcome record</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">outcome_id_len · outcome_id</td><td class="mono">u8 · bytes[64]</td><td>Printable ASCII, zero-padded.</td></tr>
+                  <tr><td class="mono">weight</td><td class="mono">u32</td><td>Greater than zero.</td></tr>
+                  <tr><td class="mono">v3 only: score · order</td><td class="mono">i64 · u16</td><td><span class="mono">order</span> values are unique.</td></tr>
+                  <tr><td class="mono">first_effect_index · effect_count</td><td class="mono">u16 · u16</td><td>Slice of the effect table.</td></tr>
+                  <tr><td class="mono">effect</td><td class="mono">u8 · bytes[7] · u64</td><td>Type <span class="mono">1</span> = transfer SOL, reserved zero, amount.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Compact V1.1 layout (fmt 5)</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">magic · format_version</td><td class="mono">bytes[4] · u16</td><td>fmt 5</td></tr>
+                  <tr><td class="mono">min_input_lamports · max_input_lamports</td><td class="mono">u64 · u64</td><td></td></tr>
+                  <tr><td class="mono">winners_count · formula_code · reserved · target_score</td><td class="mono">u16 · u8 · bytes[5] · i64</td><td>48-byte header in total.</td></tr>
+                  <tr><td class="mono">entry_count · payout_lamports</td><td class="mono">u16 · u64</td><td>One payout for every winner.</td></tr>
+                  <tr><td class="mono">entry</td><td class="mono">u8 · bytes[64] · u32 · i64 · u16</td><td><span class="mono">id_len · id · weight · score · order</span>, 79 bytes each.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Scale layout (fmt 6, 7)</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Notes</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">magic · format_version</td><td class="mono">bytes[4] · u16</td><td>fmt 6 or 7</td></tr>
+                  <tr><td class="mono">min_input_lamports · max_input_lamports</td><td class="mono">u64 · u64</td><td></td></tr>
+                  <tr><td class="mono">winners_count · formula_code · flags · reserved</td><td class="mono">u16 · u8 · u8 · bytes[4]</td><td>Flag bit 0: Merkle root present.</td></tr>
+                  <tr><td class="mono">target_score · snapshot_count · payout_lamports</td><td class="mono">i64 · u32 · u64</td><td></td></tr>
+                  <tr><td class="mono">snapshot_hash</td><td class="mono">bytes[32]</td><td>SHA-256 of the canonical snapshot.</td></tr>
+                  <tr><td class="mono">merkle_root</td><td class="mono">bytes[32]</td><td>Only when flag bit 0 is set.</td></tr>
+                  <tr><td class="mono">snapshot_uri_len · snapshot_uri</td><td class="mono">u16 · bytes</td><td>1–512 bytes, no control characters.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Composite, conditions and slot layouts are encoded and replayed by the SDK modules listed in <a href="#sdk">§08</a>.</p>
+          </section>
+
+          <!-- ============================================================ 04 -->
+          <section id="verification" class="spec-section">
+            <div class="spec-section-num">04</div>
+            <h2>Verification</h2>
+            <p>Given a transaction signature and a program ID, the verifier:</p>
+            <ol class="spec-step-list">
+              <li>Fetches the transaction logs and finds the resolution event emitted by that program. Conditions and slot events go to their dedicated replays.</li>
+              <li>Loads the runtime's <span class="mono">OutcomeConfig</span>, the <span class="mono">OutcomeResolution</span>, the <span class="mono">ApprovedOutcomeArtifact</span> header and, for rng_v2, the <span class="mono">RngV2State</span>.</li>
+              <li>Checks the artifact hash is the same in the event, config, resolution and header, and that the artifact is finalized with a status that allows binding.</li>
+              <li>Rebuilds the artifact from its chunk accounts and re-hashes it.</li>
+              <li>Recomputes the randomness: from <span class="mono">master_seed</span> for rng_v1, from the recorded slots and slot hashes for rng_v2, checking any operator reveal against its commitment.</li>
+              <li>Replays winner selection. Compact artifacts replay the on-chain table; scale artifacts fetch the snapshot from its URI and check its hash, count and Merkle root.</li>
+              <li>Compares input, output, winner count, winner ids and their padding, winner digest and effect digest. All equal: <span class="mono">MATCH / OK</span>. Otherwise the first failing check is returned as the reason.</li>
+            </ol>
+
+            <h3>HTTP response</h3>
+            <div class="terminal">
+              <div class="terminal-head">
+                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <span>POST /api/replay · devnet, 2026-09-13</span>
+              </div>
+              <div class="terminal-body">curl -s https://verifiableoutcome.online/api/replay \
+  -H <span class="ok">"content-type: application/json"</span> \
+  -d <span class="ok">'{"signature":"237xT8M5YE9drfMTdJKRCrgbWU6b1pZAB7YPHZkgy8A3pqi8Jtf3TrAVCBaLa6GfXDS5MaMNAEsSkjRyf5aCYEgw"}'</span>
+→ {
+  <span class="key">"ok"</span>: <span class="ok">true</span>,
+  <span class="key">"replay"</span>: {
+    <span class="key">"verification_result"</span>: <span class="ok">"MATCH"</span>,
+    <span class="key">"verification_reason"</span>: <span class="ok">"OK"</span>,
+    <span class="key">"outcome_id"</span>: <span class="ok">"entry_02"</span>,
+    <span class="key">"outcome_ids"</span>: [<span class="ok">"entry_02"</span>, <span class="ok">"entry_03"</span>, <span class="ok">"entry_04"</span>],
+    <span class="key">"winners_count"</span>: <span class="num">3</span>,
+    <span class="key">"artifact_format_version"</span>: <span class="num">5</span>,
+    <span class="key">"resolution_formula"</span>: <span class="ok">"weighted_random"</span>,
+    <span class="key">"runtime_id"</span>: <span class="ok">"64bfee3c3b1bd09d6a6160bd46ed7b82"</span>,
+    <span class="key">"resolve_id"</span>: <span class="ok">"0"</span>,
+    <span class="key">"compiled_artifact_hash"</span>: <span class="ok">"bbd8ea03e8a3dfc00f8e921b88a50941a9d17ead5ddf4f228d8f77cedf3fc0c9"</span>,
+    <span class="key">"program_id"</span>: <span class="ok">"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"</span>,
+    <span class="key">"outcomes"</span>: [ … ]
+  },
+  <span class="key">"stdout"</span>: <span class="ok">"…"</span>, <span class="key">"stderr"</span>: <span class="ok">"…"</span>
+}</div>
+            </div>
+            <p>Request fields: <span class="mono">signature</span> (or <span class="mono">sig</span>) and an optional <span class="mono">programId</span>, which defaults to the canonical program. RPC and local-artifact overrides are disabled on the public host.</p>
+
+            <h3>SDK result</h3>
+            <p><span class="mono">verifyOutcome</span> returns the same data with <span class="mono">status</span> and <span class="mono">reason</span> in place of <span class="mono">verification_result</span> and <span class="mono">verification_reason</span>. Fields appear only when they apply.</p>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Group</th><th>Fields</th></tr></thead>
+                <tbody>
+                  <tr><td>Always</td><td class="mono">status, reason, outcome_id, resolve_id, compiled_artifact_hash, runtime_id, program_id</td></tr>
+                  <tr><td>Winners and rules</td><td class="mono">outcome_ids, winners_count, artifact_format_version, resolution_formula, target, standard_version, entry_count, outcomes[]</td></tr>
+                  <tr><td>rng_v2</td><td class="mono">rng_version, target_slots, resolved_slots, slot_hashes, operator_commit_hash, winner_claim_hash, entropy_source, protocol_revision</td></tr>
+                  <tr><td>Scale snapshot</td><td class="mono">snapshot_hash, snapshot_count, snapshot_uri, merkle_root, irys_url, proof_manifest_url, publication_status</td></tr>
+                  <tr><td>Conditions</td><td class="mono">entrant_count, winning_score_sum, winners_digest, facts_ref_root</td></tr>
+                  <tr><td>Slot spin</td><td class="mono">actor, input_lamports, payout_lamports, raw_win_lamports, reel_stops, randomness, settled_at_slot</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Reason codes</h3>
+            <p><span class="mono">MATCH</span> always carries <span class="mono">OK</span>. A <span class="mono">MISMATCH</span> carries one of these codes.</p>
             <div class="spec-table-wrap">
               <table class="spec-table">
                 <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">OK</td><td>All transaction, account, artifact, randomness, outcome, and effects checks passed.</td></tr>
-                  <tr><td class="mono">ERR_TX_NOT_FOUND_OR_NO_LOGS</td><td>Transaction not found on RPC or its logs are unavailable.</td></tr>
-                  <tr><td class="mono">ERR_PROGRAM_ID_MISMATCH</td><td>The expected program ID was not invoked, or the event came from a different program.</td></tr>
-                  <tr><td class="mono">ERR_EVENT_DISCRIMINATOR_MISMATCH</td><td>Program data was present, but it did not match the expected outcome event format.</td></tr>
-                  <tr><td class="mono">ERR_EVENT_NOT_FOUND_FOR_PROGRAM</td><td>No resolution event was found in logs for the requested program ID.</td></tr>
-                  <tr><td class="mono">ERR_ARTIFACT_CHUNK_MISSING</td><td>One or more committed artifact chunks are missing, unreadable, or inconsistent.</td></tr>
-                  <tr><td class="mono">ERR_OUTCOME_CONFIG_NOT_FOUND</td><td>The derived outcome config account is missing or cannot be decoded.</td></tr>
-                  <tr><td class="mono">ERR_RESOLUTION_ACCOUNT_NOT_FOUND</td><td>The derived outcome resolution account is missing or cannot be decoded.</td></tr>
-                  <tr><td class="mono">ERR_ARTIFACT_HEADER_NOT_FOUND</td><td>The approved artifact header account is missing or cannot be decoded.</td></tr>
-                  <tr><td class="mono">ERR_CONFIG_HASH_MISMATCH</td><td>Config hash does not match the on-chain outcome config account.</td></tr>
-                  <tr><td class="mono">ERR_RESOLUTION_HASH_MISMATCH</td><td>Resolution hash does not match the on-chain resolution account or event identity.</td></tr>
-                  <tr><td class="mono">ERR_ARTIFACT_HASH_MISMATCH</td><td>Compiled artifact hash does not match the committed on-chain artifact value.</td></tr>
-                  <tr><td class="mono">ERR_ARTIFACT_NOT_FINALIZED</td><td>The approved artifact account exists but was not finalized before verification.</td></tr>
-                  <tr><td class="mono">ERR_ARTIFACT_STATUS_INVALID</td><td>The artifact status does not allow binding under current program config.</td></tr>
-                  <tr><td class="mono">ERR_RANDOMNESS_MISMATCH</td><td>Input randomness does not match the recorded on-chain value.</td></tr>
-                  <tr><td class="mono">ERR_INPUT_MISMATCH</td><td>Input lamports differ between the event, account, and replay input.</td></tr>
-                  <tr><td class="mono">ERR_OUTPUT_MISMATCH</td><td>Replayed output does not match the recorded output value.</td></tr>
-                  <tr><td class="mono">ERR_OUTCOME_ID_MISMATCH</td><td>Replayed outcome id does not match the recorded outcome id.</td></tr>
-                  <tr><td class="mono">ERR_EFFECTS_DIGEST_MISMATCH</td><td>Effects count or effects digest does not match.</td></tr>
-                  <tr><td class="mono">ERR_REPLAY_UNHANDLED</td><td>Internal error or unsupported artifact shape during replay.</td></tr>
+                  <tr><td class="mono">OK</td><td>Every transaction, account, artifact, randomness, winner and digest check passed.</td></tr>
+                  <tr><td class="mono">ERR_TX_NOT_FOUND_OR_NO_LOGS</td><td>The RPC could not return the transaction or its logs.</td></tr>
+                  <tr><td class="mono">ERR_PROGRAM_ID_MISMATCH</td><td>The requested program was not invoked, or the event came from another program.</td></tr>
+                  <tr><td class="mono">ERR_EVENT_DISCRIMINATOR_MISMATCH</td><td>Program data was present but is not a supported resolution event.</td></tr>
+                  <tr><td class="mono">ERR_EVENT_NOT_FOUND_FOR_PROGRAM</td><td>No resolution event from the requested program.</td></tr>
+                  <tr><td class="mono">ERR_OUTCOME_CONFIG_NOT_FOUND</td><td>The runtime's <span class="mono">OutcomeConfig</span> is missing or undecodable.</td></tr>
+                  <tr><td class="mono">ERR_RESOLUTION_ACCOUNT_NOT_FOUND</td><td>The <span class="mono">OutcomeResolution</span> account is missing or undecodable.</td></tr>
+                  <tr><td class="mono">ERR_ARTIFACT_HEADER_NOT_FOUND</td><td>The <span class="mono">ApprovedOutcomeArtifact</span> header is missing or undecodable.</td></tr>
+                  <tr><td class="mono">ERR_ARTIFACT_CHUNK_MISSING</td><td>An artifact chunk is missing, unreadable, misplaced or incomplete.</td></tr>
+                  <tr><td class="mono">ERR_CONFIG_HASH_MISMATCH</td><td>The config's artifact hash differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_RESOLUTION_HASH_MISMATCH</td><td>The resolution account's hash, runtime or resolve id differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_ARTIFACT_HASH_MISMATCH</td><td>The header, rebuilt bytes or a supplied file do not hash to the event's artifact hash.</td></tr>
+                  <tr><td class="mono">ERR_ARTIFACT_NOT_FINALIZED</td><td>The artifact was never finalized.</td></tr>
+                  <tr><td class="mono">ERR_ARTIFACT_STATUS_INVALID</td><td>The artifact status does not allow binding under the program config.</td></tr>
+                  <tr><td class="mono">ERR_ARTIFACT_FORMAT_VERSION_MISMATCH</td><td>The format version differs between event, resolution account and artifact bytes.</td></tr>
+                  <tr><td class="mono">ERR_RANDOMNESS_MISMATCH</td><td>Recomputed randomness differs from the event or the resolution account.</td></tr>
+                  <tr><td class="mono">ERR_RNG_V2_EVIDENCE_MISSING</td><td>Resolved slots, slot hashes or commit evidence are missing.</td></tr>
+                  <tr><td class="mono">ERR_RNG_V2_SNAPSHOT_HASH_MISMATCH</td><td>The snapshot hash in the event differs from the artifact, or is not zero for a compact artifact.</td></tr>
+                  <tr><td class="mono">ERR_RNG_V2_STATE_MISMATCH</td><td>The event differs from the prepared <span class="mono">RngV2State</span>.</td></tr>
+                  <tr><td class="mono">ERR_RNG_V2_RESOLUTION_MISMATCH</td><td>rng_v2 evidence differs between the event and the resolution account.</td></tr>
+                  <tr><td class="mono">ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH</td><td>The operator reveal is missing or does not hash to its commitment.</td></tr>
+                  <tr><td class="mono">ERR_INPUT_MISMATCH</td><td>Input lamports differ between event, account and replay.</td></tr>
+                  <tr><td class="mono">ERR_OUTPUT_MISMATCH</td><td>Output lamports differ between event, account and replay.</td></tr>
+                  <tr><td class="mono">ERR_WINNER_COUNT_MISMATCH</td><td>Winner count differs between event, account, artifact and replay.</td></tr>
+                  <tr><td class="mono">ERR_OUTCOME_ID_MISMATCH</td><td>A winner id, its length or its zero padding differs from the replay.</td></tr>
+                  <tr><td class="mono">ERR_WINNER_CLAIM_HASH_MISMATCH</td><td>The recorded winner digest differs from the digest of the replayed winner list.</td></tr>
+                  <tr><td class="mono">ERR_EFFECTS_DIGEST_MISMATCH</td><td>Effect count or effect digest differs from the replay.</td></tr>
+                  <tr><td class="mono">ERR_CONDITIONS_ENTRANT_COUNT_MISMATCH</td><td>Conditions: the entrant count differs from the committed artifact.</td></tr>
+                  <tr><td class="mono">ERR_CONDITIONS_FACTS_ROOT_MISMATCH</td><td>Conditions: the facts root differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_CONDITIONS_SCORE_SUM_MISMATCH</td><td>Conditions: the recomputed winning score sum differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_CONDITIONS_WINNERS_DIGEST_MISMATCH</td><td>Conditions: the recomputed ranking digest differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_SLOT_RANDOMNESS_MISMATCH</td><td>Slot spin: randomness from the frozen slot evidence differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_SLOT_REEL_STOPS_MISMATCH</td><td>Slot spin: replayed reel stops differ from the event.</td></tr>
+                  <tr><td class="mono">ERR_SLOT_WIN_MISMATCH</td><td>Slot spin: the replayed raw win differs from the event.</td></tr>
+                  <tr><td class="mono">ERR_SLOT_PAYOUT_MISMATCH</td><td>Slot spin: <span class="mono">min(raw win, max-win cap)</span> differs from the payout.</td></tr>
+                  <tr><td class="mono">ERR_REPLAY_UNHANDLED</td><td>Internal error or unsupported shape. On the public devnet RPC it can also mean a temporary rate limit: retry after 20–30 seconds before treating it as a failure.</td></tr>
                 </tbody>
               </table>
             </div>
-            <p><a href="https://github.com/mskrad/verifiable-outcome-engine" target="_blank" rel="noopener">Full reference on GitHub →</a></p>
           </section>
 
-          <section id="sybil" class="spec-section">
-            <div class="spec-section-num">08</div>
-            <h2>Sybil-Proof Participants</h2>
-            <p>VRE can optionally require a World ID 4.0 proof before a live raffle is sent on-chain. This blocks one human from entering the same action repeatedly through many wallets, while keeping the core raffle, replay semantics, and blessed signatures unchanged.</p>
+          <!-- ============================================================ 05 -->
+          <section id="program" class="spec-section">
+            <div class="spec-section-num">05</div>
+            <h2>Canonical Program</h2>
+            <p>One program on devnet carries every path. Integrators use it directly; a dedicated instance is possible under a partner agreement.</p>
 
-            <h3>Flow</h3>
+            <div class="spec-grid-2">
+              <div class="spec-kv">
+                <div class="spec-kv-label">Program ID</div>
+                <div class="spec-kv-value mono">6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B</div>
+              </div>
+              <div class="spec-kv">
+                <div class="spec-kv-label">Upgrade authority</div>
+                <div class="spec-kv-value mono">HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava</div>
+              </div>
+              <div class="spec-kv">
+                <div class="spec-kv-label">ProgramConfig admin</div>
+                <div class="spec-kv-value mono">CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y</div>
+              </div>
+              <div class="spec-kv">
+                <div class="spec-kv-label">Treasury</div>
+                <div class="spec-kv-value mono">GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm</div>
+              </div>
+            </div>
+
+            <h3>Key separation</h3>
+            <p>The upgrade authority can replace the code and nothing else. The ProgramConfig admin signs operational calls, including <span class="mono">review_compiled_artifact</span>, and cannot upgrade the program, so a compromised operator host cannot swap the code. Both are single keys on devnet. Mainnet governance is decided separately and is not implied by the devnet setup.</p>
+
+            <h3>ProgramConfig</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Field</th><th>Type</th><th>Devnet value</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">admin</td><td class="mono">Pubkey</td><td class="mono">CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y</td></tr>
+                  <tr><td class="mono">allow_unreviewed_binding</td><td class="mono">bool</td><td class="mono">false</td></tr>
+                  <tr><td class="mono">fee_lamports</td><td class="mono">u64</td><td class="mono">0</td></tr>
+                  <tr><td class="mono">treasury</td><td class="mono">Pubkey</td><td class="mono">GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Account addresses</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Account</th><th>PDA seeds</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">ProgramConfig</td><td class="mono">["outcome_program_config"]</td></tr>
+                  <tr><td class="mono">ApprovedOutcomeArtifact</td><td class="mono">["approved_outcome_artifact", artifact_hash]</td></tr>
+                  <tr><td class="mono">artifact chunk</td><td class="mono">["approved_outcome_artifact_chunk", artifact_hash, index_u32le]</td></tr>
+                  <tr><td class="mono">OutcomeConfig</td><td class="mono">["outcome_config", runtime_id]</td></tr>
+                  <tr><td class="mono">vault</td><td class="mono">["outcome_vault", runtime_id]</td></tr>
+                  <tr><td class="mono">OutcomeResolution</td><td class="mono">["outcome_resolution", runtime_id, resolve_id_u64le]</td></tr>
+                  <tr><td class="mono">RngV2State</td><td class="mono">["rng_v2_state", runtime_id, resolve_id_u64le]</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Protocol fee</h3>
+            <p><span class="mono">fee_lamports</span> is <span class="mono">0</span> on devnet and can be changed by the admin without an upgrade. When set, it is charged by <span class="mono">resolve_outcome*</span> and <span class="mono">settle_rng_v2</span> from the calling operator, snapshotted at <span class="mono">prepare_rng_v2</span> and taken from the stake at <span class="mono">attest_winners</span>, and charged on paid sortition registration. Verification is always free.</p>
+
+            <h3>Instructions</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Group</th><th>Instructions</th></tr></thead>
+                <tbody>
+                  <tr><td>Config and admin</td><td class="mono">initialize_program_config, set_program_config, recover_program_config_admin, admin_pause, admin_withdraw</td></tr>
+                  <tr><td>Artifact commit</td><td class="mono">submit_compiled_artifact, init_compiled_artifact_chunk, write_compiled_artifact_chunk, finalize_compiled_artifact, review_compiled_artifact, initialize_outcome_config</td></tr>
+                  <tr><td>rng_v1 resolve</td><td class="mono">resolve_outcome, resolve_outcome_v4, resolve_outcome_v121, refresh_master_seed</td></tr>
+                  <tr><td>rng_v2</td><td class="mono">prepare_rng_v2, settle_rng_v2, seal_randomness, attest_winners, expire_rng_v2, expire_sealed_rng_v2</td></tr>
+                  <tr><td>Sortition</td><td class="mono">create_sortition_draw, register_sortition_ticket, register_sortition_ticket_paid, seal_sortition_draw, claim_sortition_ticket, init_sortition_economics, close_sortition_ticket, sweep_sortition_tickets</td></tr>
+                  <tr><td>Conditions</td><td class="mono">resolve_conditions</td></tr>
+                  <tr><td>Slot</td><td class="mono">prepare_slot_spin, settle_slot_spin</td></tr>
+                  <tr><td>Unicorn-G (source only)</td><td class="mono">initialize_unicorn_g_config, set_unicorn_g_config, prepare_rng_v2_unicorn, seal_randomness_unicorn</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Compute and heap</h3>
+            <p>rng_v2 <span class="mono">prepare_rng_v2</span>, <span class="mono">settle_rng_v2</span> and <span class="mono">attest_winners</span> on a compact artifact parse the whole outcome table on-chain. Add <span class="mono">ComputeBudgetProgram.requestHeapFrame</span> up to 256 KiB and a compute limit of about 1.4M units. Measured on 103 entries: settle 174k–266k CU, attest 142k–231k CU. Other instructions keep the default 32 KiB heap.</p>
+          </section>
+
+          <!-- ============================================================ 06 -->
+          <section id="paths" class="spec-section">
+            <div class="spec-section-num">06</div>
+            <h2>Resolution Paths</h2>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Version</th><th>Path</th><th>Status on the canonical program</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">rng_v1</td><td>Operator-seed resolve</td><td>Legacy · retained</td></tr>
+                  <tr><td class="mono">v1.2</td><td>Single-phase settle</td><td>Canonical · default</td></tr>
+                  <tr><td class="mono">v1.3.2</td><td>Two-phase seal and attest</td><td>Canonical · opt-in</td></tr>
+                  <tr><td class="mono">2026-09-09</td><td>Compact artifacts on rng_v2</td><td>Canonical</td></tr>
+                  <tr><td class="mono">v1.4.0</td><td>Sortition-by-Claim</td><td>Canonical</td></tr>
+                  <tr><td class="mono">v1.4.1</td><td>Sortition economics</td><td>Canonical</td></tr>
+                  <tr><td class="mono">fc7</td><td>Conditions</td><td>Canonical · attestation only</td></tr>
+                  <tr><td class="mono">SF1</td><td>Slot spins</td><td>Instructions on the canonical program; demo game on its own program</td></tr>
+                  <tr><td class="mono">B8</td><td>Unicorn-G entropy</td><td>Research · not in the current build</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Single-phase settle (v1.2) · default</h3>
+            <p><span class="mono">prepare_rng_v2</span> fixes the rules, the stake and three future target slots. After the last target slot and before expiry, the same operator calls <span class="mono">settle_rng_v2</span>, which reads SlotHashes, derives the randomness, resolves the artifact and writes the resolution. The operator cannot predict the result. It can still choose not to settle; the prepared draw then remains visible on-chain and expires through <span class="mono">expire_rng_v2</span>, which refunds the stake.</p>
+
+            <h3>Two-phase seal and attest (v1.3.2)</h3>
             <ol class="spec-step-list">
-              <li>User connects a wallet on <span class="mono">/play.html</span> and optionally enables Require World ID.</li>
-              <li>Frontend fetches <span class="mono">POST /api/world-id/rp-context</span> and starts a World ID 4.0 request through IDKit with RP signatures.</li>
-              <li>Backend forwards the full IDKit result to <span class="mono">POST https://developer.world.org/api/v4/verify/{rp_id}</span>.</li>
-              <li>Verified nullifier is reserved in-memory before <span class="mono">/api/live-raffle</span> executes and is rolled back if the raffle fails before completion.</li>
-              <li>If World ID is not configured, the existing live raffle path still works without the optional toggle.</li>
+              <li><b>prepare</b> — the operator opens the draw with a stake and a bounty.</li>
+              <li><b>seal</b> — <span class="mono">seal_randomness</span> is permissionless. Once the target slots land, anyone can seal, fixing the outcome and earning the bounty.</li>
+              <li><b>attest</b> — <span class="mono">attest_winners</span>, by the operator or the configured attester, records the resolution, takes the fee and refunds the rest of the stake.</li>
+              <li><b>expire</b> — a never-sealed draw expires and its bounty goes to the treasury; a sealed draw not attested by the deadline, 480 slots after expiry, can be closed by anyone with <span class="mono">expire_sealed_rng_v2</span>.</li>
             </ol>
+            <p>Use it when the operator has an interest in the result and must not be able to back out.</p>
 
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Env var</th><th>Meaning</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">WORLD_APP_ID</td><td>World app identifier (<span class="mono">app_...</span>) returned by the Developer Portal.</td></tr>
-                  <tr><td class="mono">WORLD_RP_ID</td><td>Relying-party identifier (<span class="mono">rp_...</span>) used by the v4 verify endpoint.</td></tr>
-                  <tr><td class="mono">WORLD_RP_SIGNING_KEY</td><td>Server-only RP signing key used to mint short-lived RP signatures.</td></tr>
-                  <tr><td class="mono">WORLD_ACTION_ID</td><td>Action scope for the one-human-per-entry flow. Default: <span class="mono">vre-raffle-entry</span>.</td></tr>
-                  <tr><td class="mono">WORLD_ENVIRONMENT</td><td><span class="mono">staging</span> for simulator/testing or <span class="mono">production</span> for real World App traffic.</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <h3>Compact artifacts on rng_v2</h3>
+            <p>Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects the winners itself, so callers pass empty winner arguments; non-empty ones fail with <span class="mono">RngV2CompactArgsMustBeEmpty</span>. The resolution stores <span class="mono">winner_claim_hash</span> as the digest of the winner list, and the list is emitted in <span class="mono">OutcomeResolvedV5</span>. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit <span class="mono">OutcomeResolvedV4</span>. Both must be payout-free. SDK 0.8.1 verifies these draws; the public draw endpoints do not use this path yet.</p>
 
-            <h3>Evidence Artifact</h3>
-            <p>Public reviewer evidence for this optional integration lives in <span class="mono">artifacts/world_id_evidence.json</span> and records the configured app/RP IDs, action, environment, and a staging nullifier placeholder for the first simulator-backed proof.</p>
+            <h3>Sortition-by-Claim (v1.4.0)</h3>
+            <p>Entrants register <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> before a deadline. <span class="mono">seal_sortition_draw</span> fixes <span class="mono">omega</span> from three future slot hashes. Each entrant claims by revealing the secret and wins when <span class="mono">sha256(secret ‖ omega) &lt; threshold</span>.</p>
+            <ul class="spec-rule-list">
+              <li><b>Cost.</b> A claim uses about 8,200 CU, under the 10k budget.</li>
+              <li><b>Coverage.</b> 5 of 5 negative cases rejected.</li>
+              <li><b>Distribution.</b> 200 draws of 100 tickets with 10 expected winners: mean 9.7, variance 8.76, against a binomial mean of 10 and variance 9.</li>
+            </ul>
+            <p>Winners claim for themselves, so the operator pays nothing per winner. Fits airdrops, allowlists and mass rewards.</p>
 
-            <h3>Wallet check — "Did I Win?"</h3>
-            <p>The <span class="mono">/verify</span> page offers a read-only wallet check through the <a class="text-teal" href="https://github.com/wallet-standard/wallet-standard" target="_blank" rel="noopener">Wallet Standard</a>, so every wallet that implements it is detected — Phantom, Solflare, Backpack, Brave. After connecting, the page compares the connected address against <span class="mono">outcome_ids</span> in the resolved artifact and shows one of three states: <span class="mono">You won</span>, <span class="mono">In the draw — not selected</span>, or <span class="mono">Not in this draw</span>. Nothing is signed — the wallet is read for its address only.</p>
+            <h3>Sortition economics (v1.4.1)</h3>
+            <p>An optional fee layer, byte-compatible with 1.4.0 draws. <span class="mono">fee_mode</span> selects an <span class="mono">entry_fee_lamports</span> at registration and a <span class="mono">close_skim_bps</span> skim at close. <span class="mono">close_split(rent, skim_bps)</span> guarantees <span class="mono">refund + skim == rent</span>. Measured: paid register 18,096 CU, init economics 5,234 CU, close 9,643 CU, sweep of two tickets 18,459 CU; 9 of 9 negative cases rejected.</p>
+
+            <h3>Conditions (fc7)</h3>
+            <p>Scores committed prediction slips, each a set of legs with odds, against revealed match facts, and ranks entrants. The off-chain scorer at <span class="mono">POST /api/conditions/score</span> is byte-identical to on-chain <span class="mono">resolve_conditions</span>, which uses about 15,700 CU. The event <span class="mono">ConditionsResolvedV1</span> carries <span class="mono">winners_digest</span>, <span class="mono">facts_ref_root</span> and <span class="mono">winning_score_sum</span>. VRE proves the ranking; payout stays with the partner.</p>
+
+            <h3>Slot spins (SF1)</h3>
+            <p><span class="mono">prepare_slot_spin</span> binds the player, the bet and the committed game before the entropy exists. <span class="mono">settle_slot_spin</span> derives randomness from future slot hashes, replays the reels from the artifact, applies the max-win cap and pays the bound player from the vault. The public demo game runs on its own devnet program, <span class="mono">6R5n5uPTj1bg4xz6P3xCmVkyorTySbLQQZuENe8SSaKK</span>; verify its spins with the SDK and that program ID.</p>
+
+            <h3>Unicorn-G entropy (B8) · research</h3>
+            <p>An alternative entropy source: a VDF output verified on-chain with an embedded Groth16 verifier. It was measured on devnet in June 2026: seal with verification 247,476 CU, attest 61,466 CU, and a wrong proof rejected as <span class="mono">InvalidUnicornGProof</span>. Its instructions sit behind a build feature and are <b>not included in the current canonical build</b>. A known soundness gap in the circuit and a pending trusted-setup ceremony keep it a research track; it is not planned for mainnet in its current form.</p>
           </section>
 
-          <section id="live-raffle" class="spec-section">
-            <div class="spec-section-num">09</div>
-            <h2>Live Raffle API</h2>
-            <p><span class="mono">POST /api/live-raffle</span> is the single-call path for the <span class="mono">play.html</span> demo. The server commits, resolves, and returns a blessed transaction signature — no operator wallet required from the caller.</p>
+          <!-- ============================================================ 07 -->
+          <section id="api" class="spec-section">
+            <div class="spec-section-num">07</div>
+            <h2>HTTP API</h2>
+            <p>Base URL <span class="mono">https://verifiableoutcome.online</span>. JSON in, JSON out. Draw endpoints sign with the server's operator key, so callers never hold one.</p>
 
+            <h3>Limits and statuses</h3>
             <div class="spec-table-wrap">
               <table class="spec-table">
-                <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+                <thead><tr><th>Limit</th><th>Default</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">address</td><td class="mono">string</td><td>Caller’s Solana address. Entered in the draw pool.</td></tr>
-                  <tr><td class="mono">requireWorldId</td><td class="mono">bool?</td><td>If true, a valid World ID v4 proof is required (see §9). Default: false.</td></tr>
-                  <tr><td class="mono">worldId</td><td class="mono">object?</td><td>Full IDKit proof payload. Required when <span class="mono">requireWorldId</span> is true.</td></tr>
+                  <tr><td>General API, per IP</td><td class="mono">60 requests / 60 s</td></tr>
+                  <tr><td><span class="mono">POST /api/replay</span>, per IP</td><td class="mono">12 requests / 60 s</td></tr>
+                  <tr><td><span class="mono">POST /api/examples/draw</span>, per IP</td><td class="mono">1 draw / 15 s</td></tr>
+                  <tr><td><span class="mono">POST /api/live-raffle</span></td><td class="mono">1 draw / 10 s</td></tr>
+                  <tr><td><span class="mono">POST /api/partner/draw</span>, per key</td><td class="mono">1 draw / 10 s</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Statuses: <span class="mono">200</span> success; <span class="mono">400</span> validation error; <span class="mono">401</span> missing or unknown key; <span class="mono">403</span> key without the needed permission; <span class="mono">429</span> rate limit; <span class="mono">503</span> partner config absent on the host; <span class="mono">504</span> devnet timeout, retry.</p>
+
+            <h3>Public, no key</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">POST /api/replay</td><td class="mono">signature, programId?</td><td>Verdict, see <a href="#verification">§04</a>.</td></tr>
+                  <tr><td class="mono">POST /api/timeline</td><td class="mono">signature, compiledArtifactHash, programId?</td><td class="mono">{ ok, artifact_slot, resolution_slot, gap_slots }</td></tr>
+                  <tr><td class="mono">GET /api/recent-resolutions</td><td class="mono">?limit=</td><td class="mono">{ ok, resolutions: [{ signature, outcome_id, outcome_ids, winners_count, artifact_format_version, resolution_formula, target, verification_result, verification_reason, runtime_id, resolve_id, compiled_artifact_hash, participants_count, commit_slot, resolve_slot, source }] }</td></tr>
+                  <tr><td class="mono">GET /api/blessed-signatures</td><td></td><td class="mono">{ ok, data }</td></tr>
+                  <tr><td class="mono">GET /api/health</td><td></td><td class="mono">{ ok, program_id, rpc, operator: { mode, program_id }, world_id: { enabled, environment, … }, blessed_signatures_count }</td></tr>
+                  <tr><td class="mono">GET /api/spec</td><td></td><td class="mono">{ ok, summary, blessed }</td></tr>
+                  <tr><td class="mono">POST /api/conditions/score</td><td class="mono">fixtures, entrants</td><td>Scores and ranking, see below.</td></tr>
+                  <tr><td class="mono">POST /api/examples/draw</td><td>Same body as partner draw.</td><td>Same response as partner draw. Runs on the server's demo key.</td></tr>
                 </tbody>
               </table>
             </div>
 
+            <h3>Scoring conditions without a key</h3>
             <div class="terminal">
               <div class="terminal-head">
                 <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>request / response</span>
-              </div>
-              <div class="terminal-body"><span class="comment"># Enter the live draw pool</span>
-curl -s https://verifiableoutcome.online/api/live-raffle \
-  -H <span class="ok">"content-type: application/json"</span> \
-  -d <span class="ok">'{"address":"&lt;your-wallet&gt;"}'</span>
-→ {
-  <span class="key">"ok"</span>: <span class="ok">true</span>,
-  <span class="key">"sig"</span>: <span class="ok">"5KJp…9vW2"</span>,
-  <span class="key">"outcome"</span>: <span class="ok">"&lt;winner-address&gt;"</span>,
-  <span class="key">"outcome_id"</span>: <span class="ok">"&lt;winner-address&gt;"</span>,
-  <span class="key">"outcome_ids"</span>: [<span class="ok">"&lt;w1&gt;"</span>, <span class="ok">"&lt;w2&gt;"</span>, …]
-}</div>
-            </div>
-            <p>Rate limited: one call per IP per 60 seconds. The returned <span class="mono">sig</span> is immediately replayable on <span class="mono">/verify</span> or via <span class="mono">POST /api/replay</span>.</p>
-          </section>
-
-          <section id="sdk" class="spec-section">
-            <div class="spec-section-num">10</div>
-            <h2>SDK</h2>
-            <p><span class="mono">verifiable-outcome-sdk</span> is the canonical TypeScript library for building and verifying outcomes. It targets Node ≥ 18 and any modern bundler.</p>
-
-            <h3>install</h3>
-            <div class="terminal">
-              <div class="terminal-body">npm install verifiable-outcome-sdk   <span class="comment"># v0.3.0</span></div>
-            </div>
-
-            <h3>build + verify</h3>
-            <div class="terminal">
-              <div class="terminal-body">import { buildArtifact, verifyOutcome } from <span class="ok">"verifiable-outcome-sdk"</span>;
-
-<span class="comment">// Compile a ruleset into an artifact hash</span>
-const artifact = <span class="key">await</span> buildArtifact({
-  <span class="key">version</span>: <span class="ok">"1.0"</span>,
-  <span class="key">mode</span>:    <span class="ok">"raffle"</span>,
-  <span class="key">participants</span>: [<span class="ok">"Alice"</span>, <span class="ok">"Bob"</span>, <span class="ok">"Carol"</span>],
-  <span class="key">weights</span>:      [<span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>],
-});
-<span class="comment">// → { artifact_hash: "0x…", … }</span>
-
-<span class="comment">// Verify a resolved transaction</span>
-const result = <span class="key">await</span> verifyOutcome({
-  <span class="key">signature</span>: <span class="ok">"5KJp…9vW2"</span>,
-  <span class="key">programId</span>: <span class="ok">"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"</span>,
-});
-<span class="comment">// → { status: "MATCH", code: "OK", winner: "…", … }</span></div>
-            </div>
-            <p>Both functions are pure — no on-chain writes. <span class="mono">buildArtifact</span> runs the same deterministic kernel used by the Solana program. <span class="mono">verifyOutcome</span> fetches the transaction from any public RPC and replays it locally. See <a href="/build">build.html</a> for the full operator integration guide.</p>
-          </section>
-
-          <section id="partner-api" class="spec-section">
-            <div class="spec-section-num">11</div>
-            <h2>Partner API</h2>
-            <p>Two discovery endpoints are gated behind a partner-issued API key. They allow external platforms to query resolution history and check participant outcomes without running their own indexer.</p>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">GET /api/resolutions</td><td class="mono">GET</td><td>Returns the N most recent resolved outcomes on the canonical program. Includes signature, outcome_id, outcome_ids, participants_count, artifact_hash, commit_slot, resolve_slot.</td></tr>
-                  <tr><td class="mono">GET /api/participant</td><td class="mono">GET</td><td>Returns all resolutions where <span class="mono">?address=&lt;wallet&gt;</span> appears in <span class="mono">outcome_ids</span>. Useful for wallet-level "did I ever win?" lookups.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>authentication</h3>
-            <div class="terminal">
-              <div class="terminal-body"><span class="comment"># All partner endpoints require x-api-key header</span>
-curl https://verifiableoutcome.online/api/resolutions \
-  -H <span class="ok">"x-api-key: vresk_&lt;32-hex-chars&gt;"</span>
-
-<span class="comment"># Without a key: 401 Unauthorized</span>
-<span class="comment"># Config absent on host: 503 Partner API not configured</span></div>
-            </div>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Key format</th><th>Storage</th><th>Provisioning</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">vresk_ prefix + 32 hex chars</td><td>Server-side <span class="mono">config/partners.json</span> (not committed). Never sent to the client.</td><td>Issued during partner onboarding. <a href="mailto:hello@verifiableoutcome.online">Contact us →</a></td></tr>
-                </tbody>
-              </table>
-            </div>
-            <p>Partner API endpoints are distinct from the public SDK surface (<span class="mono">/api/replay</span>, <span class="mono">/api/live-raffle</span>). The public endpoints are rate-limited but require no key. Partner endpoints carry higher rate limits and return richer indexer data suitable for dashboards and integrations.</p>
-
-            <p><strong>Sybil detection data feed:</strong> <span class="mono">/api/resolutions</span> and <span class="mono">/api/participant</span> were built as a structured data source for sybil-detection models. A model can observe which wallets appear repeatedly across participant lists, correlate on-chain behavior with resolution outcomes, and use commit-slot vs resolution-slot timing as a signal. These endpoints are the integration point for <strong>Proof of Human Network</strong> — feeding high-quality on-chain participation data into their LLM-based sybil classifier.</p>
-
-            <h3>POST /api/partner/draw</h3>
-            <p>Submit a formula-driven participant list and receive a verifiable on-chain transaction signature. The draw runs against the canonical devnet program using the operator wallet. Requires <span class="mono">"draw_enabled": true</span> in the partner config entry.</p>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">formula</td><td class="mono">string</td><td>Yes</td><td>One of <span class="mono">weighted_random</span>, <span class="mono">rank_desc</span>, <span class="mono">rank_asc</span>, <span class="mono">first_n</span>, <span class="mono">closest_to</span>.</td></tr>
-                  <tr><td class="mono">participants</td><td class="mono">object[]</td><td>Yes</td><td>2–100 unique participant objects. Each item must contain <span class="mono">id</span>; <span class="mono">score</span> and <span class="mono">weight</span> depend on the selected formula.</td></tr>
-                  <tr><td class="mono">winners_count</td><td class="mono">integer</td><td>No</td><td>Number of winners to select (1–10). Defaults to 1. Must be ≤ participants.length.</td></tr>
-                  <tr><td class="mono">target</td><td class="mono">integer</td><td>No*</td><td>Required only for <span class="mono">closest_to</span>. Signed safe integer, usually a pre-scaled score target.</td></tr>
-                  <tr><td class="mono">label</td><td class="mono">string</td><td>No</td><td>Human-readable label for the draw (max 80 chars). Auto-generated if omitted.</td></tr>
-                  <tr><td class="mono">use_case</td><td class="mono">string</td><td>No</td><td>One of <span class="mono">raffle</span>, <span class="mono">airdrop</span>, <span class="mono">competition</span>. Informational only.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Response field</th><th>Type</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">ok</td><td class="mono">boolean</td><td><span class="mono">true</span> on success.</td></tr>
-                  <tr><td class="mono">signature</td><td class="mono">string</td><td>Solana transaction signature of the resolution tx.</td></tr>
-                  <tr><td class="mono">outcome_id</td><td class="mono">string</td><td>Primary selected participant id.</td></tr>
-                  <tr><td class="mono">outcome_ids</td><td class="mono">string[]</td><td>All selected participant ids (length = winners_count).</td></tr>
-                  <tr><td class="mono">replay_url</td><td class="mono">string</td><td>Public verifier URL for independent replay.</td></tr>
-                  <tr><td class="mono">artifact_slot</td><td class="mono">number | null</td><td>Slot when the artifact was committed on-chain (null if lookup failed).</td></tr>
-                  <tr><td class="mono">resolution_slot</td><td class="mono">number | null</td><td>Slot when the resolution tx landed (null if lookup failed).</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p>Rate limit: one draw per partner key per 60 seconds. Exceeding the limit returns HTTP <span class="mono">429</span> with <span class="mono">retry_after_ms</span>.</p>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>HTTP status</th><th>Meaning</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">200</td><td>Draw completed successfully.</td></tr>
-                  <tr><td class="mono">400</td><td>Validation error (bad formula, bad participant ids, duplicates, invalid score / weight / target, invalid winners_count or use_case).</td></tr>
-                  <tr><td class="mono">401</td><td>Missing or unknown API key.</td></tr>
-                  <tr><td class="mono">403</td><td>Valid key but <span class="mono">draw_enabled</span> is not true for this partner.</td></tr>
-                  <tr><td class="mono">429</td><td>Rate limit exceeded; retry after 60 s.</td></tr>
-                  <tr><td class="mono">504</td><td>Devnet timeout; retry.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="terminal">
-              <div class="terminal-head">
-                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>POST /api/partner/draw</span>
-              </div>
-              <div class="terminal-body">curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
-  -H <span class="ok">"Content-Type: application/json"</span> \
-  -H <span class="ok">"x-api-key: vresk_YOUR_KEY"</span> \
-  -d <span class="ok">'{"formula":"closest_to","target":22450,"participants":[{"id":"alice","score":22449},{"id":"bob","score":22460},{"id":"carol","score":22451}],"winners_count":1,"label":"Price Prediction"}'</span>
-
-<span class="comment"># 200 response:</span>
-{
-  <span class="key">"ok"</span>: <span class="ok">true</span>,
-  <span class="key">"signature"</span>: <span class="ok">"5xYz..."</span>,
-  <span class="key">"outcome_id"</span>: <span class="ok">"carol"</span>,
-  <span class="key">"outcome_ids"</span>: [<span class="ok">"carol"</span>],
-  <span class="key">"replay_url"</span>: <span class="ok">"https://verifiableoutcome.online/verify?sig=5xYz..."</span>,
-  <span class="key">"artifact_slot"</span>: <span class="num">340123456</span>,
-  <span class="key">"resolution_slot"</span>: <span class="num">340123512</span>
-}</div>
-            </div>
-
-            <h3 id="conditions-score">POST /api/conditions/score — one-call scoring (public)</h3>
-            <p>The fastest way to integrate: a <b>public, no-key, off-chain</b> endpoint for the <span class="mono">conditions</span> mode (parlay / prediction scoring). Send committed slips (conditions + odds) and proven facts, get back a verifiable per-entrant score <span class="mono">S</span>, the round ranking, per-slip commitment hashes, and the exact fc7 artifact that on-chain <span class="mono">resolve_conditions</span> recomputes to MATCH. Scoring is deterministic and bit-for-bit identical on-chain and off-chain. VRE proves the winner ranking; payout is pro-rata and executed by the partner — <b>no fund custody</b>.</p>
-            <div class="terminal">
-              <div class="terminal-head">
-                <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>curl — one call</span>
+                <span>POST /api/conditions/score</span>
               </div>
               <div class="terminal-body">curl -s -X POST https://verifiableoutcome.online/api/conditions/score \
   -H <span class="ok">"content-type: application/json"</span> -d '{
@@ -529,257 +598,151 @@ curl https://verifiableoutcome.online/api/resolutions \
         {<span class="key">"stat_key_a"</span>:<span class="num">1</span>,<span class="key">"stat_key_b"</span>:<span class="num">2</span>,<span class="key">"op"</span>:<span class="num">1</span>,<span class="key">"comparison"</span>:<span class="num">1</span>,<span class="key">"line_x2"</span>:<span class="num">5</span>,<span class="key">"odds_milli"</span>:<span class="num">1850</span>}
       ]}
   ]
-}'</div>
+}'
+→ { <span class="key">"ok"</span>: <span class="ok">true</span>, <span class="key">"formula"</span>: <span class="ok">"conditions"</span>, <span class="key">"formula_code"</span>: <span class="num">7</span>, <span class="key">"format_version"</span>: <span class="num">9</span>,
+    <span class="key">"winners_count"</span>: <span class="num">1</span>, <span class="key">"winning_score_sum"</span>: <span class="num">39775</span>,
+    <span class="key">"ranking"</span>: [{ <span class="key">"rank"</span>: <span class="num">1</span>, <span class="key">"wallet"</span>: <span class="ok">"HvVt…"</span>, <span class="key">"all_hit"</span>: <span class="ok">true</span>, <span class="key">"score_fixed"</span>: <span class="num">39775</span>, <span class="key">"slip_hash"</span>: <span class="ok">"4dc5…"</span> }],
+    <span class="key">"artifact"</span>: { <span class="key">"hash"</span>: <span class="ok">"a084be42…"</span>, <span class="key">"bytes"</span>: <span class="num">148</span>, <span class="key">"hex"</span>: <span class="ok">"57334f31…"</span> } }</div>
             </div>
+            <p>Leg encoding: <span class="mono">op</span> 1 adds, for totals, and 2 subtracts, for 1x2; <span class="mono">comparison</span> 0 greater, 1 less, 2 equal; <span class="mono">line_x2</span> is the line times two, totals only. For full-match goals <span class="mono">stat_key</span> 1 is side one and 2 is side two.</p>
+
+            <h3>Live raffle with a wallet</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">POST /api/live-raffle</td><td class="mono">address, requireWorldId?, worldId?</td><td class="mono">{ ok, signature, outcome, runtimeId, resolveId, artifactHash, programId, participantCount, world_id? }</td></tr>
+                  <tr><td class="mono">POST /api/world-id/rp-context</td><td></td><td class="mono">{ ok, enabled, …, rp_context }</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>With <span class="mono">requireWorldId</span>, the caller sends a World ID 4.0 proof; the server verifies it and reserves its nullifier, so one human enters once. The public host runs World ID in staging, through the simulator. Wallet pages read only the address through the Wallet Standard and never ask to sign.</p>
+
+            <h3>Partner API</h3>
+            <p>Every partner endpoint takes <span class="mono">x-api-key: vresk_&lt;32 hex&gt;</span>. Keys are issued at onboarding and stored server-side only. Draws additionally require <span class="mono">draw_enabled</span> on the key.</p>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">POST /api/partner/draw</td><td class="mono">formula, participants, winners_count?, target?, label?, use_case?</td><td class="mono">{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot }</td></tr>
+                  <tr><td class="mono">GET /api/partner/draw/:signature/proof</td><td class="mono">?address=</td><td>Membership proof for a scale draw: <span class="mono">included, winner, merkle_root, leaf_hash, proof, proof_status, publication_status, irys_url</span>.</td></tr>
+                  <tr><td class="mono">POST /api/partner/snapshot/init</td><td class="mono">label?, use_case?</td><td>A snapshot session id, valid for 24 hours.</td></tr>
+                  <tr><td class="mono">POST /api/partner/snapshot/chunk</td><td class="mono">session_id, chunk_index, participants</td><td>Up to 5,000 participants per chunk, 2 MB per body.</td></tr>
+                  <tr><td class="mono">POST /api/partner/snapshot/finalize</td><td class="mono">session_id, formula, winners_count, target?</td><td>Resolves a scale draw and returns the signature, winners and snapshot binding, publishing the bundle to Irys when configured.</td></tr>
+                  <tr><td class="mono">POST /api/partner/sortition/draw</td><td class="mono">draw_id?, threshold, registration_duration_slots, claim_duration_slots, unclaimed_rule</td><td>Creates a sortition draw.</td></tr>
+                  <tr><td class="mono">POST /api/partner/sortition/register</td><td class="mono">draw_id, ticket_id, commitment</td><td>Registers a ticket commitment.</td></tr>
+                  <tr><td class="mono">POST /api/partner/sortition/seal</td><td class="mono">draw_id</td><td>Seals <span class="mono">omega</span> from future slot hashes.</td></tr>
+                  <tr><td class="mono">POST /api/partner/sortition/claim</td><td class="mono">draw_id, ticket_id, secret</td><td>Reveals and claims a ticket.</td></tr>
+                  <tr><td class="mono">POST /api/partner/conditions/commit</td><td class="mono">round_id, fixtures, entrants</td><td class="mono">{ commitment_ref, commit_signature, committed_at_slot }</td></tr>
+                  <tr><td class="mono">POST /api/partner/conditions/resolve</td><td class="mono">round_id, fixtures (with stats, event_stat_root)</td><td class="mono">{ signature, verify_url, winners, ranking, winning_score_sum, artifact }</td></tr>
+                  <tr><td class="mono">GET /api/resolutions</td><td class="mono">?limit=</td><td>Recent resolutions on the canonical program.</td></tr>
+                  <tr><td class="mono">GET /api/participant</td><td class="mono">?address=</td><td>Draws where the address participated and whether it won.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3>Partner draw fields</h3>
+            <ul class="spec-rule-list">
+              <li><b>formula.</b> <span class="mono">weighted_random</span>, <span class="mono">rank_desc</span>, <span class="mono">rank_asc</span>, <span class="mono">first_n</span> or <span class="mono">closest_to</span>.</li>
+              <li><b>participants.</b> At least 2 objects with a unique <span class="mono">id</span> of up to 64 printable ASCII bytes, plus <span class="mono">weight</span> or <span class="mono">score</span> as the formula needs. The compact artifact holds about 100 entries; use the snapshot flow above for more.</li>
+              <li><b>winners_count.</b> 1 to 10, not more than the participants.</li>
+              <li><b>target.</b> Required for <span class="mono">closest_to</span>; a signed safe integer.</li>
+              <li><b>use_case.</b> <span class="mono">raffle</span>, <span class="mono">airdrop</span> or <span class="mono">competition</span>; informational.</li>
+              <li><b>Scale mode.</b> <span class="mono">mode: "scale"</span>, <span class="mono">scale: true</span>, <span class="mono">public_proof: true</span> or <span class="mono">standard_version: "1.2"</span> commits a snapshot instead of an inline table.</li>
+            </ul>
+
             <div class="terminal">
               <div class="terminal-head">
                 <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <span>response</span>
+                <span>POST /api/partner/draw</span>
               </div>
-              <div class="terminal-body">{
-  <span class="key">"ok"</span>: <span class="ok">true</span>,
-  <span class="key">"formula"</span>: <span class="ok">"conditions"</span>, <span class="key">"formula_code"</span>: <span class="num">7</span>, <span class="key">"format_version"</span>: <span class="num">9</span>,
-  <span class="key">"winners_count"</span>: <span class="num">1</span>, <span class="key">"winning_score_sum"</span>: <span class="num">39775</span>,
-  <span class="key">"ranking"</span>: [
-    { <span class="key">"rank"</span>: <span class="num">1</span>, <span class="key">"wallet"</span>: <span class="ok">"HvVt…"</span>, <span class="key">"all_hit"</span>: <span class="ok">true</span>, <span class="key">"score"</span>: <span class="num">3.9775</span>, <span class="key">"score_fixed"</span>: <span class="num">39775</span>, <span class="key">"slip_hash"</span>: <span class="ok">"4dc5…"</span> }
-  ],
-  <span class="key">"artifact"</span>: { <span class="key">"hash"</span>: <span class="ok">"a084be42…"</span>, <span class="key">"bytes"</span>: <span class="num">148</span>, <span class="key">"hex"</span>: <span class="ok">"57334f31…"</span> }
-}</div>
-            </div>
-            <p>Leg encoding (partner compiles market labels to these codes): <span class="mono">op</span> — <span class="mono">1</span>=Add (totals), <span class="mono">2</span>=Subtract (1x2); <span class="mono">comparison</span> — <span class="mono">0</span>=GT, <span class="mono">1</span>=LT, <span class="mono">2</span>=EQ; <span class="mono">line_x2</span> = round(line×2), totals only. Full-match goals: <span class="mono">stat_key</span> <span class="mono">1</span>=P1, <span class="mono">2</span>=P2. For an on-chain attestation, the same fc7 artifact is resolved via the canonical program's <span class="mono">resolve_conditions</span> instruction (SDK <span class="mono">sdk/conditions.ts</span>).</p>
-
-            <h3 id="conditions-partner">POST /api/partner/conditions/{commit, resolve} — VRE-operated on-chain (partner key)</h3>
-            <p>When you want the outcome <b>on-chain</b> without running any keys yourself: VRE does all on-chain work with its own key. Two calls, gated by an <span class="mono">x-api-key</span> partner key. Live on the canonical program <span class="mono">6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B</span>.</p>
-            <ul>
-              <li><b><span class="mono">commit</span></b> (at slate open) — anchor the round rules on-chain <i>before</i> the outcome. Body: <span class="mono">{ round_id, fixtures:[{fixture_id}], entrants:[{wallet, tier, entered_at, fixture_index[], legs:[…]}] }</span>. Returns <span class="mono">{ commitment_ref, commit_signature, committed_at_slot }</span>. No facts yet.</li>
-              <li><b><span class="mono">resolve</span></b> (after the match) — reveal facts; VRE builds the full fc7, submits + finalizes + self-reviews + binds an OutcomeConfig + calls <span class="mono">resolve_conditions</span>. Body: <span class="mono">{ round_id, fixtures:[{fixture_id, event_stat_root, stats:[{stat_key, value}]}] }</span>. Returns <span class="mono">{ signature, verify_url, winners, ranking, winning_score_sum, artifact }</span>. Resolve checks that the rules equal the ones committed at <span class="mono">commit</span> (facts cannot change the rules).</li>
-            </ul>
-            <p>The returned <span class="mono">signature</span> replays to <span class="ok">MATCH</span> at <span class="mono">/verify?sig=…</span> — same deterministic scoring as the off-chain endpoint, now attested on-chain. VRE proves the winner ranking; escrow and pro-rata payout stay with the partner — <b>no fund custody</b>.</p>
-
-            <h3>Partner API access</h3>
-            <p>Partner discovery endpoints <span class="mono">GET /api/resolutions</span> and <span class="mono">GET /api/participant</span> are not part of the public SDK surface. They require a partner-issued API key in <span class="mono">x-api-key: vresk_...</span> and are provisioned during partner onboarding.</p>
-            <p>Missing or unknown keys return <span class="mono">401 Unauthorized</span>. If partner config is absent on the host, the endpoints fail closed with <span class="mono">503 Partner API not configured</span>.</p>
-          </section>
-
-          <section id="w3o1-v3-layout" class="spec-section">
-            <div class="spec-section-num">12</div>
-            <h2>W3O1 v3 Native Formula Layout</h2>
-            <p>Formula draws are committed natively inside the artifact bytes. Old v1/v2 artifacts stay valid; v3 adds explicit formula metadata, signed scores, stable input order, and optional target support for <span class="mono">closest_to</span>.</p>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Header field</th><th>Type</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">magic</td><td class="mono">bytes[4]</td><td>Always <span class="mono">"W3O1"</span>.</td></tr>
-                  <tr><td class="mono">format_version</td><td class="mono">u16</td><td><span class="mono">3</span> for formula-native artifacts.</td></tr>
-                  <tr><td class="mono">min_input_lamports / max_input_lamports</td><td class="mono">u64 / u64</td><td>Replay and on-chain input bounds, unchanged from v1/v2.</td></tr>
-                  <tr><td class="mono">outcome_count / effect_count</td><td class="mono">u16 / u16</td><td>Outcome directory and effect directory lengths.</td></tr>
-                  <tr><td class="mono">winners_count</td><td class="mono">u16</td><td>Number of winners to select.</td></tr>
-                  <tr><td class="mono">formula_code</td><td class="mono">u8</td><td><span class="mono">1=weighted_random</span>, <span class="mono">2=rank_desc</span>, <span class="mono">3=rank_asc</span>, <span class="mono">4=first_n</span>, <span class="mono">5=closest_to</span>.</td></tr>
-                  <tr><td class="mono">reserved</td><td class="mono">bytes[5]</td><td>Must be zero.</td></tr>
-                  <tr><td class="mono">target_score</td><td class="mono">i64</td><td>Used by <span class="mono">closest_to</span>; <span class="mono">0</span> otherwise.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Outcome field</th><th>Type</th><th>Description</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">outcome_id_len</td><td class="mono">u8</td><td>Length of the canonical printable-ASCII id.</td></tr>
-                  <tr><td class="mono">outcome_id</td><td class="mono">bytes[64]</td><td>Participant id padded with zeroes.</td></tr>
-                  <tr><td class="mono">weight</td><td class="mono">u32</td><td>Weighted-random weight. For deterministic formulas current API writes <span class="mono">1</span>.</td></tr>
-                  <tr><td class="mono">score</td><td class="mono">i64</td><td>Signed score for ranking / closest formulas; <span class="mono">0</span> when unused.</td></tr>
-                  <tr><td class="mono">order</td><td class="mono">u16</td><td>Stable input order for <span class="mono">first_n</span> and all deterministic tie-breaks.</td></tr>
-                  <tr><td class="mono">first_effect_index / effect_count</td><td class="mono">u16 / u16</td><td>Effect slice for this outcome.</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p>Formula rules: <span class="mono">rank_desc</span> sorts by <span class="mono">score desc</span>, <span class="mono">rank_asc</span> by <span class="mono">score asc</span>, <span class="mono">first_n</span> by <span class="mono">order asc</span>, and <span class="mono">closest_to</span> by <span class="mono">abs(score-target) asc</span>. All deterministic ties break by <span class="mono">order asc</span>.</p>
-
-            <div class="spec-meta-row" style="margin-top:18px;">
-              <a class="btn btn-ghost btn-sm" href="/verify">Try the verifier →</a>
-              <a class="btn btn-ghost btn-sm" href="/build">Read the SDK docs →</a>
-              <a class="btn btn-ghost btn-sm" href="https://github.com/mskrad/verifiable-outcome-engine" target="_blank" rel="noopener">Spec on GitHub ↗</a>
+              <div class="terminal-body">curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
+  -H <span class="ok">"content-type: application/json"</span> \
+  -H <span class="ok">"x-api-key: vresk_YOUR_KEY"</span> \
+  -d <span class="ok">'{"formula":"rank_desc","winners_count":2,"participants":[{"id":"alice","score":10},{"id":"bob","score":30},{"id":"carol","score":20}]}'</span>
+→ { <span class="key">"ok"</span>: <span class="ok">true</span>, <span class="key">"signature"</span>: <span class="ok">"36oi8jNb…"</span>, <span class="key">"outcome_id"</span>: <span class="ok">"bob"</span>, <span class="key">"outcome_ids"</span>: [<span class="ok">"bob"</span>, <span class="ok">"carol"</span>],
+    <span class="key">"replay_url"</span>: <span class="ok">"https://verifiableoutcome.online/verify?sig=36oi8jNb…"</span>, <span class="key">"artifact_slot"</span>: <span class="num">…</span>, <span class="key">"resolution_slot"</span>: <span class="num">…</span> }</div>
             </div>
           </section>
 
+          <!-- ============================================================ 08 -->
+          <section id="sdk" class="spec-section">
+            <div class="spec-section-num">08</div>
+            <h2>SDK</h2>
+            <p><span class="mono">verifiable-outcome-sdk</span> is the TypeScript library for building artifacts and verifying outcomes. It is an ES module for Node 18 and later.</p>
+            <div class="terminal">
+              <div class="terminal-body">npm install verifiable-outcome-sdk   <span class="comment"># 0.8.1</span></div>
+            </div>
+
+            <h3>Verify a transaction</h3>
+            <div class="terminal">
+              <div class="terminal-body">import { verifyOutcome } from <span class="ok">"verifiable-outcome-sdk"</span>;
+
+const result = <span class="key">await</span> verifyOutcome({
+  <span class="key">signature</span>: <span class="ok">"&lt;transaction signature&gt;"</span>,
+  <span class="key">rpcUrl</span>:    <span class="ok">"https://api.devnet.solana.com"</span>,
+  <span class="key">programId</span>: <span class="ok">"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"</span>,
+});
+<span class="comment">// { status: "MATCH", reason: "OK", outcome_id, outcome_ids, … }</span></div>
+            </div>
+
+            <h3>Build an artifact</h3>
+            <div class="terminal">
+              <div class="terminal-body">import { buildArtifact } from <span class="ok">"verifiable-outcome-sdk"</span>;
+
+const bytes = buildArtifact({
+  <span class="key">type</span>: <span class="ok">"formula_draw_v5"</span>,
+  <span class="key">formula</span>: <span class="ok">"rank_desc"</span>,
+  <span class="key">input_lamports</span>: <span class="num">10</span>,
+  <span class="key">payout_lamports</span>: <span class="num">0</span>,
+  <span class="key">winners_count</span>: <span class="num">2</span>,
+  <span class="key">participants</span>: [{ <span class="key">id</span>: <span class="ok">"alice"</span>, <span class="key">score</span>: <span class="num">10</span> }, { <span class="key">id</span>: <span class="ok">"bob"</span>, <span class="key">score</span>: <span class="num">30</span> }],
+});
+<span class="comment">// Buffer with the fmt 5 artifact; its SHA-256 is the compiled_artifact_hash</span></div>
+            </div>
+
+            <h3>Exports</h3>
+            <div class="spec-table-wrap">
+              <table class="spec-table">
+                <thead><tr><th>Area</th><th>Exports</th></tr></thead>
+                <tbody>
+                  <tr><td>Verification</td><td class="mono">verifyOutcome</td></tr>
+                  <tr><td>Artifacts</td><td class="mono">buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121</td></tr>
+                  <tr><td>Snapshots and Merkle</td><td class="mono">buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine</td></tr>
+                  <tr><td>Composite</td><td class="mono">buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact</td></tr>
+                  <tr><td>Sortition</td><td class="mono">createSortitionClient, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers</td></tr>
+                  <tr><td>Conditions and slot</td><td>Scoring, artifact encoders and replay helpers for fc7 and SF1.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>The operator resolve client and an rng_v2 prepare-and-settle client are not in the published package yet.</p>
+          </section>
+
+          <!-- ============================================================ 09 -->
           <section id="use-cases" class="spec-section">
-            <div class="spec-section-num">13</div>
-            <h2>Use Cases &amp; Integrations</h2>
-            <p>Real-world patterns that map directly to W3O1 formulas. Each use case commits rules before resolution — anyone can replay from the transaction signature and confirm the outcome.</p>
-
+            <div class="spec-section-num">09</div>
+            <h2>Use Cases</h2>
             <div class="spec-table-wrap">
               <table class="spec-table">
-                <thead><tr><th>Use case</th><th>Formula</th><th>How it works</th></tr></thead>
+                <thead><tr><th>Use case</th><th>Mechanism</th><th>What is committed before the result</th></tr></thead>
                 <tbody>
-                  <tr>
-                    <td><strong>Raffle / NFT drop</strong></td>
-                    <td class="mono">weighted_random</td>
-                    <td>Each ticket holder is a participant with <span class="mono">weight</span> equal to their ticket count. The artifact commits weights before the draw — no backend can adjust probabilities after the list is published.</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Trading competition</strong></td>
-                    <td class="mono">rank_desc</td>
-                    <td>Participants are registered with their final PnL as <span class="mono">score</span>. Top-N are selected deterministically. Anyone verifies the leaderboard is correct.</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Prediction market / oracle contest</strong></td>
-                    <td class="mono">closest_to</td>
-                    <td>Participants submit predicted values. The <span class="mono">target</span> (e.g. actual price or temperature) is committed alongside scores. Winners are those closest to the target — provably, not just claimed.</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Airdrop (first-come)</strong></td>
-                    <td class="mono">first_n</td>
-                    <td>Participants are ordered by registration timestamp encoded in <span class="mono">order</span>. First N wallets receive the drop. Order is locked on-chain before snapshot.</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Pack break / loot drop</strong></td>
-                    <td class="mono">weighted_random</td>
-                    <td>Each slot in a card pack or loot pool is a weighted outcome. The full slot list and weights are committed before the break — viewers can verify no slot was swapped after the stream started.</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Lowest-bid contest</strong></td>
-                    <td class="mono">rank_asc</td>
-                    <td>Participants submit bids or scores; the lowest value wins. Scores are locked in the artifact — no late entries or score adjustments possible after commit.</td>
-                  </tr>
+                  <tr><td><strong>Raffle or NFT drop</strong></td><td class="mono">weighted_random</td><td>Every ticket holder with a weight equal to their tickets.</td></tr>
+                  <tr><td><strong>Trading competition</strong></td><td class="mono">rank_desc</td><td>Final scores; the top N follow deterministically.</td></tr>
+                  <tr><td><strong>Lowest-bid contest</strong></td><td class="mono">rank_asc</td><td>Bids; no late entries or edits after commit.</td></tr>
+                  <tr><td><strong>Guess the value</strong></td><td class="mono">closest_to</td><td>Guesses and the target value.</td></tr>
+                  <tr><td><strong>First-come airdrop</strong></td><td class="mono">first_n</td><td>Registration order.</td></tr>
+                  <tr><td><strong>Pack break or loot table</strong></td><td class="mono">weighted_random</td><td>Every slot and its weight, before the stream.</td></tr>
+                  <tr><td><strong>Mass airdrop or allowlist</strong></td><td>Sortition</td><td>Ticket commitments; winners claim themselves.</td></tr>
+                  <tr><td><strong>Large leaderboard</strong></td><td>Scale snapshot</td><td>A snapshot hash and Merkle root; each wallet proves inclusion.</td></tr>
+                  <tr><td><strong>Prediction slips</strong></td><td>Conditions</td><td>Every slip with its legs and odds; facts are revealed later.</td></tr>
+                  <tr><td><strong>Slot game</strong></td><td>SF1</td><td>The game math, before each bet's entropy exists.</td></tr>
                 </tbody>
               </table>
             </div>
-
-            <h3 style="margin-top:28px;margin-bottom:12px;font-size:1rem;font-weight:600;letter-spacing:.03em;">Sponsor integrations</h3>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Sponsor</th><th>Role</th><th>Integration</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td><strong>World ID</strong></td>
-                    <td>Sybil resistance</td>
-                    <td>World ID 4.0 proof gating — one wallet per human before raffle entry (pending World App approval)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3 style="margin-top:28px;margin-bottom:12px;font-size:1rem;font-weight:600;letter-spacing:.03em;">Live integrations</h3>
-
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Project</th><th>Use case</th><th>Integration</th></tr></thead>
-                <tbody>
-                  <tr>
-                    <td><strong>Proof of Human</strong></td>
-                    <td>Sybil detection data feed</td>
-                    <td><span class="mono">/api/resolutions</span> + <span class="mono">/api/participant</span> — outcome data feeds into PoH LLM sybil classifier</td>
-                  </tr>
-                  <tr>
-                    <td><strong>NanoCommando</strong></td>
-                    <td>Game leaderboard verification</td>
-                    <td>Partner Draw API — rank_desc pre-commitment for GHOST tier leaderboard (planned)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>GAS Grading</strong></td>
-                    <td>Trading card giveaways &amp; pack breaks</td>
-                    <td>Partner Draw API — weighted_random draws and slot allocation (planned)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>01 Pilot</strong></td>
-                    <td>Agent bounty payout verification</td>
-                    <td>Partner Draw API — pre-committed task criteria before payout selection (planned)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>UZPROOF</strong></td>
-                    <td>Sybil-filter + verifiable selection</td>
-                    <td>UZPROOF filters wallets → VRE selects winner on-chain — end-to-end sybil-proof draw (planned)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>AlphaDex</strong></td>
-                    <td>Trading competition leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard pre-commitment (planned)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Zaebis.xyz</strong></td>
-                    <td>Price prediction contests</td>
-                    <td>Partner Draw API — closest_to outcomes resolved on-chain (planned)</td>
-                  </tr>
-                  <tr>
-                    <td><strong>BharatFeed</strong></td>
-                    <td>Equities leaderboard</td>
-                    <td>Partner Draw API — rank_desc leaderboard resolution (planned)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
             <div class="spec-meta-row" style="margin-top:18px;">
-              <a class="btn btn-ghost btn-sm" href="/play">Try the demo →</a>
-              <a class="btn btn-ghost btn-sm" href="/build">Integration guide →</a>
-            </div>
-          </section>
-
-          <section id="resolution-paths" class="spec-section">
-            <div class="spec-section-num">14</div>
-            <h2>Resolution Paths &amp; Versions</h2>
-            <p class="lead-sm">The protocol carries several resolution paths, all canonical on the one devnet program <span class="mono">6QtLot…</span>. Replay-by-signature stays the <b>default</b>; the others are canonical alternatives selected per draw. Default entropy is SlotHashes — <b>Unicorn-G is opt-in</b>. On 2026-06-25 the whole protocol was promoted to this single canonical program (no separate isolated program).</p>
-            <div class="spec-table-wrap">
-              <table class="spec-table">
-                <thead><tr><th>Version</th><th>Path</th><th>Task</th><th>Status</th></tr></thead>
-                <tbody>
-                  <tr><td class="mono">v1.3.2</td><td>global-Ω resolve / replay-by-signature</td><td class="mono">—</td><td>canonical · default</td></tr>
-                  <tr><td class="mono">v1.4.0</td><td>Sortition-by-Claim</td><td class="mono">PROTOCOL-INFRA-011</td><td>canonical</td></tr>
-                  <tr><td class="mono">v1.4.1</td><td>Sortition economics (fee layer)</td><td class="mono">PROTOCOL-INFRA-013</td><td>canonical</td></tr>
-                  <tr><td class="mono">B8</td><td>Unicorn-G entropy source</td><td class="mono">PROTOCOL-INFRA-014-B8</td><td>canonical · opt-in</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3>global-Ω resolve — two-phase settle (v1.3.x)</h3>
-            <p>The default path, and the biggest change after the hackathon. Earlier single-phase <span class="mono">rng_v2</span> resolutions (standard <span class="mono">1.2.1</span>) were replaced by the <b>v1.3.2 two-phase settle</b>, which separates <i>determining</i> the outcome from <i>recording</i> it:</p>
-            <ol class="spec-step-list">
-              <li><b>prepare</b> (<span class="mono">prepare_rng_v2</span>) — the operator opens a draw, posts a stake, and commits the target <i>future</i> slots.</li>
-              <li><b>seal</b> (<span class="mono">seal_randomness</span>, <b>permissionless</b>) — once the target slot window opens, anyone may seal. The outcome is <i>determined the moment this lands</i>, from future SlotHashes-derived entropy; the sealer earns a bounty. Validator slot rotation cannot abort an open draw.</li>
-              <li><b>attest</b> (<span class="mono">attest_winners</span>, allowlisted operator / attester) — records the official <span class="mono">OutcomeResolution</span>, reveals the operator secret for audit, charges the snapshotted protocol fee, and refunds the stake.</li>
-              <li><b>expire</b> (<span class="mono">expire_rng_v2</span>, permissionless) — a prepared-but-never-sealed draw refunds the stake to the operator and <b>slashes the bounty to the protocol treasury</b> (anti-regrind: every roll costs a bounty).</li>
-            </ol>
-            <p><b>Solves.</b> Producer last-look / last-revealer bias — the outcome is fixed by <i>future</i> SlotHashes unknown at prepare time — and abort resistance: permissionless seal plus expire-slash make aborting a disliked draw <i>costly</i>, not free. This is the "unpredictable + unabortable" guarantee.</p>
-            <p><b>Use case.</b> A single global winner (global-Ω) where the operator must be unable to re-roll or abort: raffles, airdrops, and prize draws run by an untrusted operator. Note: single-phase <span class="mono">resolve_outcome*</span> executes the SOL transfer directly; two-phase (seal → attest) and sortition are <i>attestation-only</i> (they prove the winner; payout is a separate step).</p>
-
-            <h3>Sortition-by-Claim (v1.4.0)</h3>
-            <p>A commit-reveal ticket draw. Entrants register a commitment <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> before a deadline; the draw seals against three future SlotHashes-derived slots to fix <span class="mono">omega</span>; each entrant self-claims by revealing <span class="mono">secret</span> and wins iff <span class="mono">sha256(secret ‖ omega) &lt; threshold</span>.</p>
-            <ul class="spec-rule-list">
-              <li><b>Lifecycle.</b> create → register → seal → claim; claim costs under <span class="mono">10k</span> CU.</li>
-              <li><b>Coverage.</b> 5/5 negative cases pass.</li>
-              <li><b>Distribution.</b> 200 draws · 100 tickets · expected 10 winners → observed mean <span class="mono">9.7</span>, variance <span class="mono">8.76</span> (binomial mean <span class="mono">10</span>, variance <span class="mono">9</span>).</li>
-            </ul>
-            <p><b>Solves.</b> Scale and operator cost. Winners <i>self-claim</i>, so the operator never pays per-winner compute or transactions; the future-slot seal keeps the draw unpredictable and unabortable at any entrant count.</p>
-            <p><b>Use case.</b> Large draws — thousands of entrants — where computing or paying out every winner on-chain from the operator side is too expensive: token airdrops, whitelist lotteries, mass reward selection.</p>
-
-            <h3>Sortition economics (v1.4.1)</h3>
-            <p>An optional fee layer on a sortition draw, byte-compatible with 1.4.0 draws (fee fields <span class="mono">0</span> = disabled). The <span class="mono">fee_mode</span> bitflags select a flat <span class="mono">entry_fee_lamports</span> charged at register and/or a <span class="mono">close_skim_bps</span> skim taken on close; the fields are carved from previously reserved bytes.</p>
-            <ul class="spec-rule-list">
-              <li><b>Rent conservation.</b> <span class="mono">close_split(rent, skim_bps)</span> guarantees <span class="mono">refund + skim == rent</span> by construction, into a dedicated treasury.</li>
-              <li><b>Coverage.</b> positive path OK; 9/9 negative cases pass.</li>
-              <li><b>CU.</b> register (paid) <span class="mono">18,096</span> · init economics <span class="mono">5,234</span> · close <span class="mono">9,643</span> · sweep(2) <span class="mono">18,459</span>.</li>
-            </ul>
-            <p><b>Solves.</b> Monetization without custody. An entry fee and/or a close-skim let an operator or partner earn from a draw while rent is conserved (<span class="mono">refund + skim == rent</span>) and funds route to a dedicated treasury — no pooled prize custody by the protocol.</p>
-            <p><b>Use case.</b> Recurring / daily draws run by a partner who wants a revenue share. Byte-compatible with 1.4.0, so an existing sortition draw opts in with fee fields set (or stays free with fields <span class="mono">0</span>).</p>
-
-            <h3>Unicorn-G entropy source (B8) — opt-in</h3>
-            <p>An alternative global-Ω entropy source: a VDF output <span class="mono">y</span> verified on-chain via an embedded Groth16 verifier and bound to the resolution commit. Default entropy stays SlotHashes; Unicorn-G is opt-in and relies on a Groth16 trusted setup (devnet RSA modulus) — a multi-party ceremony is the path to a stronger setup before any mainnet use.</p>
-            <ul class="spec-rule-list">
-              <li><b>Seal.</b> integrated on-chain Groth16 verify + commit binding: <span class="mono">247,476</span> CU. Attest: <span class="mono">61,466</span> CU.</li>
-              <li><b>Rejection.</b> a wrong proof fails as <span class="mono">InvalidUnicornGProof</span> (error <span class="mono">6035</span>), simulation <span class="mono">143,069</span> CU.</li>
-              <li><b>Localnet e2e.</b> seal <span class="mono">209,226</span> CU · prover wall <span class="mono">37.4 s</span> · peak RSS <span class="mono">4.3 GB</span> · tampered <span class="mono">y</span> rejected.</li>
-            </ul>
-            <p><b>Solves.</b> Residual entropy bias. SlotHashes alone still leaves a validator with some last-revealer influence over the seed; a VDF output verified on-chain removes it — even a colluding operator and validators cannot bias the outcome, only refuse to produce it.</p>
-            <p><b>Use case.</b> High-stakes global-Ω single-winner draws where SlotHashes-level entropy is not strong enough and cryptographic unbiasability is required. Opt-in, because it carries a trusted-setup dependency and a heavier off-chain prover.</p>
-
-            <p>Full history and measured numbers live in <span class="mono">CHANGELOG.md</span>; the reviewer-facing evidence bundle is <span class="mono">artifacts/public_evidence_summary.json</span>. Mainnet is a separate, later effort; these statuses describe the canonical <b>devnet</b> protocol.</p>
-
-            <div class="spec-meta-row" style="margin-top:18px;">
-              <a class="btn btn-ghost btn-sm" href="/protocol-paths">Open resolution paths →</a>
+              <a class="btn btn-ghost btn-sm" href="/examples">Run examples →</a>
+              <a class="btn btn-ghost btn-sm" href="/verify">Open verifier →</a>
+              <a class="btn btn-ghost btn-sm" href="/spec.md">spec.md for agents →</a>
             </div>
           </section>
         </article>
@@ -804,7 +767,7 @@ curl https://verifiableoutcome.online/api/resolutions \
           <li><a href="/protocol-paths">Paths</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
-        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet · SDK 0.8.1</div>
       </div>
     </div>
   </footer>
