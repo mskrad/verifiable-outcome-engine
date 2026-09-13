@@ -3,9 +3,10 @@ use crate::math::sha::sha256;
 
 use crate::{
     errors::OutcomeError,
-    events::{OutcomeResolvedV4, RngV2Attested},
+    events::RngV2Attested,
     instructions::compiled_artifact_chunks::load_blob_from_remaining,
     instructions::prepare_rng_v2::{RngV2State, RNG_V2_STATUS_SEALED, RNG_V2_STATUS_SETTLED},
+    instructions::rng_v2_winners,
     math::{compiled_outcome_v1, rng_v2, unicorn_g},
     state::{
         approved_outcome_artifact::ApprovedOutcomeArtifact, outcome_config::OutcomeConfig,
@@ -151,27 +152,6 @@ pub struct AttestWinners<'info> {
     pub system_program: Program<'info, System>,
 }
 
-fn validate_primary_outcome_id(outcome_id_len: u8, outcome_id: &[u8]) -> Result<()> {
-    require!(
-        (1..=compiled_outcome_v1::MAX_OUTCOME_ID_BYTES as u8).contains(&outcome_id_len),
-        OutcomeError::InvalidOutcomeId
-    );
-    let canonical = &outcome_id[..outcome_id_len as usize];
-    require!(
-        canonical
-            .iter()
-            .all(|byte| byte.is_ascii() && !byte.is_ascii_control()),
-        OutcomeError::InvalidOutcomeId
-    );
-    require!(
-        outcome_id[outcome_id_len as usize..]
-            .iter()
-            .all(|byte| *byte == 0),
-        OutcomeError::InvalidOutcomeId
-    );
-    Ok(())
-}
-
 fn validate_operator_reveal(state: &mut RngV2State, args: &AttestWinnersArgs) -> Result<()> {
     if !state.operator_commit_present {
         require!(
@@ -245,20 +225,13 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
         sha256(&blob) == artifact.compiled_artifact_hash,
         OutcomeError::InvalidCompiledArtifactHash
     );
-    let parsed = compiled_outcome_v1::parse_snapshot_v4(&blob)?;
-    require!(
-        parsed.format_version == compiled_outcome_v1::FORMAT_VERSION_V1_2_1_SCALE
-            && parsed.format_version == state.artifact_format_version
-            && parsed.snapshot_hash == state.snapshot_hash
-            && parsed.min_input_lamports == config.min_input_lamports
-            && parsed.max_input_lamports == config.max_input_lamports,
-        OutcomeError::ArtifactBindingMismatch
-    );
-    require!(
-        args.winner_count == parsed.winners_count,
-        OutcomeError::InvalidCompiledArtifactFormat
-    );
-    validate_primary_outcome_id(args.outcome_id_len, &args.outcome_id)?;
+    let parsed = compiled_outcome_v1::parse_for_rng_v2(&blob)?;
+    rng_v2_winners::assert_artifact_binding(
+        &parsed,
+        state,
+        config.min_input_lamports,
+        config.max_input_lamports,
+    )?;
 
     // Randomness was determined at seal. SLOT_HASH draws recompute it from persisted
     // SlotHashes evidence; Unicorn-G draws persist the y-derived randomness in the
@@ -281,11 +254,19 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
         _ => return err!(OutcomeError::InvalidEntropySource),
     };
 
-    let (total_output_lamports, effect_count, effects_digest) =
-        compiled_outcome_v1::synthetic_effects_digest_v4(
-            parsed.payout_lamports,
-            parsed.winners_count,
-        )?;
+    let winners = rng_v2_winners::resolve_winners(
+        &blob,
+        &parsed,
+        rng_v2_winners::WinnerClaimArgs {
+            winner_count: args.winner_count,
+            winner_claim_hash: &args.winner_claim_hash,
+            outcome_id_len: args.outcome_id_len,
+            outcome_id: &args.outcome_id,
+        },
+        &randomness,
+        state.input_lamports,
+    )?;
+    let total_output_lamports = winners.total_output_lamports;
 
     // PATCH v3.1: the protocol fee is taken out of the operator stake (the vault), not
     // charged to the attester — otherwise an external attester_key would subsidize the
@@ -333,16 +314,16 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
     resolution.input_lamports = state.input_lamports;
     resolution.status = RESOLUTION_STATUS_SETTLED;
     resolution.rng_version = rng_v2::RNG_V2_VERSION;
-    resolution.artifact_format_version = parsed.format_version;
-    resolution.winner_count = parsed.winners_count;
-    resolution.winner_claim_hash = args.winner_claim_hash;
+    resolution.artifact_format_version = parsed.format_version();
+    resolution.winner_count = parsed.winners_count();
+    resolution.winner_claim_hash = winners.winner_claim_hash;
     resolution.total_output_lamports = total_output_lamports;
     resolution.compiled_artifact_hash = state.compiled_artifact_hash;
     resolution.randomness = randomness;
-    resolution.outcome_id_len = args.outcome_id_len;
-    resolution.outcome_id = args.outcome_id;
-    resolution.effect_count = effect_count;
-    resolution.effects_digest = effects_digest;
+    resolution.outcome_id_len = winners.outcome_id_len;
+    resolution.outcome_id = winners.outcome_id;
+    resolution.effect_count = winners.effect_count;
+    resolution.effects_digest = winners.effects_digest;
     resolution.snapshot_hash = state.snapshot_hash;
     resolution.resolved_slots = state.resolved_slots;
     resolution.slot_hashes = state.slot_hashes;
@@ -358,31 +339,14 @@ pub fn handler(ctx: Context<AttestWinners>, args: AttestWinnersArgs) -> Result<(
 
     state.status = RNG_V2_STATUS_SETTLED;
 
-    emit!(OutcomeResolvedV4 {
-        runtime_id: state.runtime_id,
-        resolve_id: state.resolve_id,
-        actor: state.actor,
-        input_lamports: state.input_lamports,
-        total_output_lamports,
-        rng_version: rng_v2::RNG_V2_VERSION,
+    rng_v2_winners::emit_resolved(
+        state,
+        &parsed,
+        winners,
         randomness,
-        compiled_artifact_hash: state.compiled_artifact_hash,
-        artifact_format_version: parsed.format_version,
-        winner_count: parsed.winners_count,
-        winner_claim_hash: args.winner_claim_hash,
-        outcome_id_len: args.outcome_id_len,
-        outcome_id: args.outcome_id,
-        effect_count,
-        effects_digest,
-        snapshot_hash: state.snapshot_hash,
-        resolved_slots: state.resolved_slots,
-        slot_hashes: state.slot_hashes,
-        operator_commit_present: state.operator_commit_present,
-        operator_commit_hash: state.operator_commit_hash,
-        operator_reveal_len: state.operator_reveal_len,
-        operator_reveal: state.operator_reveal,
-        entropy_source: state.entropy_source,
-    });
+        state.entropy_source,
+        PROTOCOL_REVISION_V1_3_2,
+    );
     emit!(RngV2Attested {
         runtime_id: state.runtime_id,
         resolve_id: state.resolve_id,

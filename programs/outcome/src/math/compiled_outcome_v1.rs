@@ -244,6 +244,35 @@ pub fn choose_weighted_index(weights: &[u32], random_u64: u64) -> Result<usize> 
     Err(error!(OutcomeError::MathOverflow))
 }
 
+/// Same selection as `choose_weighted_index`, reading weights through an accessor so the
+/// caller needs no temporary Vec.
+fn choose_weighted_index_by(
+    len: usize,
+    weight_at: impl Fn(usize) -> u32,
+    random_u64: u64,
+) -> Result<usize> {
+    require!(len > 0, OutcomeError::InvalidCompiledArtifactFormat);
+    let mut total: u64 = 0;
+    for position in 0..len {
+        let weight = weight_at(position);
+        require!(weight > 0, OutcomeError::InvalidCompiledArtifactFormat);
+        total = total
+            .checked_add(weight as u64)
+            .ok_or(OutcomeError::MathOverflow)?;
+    }
+    let rolled = random_u64 % total;
+    let mut cursor = 0u64;
+    for position in 0..len {
+        cursor = cursor
+            .checked_add(weight_at(position) as u64)
+            .ok_or(OutcomeError::MathOverflow)?;
+        if rolled < cursor {
+            return Ok(position);
+        }
+    }
+    Err(error!(OutcomeError::MathOverflow))
+}
+
 fn roll_for_round(randomness: &[u8; 32], round: u16) -> u64 {
     if round == 0 {
         let mut bytes = [0u8; 8];
@@ -296,12 +325,13 @@ fn select_outcome_indices(parsed: &ParsedArtifact, randomness: &[u8; 32]) -> Res
         let mut remaining: Vec<usize> = (0..parsed.outcomes.len()).collect();
         let mut selected = Vec::with_capacity(parsed.header.winners_count as usize);
         for round in 0..parsed.header.winners_count {
-            let weights: Vec<u32> = remaining
-                .iter()
-                .map(|index| parsed.outcomes[*index].weight)
-                .collect();
-            let selected_remaining_index =
-                choose_weighted_index(&weights, roll_for_round(randomness, round))?;
+            // Heap-neutral: the SBF bump allocator never frees, so a fresh weights Vec per
+            // round (winners × N × 4 B) would exhaust the 32 KB heap on 32-winner draws.
+            let selected_remaining_index = choose_weighted_index_by(
+                remaining.len(),
+                |position| parsed.outcomes[remaining[position]].weight,
+                roll_for_round(randomness, round),
+            )?;
             selected.push(remaining.remove(selected_remaining_index));
         }
         return Ok(selected);
@@ -415,8 +445,7 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
             OutcomeError::InvalidCompiledArtifactFormat
         );
 
-        let mut outcomes = Vec::with_capacity(outcome_count as usize);
-        let mut previous_id: Option<Vec<u8>> = None;
+        let mut outcomes: Vec<ParsedOutcome> = Vec::with_capacity(outcome_count as usize);
         let mut weight_sum = 0u64;
         let mut seen_orders = vec![false; outcome_count as usize];
         for _index in 0..outcome_count {
@@ -433,11 +462,13 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
             outcome_id.copy_from_slice(&blob[off..off + MAX_OUTCOME_ID_BYTES]);
             ensure_ascii(outcome_id_bytes(&outcome_id, outcome_id_len))?;
             ensure_zero(&outcome_id[outcome_id_len as usize..])?;
-            let current_id = outcome_id_bytes(&outcome_id, outcome_id_len).to_vec();
-            if let Some(previous) = &previous_id {
-                require!(previous < &current_id, OutcomeError::InvalidOutcomeId);
+            if let Some(previous) = outcomes.last() {
+                require!(
+                    outcome_id_bytes(&previous.outcome_id, previous.outcome_id_len)
+                        < outcome_id_bytes(&outcome_id, outcome_id_len),
+                    OutcomeError::InvalidOutcomeId
+                );
             }
-            previous_id = Some(current_id);
             off += MAX_OUTCOME_ID_BYTES;
 
             let weight = read_u32_le(blob, &mut off)?;
@@ -541,9 +572,8 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
         OutcomeError::InvalidCompiledArtifactFormat
     );
 
-    let mut outcomes = Vec::with_capacity(outcome_count as usize);
+    let mut outcomes: Vec<ParsedOutcome> = Vec::with_capacity(outcome_count as usize);
     let mut referenced_effects = vec![false; total_effect_count as usize];
-    let mut previous_id: Option<Vec<u8>> = None;
     let mut weight_sum = 0u64;
     let mut seen_orders = vec![false; outcome_count as usize];
 
@@ -562,11 +592,13 @@ pub fn parse(blob: &[u8]) -> Result<ParsedArtifact> {
         outcome_id.copy_from_slice(&blob[off..off + MAX_OUTCOME_ID_BYTES]);
         ensure_ascii(outcome_id_bytes(&outcome_id, outcome_id_len))?;
         ensure_zero(&outcome_id[outcome_id_len as usize..])?;
-        let current_id = outcome_id_bytes(&outcome_id, outcome_id_len).to_vec();
-        if let Some(previous) = &previous_id {
-            require!(previous < &current_id, OutcomeError::InvalidOutcomeId);
+        if let Some(previous) = outcomes.last() {
+            require!(
+                outcome_id_bytes(&previous.outcome_id, previous.outcome_id_len)
+                    < outcome_id_bytes(&outcome_id, outcome_id_len),
+                OutcomeError::InvalidOutcomeId
+            );
         }
-        previous_id = Some(current_id);
         off += MAX_OUTCOME_ID_BYTES;
 
         let weight = read_u32_le(blob, &mut off)?;
@@ -892,6 +924,97 @@ pub fn select_outcome(
         effect_count: selected.effect_count,
         effects_digest: selected.effects_digest,
     })
+}
+
+
+/// Artifact view for the rng_v2 lifecycle (`prepare_rng_v2` → `settle_rng_v2` /
+/// `seal_randomness` → `attest_winners`).
+///
+/// * `Scale` — fmt 7 (`V1_2_1_SCALE`): Merkle snapshot, winners are claimed off-chain and
+///   proven by replay against the snapshot.
+/// * `Compact` — every format `parse()` accepts (fmt 1/2/3/5/8): the full outcome table is
+///   on-chain, the program selects the winners itself with the rng_v2 randomness.
+///
+/// Both variants are **payout-free** under rng_v2 (INFRA-021 decision D-A): the vault holds
+/// only Σ input so `expire_*` is always covered. Prize payout is the integrator's job.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RngV2Artifact {
+    Scale(ParsedSnapshotArtifactV4),
+    Compact(ParsedArtifact),
+}
+
+impl RngV2Artifact {
+    pub fn format_version(&self) -> u16 {
+        match self {
+            RngV2Artifact::Scale(p) => p.format_version,
+            RngV2Artifact::Compact(p) => p.header.format_version,
+        }
+    }
+
+    pub fn min_input_lamports(&self) -> u64 {
+        match self {
+            RngV2Artifact::Scale(p) => p.min_input_lamports,
+            RngV2Artifact::Compact(p) => p.header.min_input_lamports,
+        }
+    }
+
+    pub fn max_input_lamports(&self) -> u64 {
+        match self {
+            RngV2Artifact::Scale(p) => p.max_input_lamports,
+            RngV2Artifact::Compact(p) => p.header.max_input_lamports,
+        }
+    }
+
+    pub fn winners_count(&self) -> u16 {
+        match self {
+            RngV2Artifact::Scale(p) => p.winners_count,
+            RngV2Artifact::Compact(p) => p.header.winners_count,
+        }
+    }
+
+    /// Snapshot hash bound into the rng_v2 seed. Compact artifacts have no snapshot:
+    /// the seed is already bound to `compiled_artifact_hash`, so the field is all-zero.
+    pub fn snapshot_hash(&self) -> [u8; 32] {
+        match self {
+            RngV2Artifact::Scale(p) => p.snapshot_hash,
+            RngV2Artifact::Compact(_) => [0u8; 32],
+        }
+    }
+
+    pub fn is_compact(&self) -> bool {
+        matches!(self, RngV2Artifact::Compact(_))
+    }
+}
+
+pub fn read_format_version(blob: &[u8]) -> Result<u16> {
+    require!(
+        blob.len() >= 6 && &blob[..4] == MAGIC,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let mut off = 4usize;
+    read_u16_le(blob, &mut off)
+}
+
+/// Parse an artifact for the rng_v2 lifecycle and enforce the payout-free invariant.
+pub fn parse_for_rng_v2(blob: &[u8]) -> Result<RngV2Artifact> {
+    let format_version = read_format_version(blob)?;
+    if format_version == FORMAT_VERSION_V1_2_1_SCALE {
+        let parsed = parse_snapshot_v4(blob)?;
+        require!(parsed.payout_lamports == 0, OutcomeError::RngV2PayoutMustBeZero);
+        return Ok(RngV2Artifact::Scale(parsed));
+    }
+    // fmt 4 / 6 are snapshot formats that never carried rng_v2; keep them out.
+    require!(
+        format_version != FORMAT_VERSION_V4 && format_version != FORMAT_VERSION_V1_2_SCALE,
+        OutcomeError::InvalidCompiledArtifactFormat
+    );
+    let parsed = parse(blob)?;
+    require!(
+        parsed.header.payout_lamports == 0
+            && parsed.effects.iter().all(|effect| effect.amount_lamports == 0),
+        OutcomeError::RngV2PayoutMustBeZero
+    );
+    Ok(RngV2Artifact::Compact(parsed))
 }
 
 #[cfg(test)]
@@ -1262,5 +1385,58 @@ mod tests {
         assert_eq!(total_output_lamports, 6);
         assert_eq!(effect_count, 2);
         assert_ne!(effects_digest, [0u8; 32]);
+    }
+
+    fn zero_v5_payout(mut blob: Vec<u8>) -> Vec<u8> {
+        // header: magic(4) fmt(2) min(8) max(8) winners(2) formula(1) pad(5) target(8) count(2) payout(8)
+        blob[40..48].copy_from_slice(&0u64.to_le_bytes());
+        blob
+    }
+
+    fn zero_v1_effects(mut blob: Vec<u8>) -> Vec<u8> {
+        let len = blob.len();
+        for entry in 0..2 {
+            let end = len - entry * EFFECT_ENTRY_BYTES;
+            blob[end - 8..end].copy_from_slice(&0u64.to_le_bytes());
+        }
+        blob
+    }
+
+    #[test]
+    fn rng_v2_parser_accepts_payout_free_compact_formats() {
+        let v1 = zero_v1_effects(demo_blob());
+        let parsed = parse_for_rng_v2(&v1).unwrap();
+        assert!(parsed.is_compact());
+        assert_eq!(parsed.format_version(), FORMAT_VERSION_V1);
+        assert_eq!(parsed.winners_count(), 1);
+        assert_eq!(parsed.snapshot_hash(), [0u8; 32]);
+        assert_eq!((parsed.min_input_lamports(), parsed.max_input_lamports()), (10, 1_000));
+
+        let v5 = zero_v5_payout(demo_v5_blob(FORMULA_RANK_DESC, 2, 0));
+        let parsed = parse_for_rng_v2(&v5).unwrap();
+        assert!(parsed.is_compact());
+        assert_eq!(parsed.format_version(), FORMAT_VERSION_V5);
+        assert_eq!(parsed.winners_count(), 2);
+        // Winner selection under rng_v2 reuses the compact selector byte-for-byte.
+        if let RngV2Artifact::Compact(artifact) = &parsed {
+            let selected = select_outcomes(&v5, artifact, &[7u8; 32], 10).unwrap();
+            assert_eq!(selected.total_output_lamports, 0);
+            assert_eq!(selected.outcome_id_lens, vec![3, 10]);
+        } else {
+            panic!("expected compact");
+        }
+    }
+
+    #[test]
+    fn rng_v2_parser_rejects_paying_compact_artifacts() {
+        assert!(parse_for_rng_v2(&demo_blob()).is_err());
+        assert!(parse_for_rng_v2(&demo_v5_blob(FORMULA_WEIGHTED_RANDOM, 1, 0)).is_err());
+    }
+
+    #[test]
+    fn rng_v2_parser_rejects_legacy_snapshot_formats() {
+        // fmt 4 never carried rng_v2; only fmt 7 (scale) or compact formats are accepted.
+        assert!(parse_for_rng_v2(&demo_v4_blob()).is_err());
+        assert!(parse_for_rng_v2(b"W3O1").is_err());
     }
 }

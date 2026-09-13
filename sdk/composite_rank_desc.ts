@@ -312,7 +312,9 @@ export function buildCompositeRankDescArtifact(config: CompositeRankDescConfig):
   const payoutLamports =
     config.payout_lamports === undefined
       ? 3n
-      : parseLamports(config.payout_lamports, "payout_lamports");
+      : config.payout_lamports === 0 || config.payout_lamports === 0n
+        ? 0n // payout-free (rng_v2) composite draw
+        : parseLamports(config.payout_lamports, "payout_lamports");
   const winnersCount = config.winners_count ?? 1;
   if (!Number.isInteger(winnersCount) || winnersCount <= 0 || winnersCount > participants.length || winnersCount > MAX_WINNERS) {
     throw new RangeError(`winners_count must be an integer 1..${Math.min(participants.length, MAX_WINNERS)}`);

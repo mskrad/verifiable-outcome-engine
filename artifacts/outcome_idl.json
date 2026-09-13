@@ -5115,6 +5115,19 @@
       ]
     },
     {
+      "name": "OutcomeResolvedV5",
+      "discriminator": [
+        16,
+        58,
+        238,
+        99,
+        119,
+        51,
+        232,
+        85
+      ]
+    },
+    {
       "name": "RngV2Attested",
       "discriminator": [
         131,
@@ -5621,6 +5634,11 @@
       "code": 6056,
       "name": "SlotVaultReserveInsufficient",
       "msg": "Vault balance below the max-win exposure for this spin"
+    },
+    {
+      "code": 6057,
+      "name": "RngV2CompactArgsMustBeEmpty",
+      "msg": "RNG v2 compact draw: winner args must be empty, the program selects winners"
     }
   ],
   "types": [
@@ -7188,6 +7206,190 @@
           {
             "name": "entropy_source",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OutcomeResolvedV5",
+      "docs": [
+        "rng_v2 resolution of a **compact** artifact (fmt 1/2/3/5/8): same prefix as",
+        "`OutcomeResolvedV4`, plus the full program-selected winner list. `winner_claim_hash`",
+        "is `rng_v2::winner_claim_digest` over that list."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "resolve_id",
+            "type": "u64"
+          },
+          {
+            "name": "actor",
+            "type": "pubkey"
+          },
+          {
+            "name": "input_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "total_output_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "rng_version",
+            "type": "u8"
+          },
+          {
+            "name": "randomness",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "compiled_artifact_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "artifact_format_version",
+            "type": "u16"
+          },
+          {
+            "name": "winner_count",
+            "type": "u16"
+          },
+          {
+            "name": "winner_claim_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "outcome_id_len",
+            "type": "u8"
+          },
+          {
+            "name": "outcome_id",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "effect_count",
+            "type": "u16"
+          },
+          {
+            "name": "effects_digest",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "snapshot_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "resolved_slots",
+            "type": {
+              "array": [
+                "u64",
+                3
+              ]
+            }
+          },
+          {
+            "name": "slot_hashes",
+            "type": {
+              "array": [
+                {
+                  "array": [
+                    "u8",
+                    32
+                  ]
+                },
+                3
+              ]
+            }
+          },
+          {
+            "name": "operator_commit_present",
+            "type": "bool"
+          },
+          {
+            "name": "operator_commit_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "operator_reveal_len",
+            "type": "u8"
+          },
+          {
+            "name": "operator_reveal",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "entropy_source",
+            "type": "u8"
+          },
+          {
+            "name": "protocol_revision",
+            "type": "u8"
+          },
+          {
+            "name": "outcome_id_lens",
+            "type": "bytes"
+          },
+          {
+            "name": "outcome_ids",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  64
+                ]
+              }
+            }
           }
         ]
       }
