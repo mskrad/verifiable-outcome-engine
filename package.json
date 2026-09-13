@@ -1,6 +1,6 @@
 {
   "name": "verifiable-outcome-sdk",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "On-chain proof of who won. Commit rules before the draw, anyone verifies from a transaction signature.",
   "license": "MIT",
   "keywords": [
@@ -48,6 +48,8 @@
     "dist/sdk/sortition.d.ts",
     "dist/sdk/conditions.js",
     "dist/sdk/conditions.d.ts",
+    "dist/sdk/slot.js",
+    "dist/sdk/slot.d.ts",
     "artifacts/outcome_idl.json",
     "README.md"
   ],
