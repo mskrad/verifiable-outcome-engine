@@ -9,6 +9,7 @@ import {
   Keypair,
   PublicKey,
   SystemProgram,
+  SYSVAR_SLOT_HASHES_PUBKEY,
   Transaction,
   type TransactionInstruction,
 } from "@solana/web3.js";
@@ -250,19 +251,33 @@ async function loadOutcomeClient(opts: {
   };
 }
 
+type ComputeBudgetOptions = { units?: number; heapBytes?: number };
+
+// rng_v2 prepare/settle on a compact artifact parse the whole outcome table on-chain:
+// they need a raised compute limit and the enlarged heap frame the program's allocator uses.
+const RNG_V2_BUDGET: ComputeBudgetOptions = { units: 1_400_000, heapBytes: 256 * 1024 };
+
 async function sendOperatorInstructions(
   client: OutcomeClient,
-  instructions: TransactionInstruction[]
+  instructions: TransactionInstruction[],
+  budget?: ComputeBudgetOptions
 ): Promise<string> {
   if (instructions.length === 0) {
     throw new Error("No operator instructions to send");
   }
 
-  const connection = client.provider.connection;
-  const priorityIx = ComputeBudgetProgram.setComputeUnitPrice({
-    microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
-  });
-  const tx = new Transaction().add(priorityIx, ...instructions);
+  const preamble: TransactionInstruction[] = [
+    ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: PRIORITY_FEE_MICRO_LAMPORTS,
+    }),
+  ];
+  if (budget?.units) {
+    preamble.push(ComputeBudgetProgram.setComputeUnitLimit({ units: budget.units }));
+  }
+  if (budget?.heapBytes) {
+    preamble.push(ComputeBudgetProgram.requestHeapFrame({ bytes: budget.heapBytes }));
+  }
+  const tx = new Transaction().add(...preamble, ...instructions);
   return client.provider.sendAndConfirm(tx, []);
 }
 
@@ -1085,4 +1100,323 @@ export async function resolveInline(
   };
 
   return result;
+}
+
+// ---------------------------------------------------------------------------------------
+// rng_v2 single-phase draws (Outcome Standard v1.2) for compact artifacts.
+//
+// prepareInlineRngV2 commits the artifact, binds a runtime and calls prepare_rng_v2, which
+// fixes three future target slots. The winners do not exist yet. Once the last target slot
+// has passed, settleInlineRngV2 calls settle_rng_v2: the program reads SlotHashes, derives
+// the randomness, selects the winners from the committed table and records them. If the
+// settle window is missed, expireInlineRngV2 refunds the stake.
+// ---------------------------------------------------------------------------------------
+
+export type RngV2PreparedDraw = {
+  programId: string;
+  runtimeId: string;
+  resolveId: string;
+  artifactHash: string;
+  chunkCount: number;
+  winnersCount: number;
+  actor: string;
+  targetSlots: string[];
+  expirySlot: string;
+  prepareSignature: string;
+  artifactPath: string;
+};
+
+export type RngV2SettleResult = {
+  signature: string;
+  outcome: string;
+  outcomeIds: string[];
+  winnersCount?: number;
+  entropySource?: string;
+  resolvedSlots?: string[];
+  winnerClaimHash?: string;
+  runtimeId: string;
+  resolveId: string;
+  artifactHash: string;
+  programId: string;
+};
+
+const SCALE_CONFIG_TYPES = new Set([
+  "formula_draw_snapshot",
+  "outcome_standard_v1_2",
+  "outcome_standard_v1_2_1",
+]);
+
+function deriveRngV2StatePda(programId: PublicKey, runtimeId: Buffer, resolveId: bigint): PublicKey {
+  const id = Buffer.alloc(8);
+  id.writeBigUInt64LE(resolveId, 0);
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("rng_v2_state"), runtimeId, id],
+    programId
+  )[0];
+}
+
+async function fetchRngV2State(client: OutcomeClient, statePda: PublicKey): Promise<any> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    try {
+      return await (outcomeAccounts(client) as any).rngV2State.fetch(statePda, "confirmed");
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+  throw lastError;
+}
+
+export async function prepareInlineRngV2(
+  config: ArtifactConfig,
+  opts: ResolveInlineOptions = {}
+): Promise<RngV2PreparedDraw> {
+  if (SCALE_CONFIG_TYPES.has(String((config as { type?: string }).type))) {
+    throw new Error("rng_v2 inline draws support compact artifacts only; use the snapshot flow for scale draws");
+  }
+  const rpcUrl = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
+  const client = await loadOutcomeClient({
+    rpcUrl,
+    walletPath: opts.walletPath,
+    programId: opts.programId,
+  });
+  await ensureWalletFunds(client);
+  await ensureProgramConfig(client);
+
+  const label = opts.label ?? `rngv2-draw-${Date.now()}`;
+  const outputDir = outputDirFromArg(opts.outputDir);
+  ensureDirectory(outputDir);
+  const inputLamports = asBigInt(config.input_lamports);
+
+  const runtime = await createApprovedRuntime(client, { label, outputDir, config, inputLamports });
+  const resolveId = asBigInt(
+    (await fetchOutcomeConfigState(client, runtime.runtimeId)).nextResolveId
+  );
+  const statePda = deriveRngV2StatePda(client.programId, runtime.runtimeId, resolveId);
+
+  const instruction = await (outcomeMethods(client) as any)
+    .prepareRngV2({
+      runtimeId: [...runtime.runtimeId],
+      inputLamports: new BN(inputLamports.toString()),
+      bountyLamports: new BN(0),
+      operatorCommitPresent: false,
+      operatorCommitHash: [...Buffer.alloc(32, 0)],
+    })
+    .accounts({
+      actor: client.authority.publicKey,
+      programConfig: deriveProgramConfigPda(client.programId),
+      outcomeConfig: runtime.outcomeConfigPda,
+      outcomeVault: runtime.outcomeVaultPda,
+      rngV2State: statePda,
+      approvedOutcomeArtifact: deriveApprovedArtifactPda(
+        client.programId,
+        runtime.compiledArtifactHash
+      ),
+      systemProgram: SystemProgram.programId,
+    })
+    .remainingAccounts(readonlyRemainingAccounts(runtime.chunkPdas))
+    .instruction();
+  const prepareSignature = await sendOperatorInstructions(client, [instruction], RNG_V2_BUDGET);
+
+  const state = await fetchRngV2State(client, statePda);
+  return {
+    programId: client.programId.toBase58(),
+    runtimeId: runtime.runtimeIdHex,
+    resolveId: resolveId.toString(),
+    artifactHash: runtime.compiledArtifactHashHex,
+    chunkCount: runtime.chunkPdas.length,
+    winnersCount: Number((config as { winners_count?: number }).winners_count ?? 1),
+    actor: client.authority.publicKey.toBase58(),
+    targetSlots: (state.targetSlots as unknown[]).map((slot) => asBigInt(slot).toString()),
+    expirySlot: asBigInt(state.expirySlot).toString(),
+    prepareSignature,
+    artifactPath: runtime.artifactPath,
+  };
+}
+
+export async function settleInlineRngV2(
+  draw: RngV2PreparedDraw,
+  opts: ResolveInlineOptions = {}
+): Promise<RngV2SettleResult> {
+  const rpcUrl = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
+  const client = await loadOutcomeClient({
+    rpcUrl,
+    walletPath: opts.walletPath,
+    programId: draw.programId,
+  });
+  const runtimeId = Buffer.from(draw.runtimeId, "hex");
+  const resolveId = BigInt(draw.resolveId);
+  const artifactHash = Buffer.from(draw.artifactHash, "hex");
+  const outcomeConfigPda = deriveOutcomeConfigPda(client.programId, runtimeId);
+
+  const programConfig = await fetchProgramConfigState(client);
+  const protocolTreasury =
+    programConfig.feeLamports > 0n ? programConfig.treasury : client.authority.publicKey;
+  const outcomeConfig = await (outcomeAccounts(client) as any).outcomeConfig.fetch(
+    outcomeConfigPda,
+    "confirmed"
+  );
+  const chunkPdas = Array.from({ length: draw.chunkCount }, (_, index) =>
+    deriveApprovedArtifactChunkPda(client.programId, artifactHash, index)
+  );
+
+  // Compact artifact: the program selects the winners, so every winner argument stays empty.
+  const instruction = await (outcomeMethods(client) as any)
+    .settleRngV2({
+      runtimeId: [...runtimeId],
+      resolveId: new BN(draw.resolveId),
+      winnerCount: draw.winnersCount,
+      winnerClaimHash: [...Buffer.alloc(32, 0)],
+      outcomeIdLen: 0,
+      outcomeId: [...Buffer.alloc(64, 0)],
+      operatorRevealLen: 0,
+      operatorReveal: [...Buffer.alloc(32, 0)],
+    })
+    .accounts({
+      actor: client.authority.publicKey,
+      programConfig: deriveProgramConfigPda(client.programId),
+      outcomeConfig: outcomeConfigPda,
+      outcomeVault: deriveOutcomeVaultPda(client.programId, runtimeId),
+      rngV2State: deriveRngV2StatePda(client.programId, runtimeId, resolveId),
+      outcomeResolution: deriveOutcomeResolutionPda(client.programId, runtimeId, resolveId),
+      approvedOutcomeArtifact: deriveApprovedArtifactPda(client.programId, artifactHash),
+      outcomeTreasury: outcomeConfig.treasury,
+      protocolTreasury,
+      slotHashes: SYSVAR_SLOT_HASHES_PUBKEY,
+      systemProgram: SystemProgram.programId,
+    })
+    .remainingAccounts(readonlyRemainingAccounts(chunkPdas))
+    .instruction();
+  const signature = await sendOperatorInstructions(client, [instruction], RNG_V2_BUDGET);
+
+  // A fresh transaction can lag on public RPC; retry the replay briefly before failing.
+  let verified = await verifyOutcome({ signature, rpcUrl, programId: draw.programId });
+  for (let attempt = 0; attempt < 4 && verified.status !== "MATCH"; attempt += 1) {
+    if (!/TX_NOT_FOUND|REPLAY_UNHANDLED/.test(verified.reason)) break;
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    verified = await verifyOutcome({ signature, rpcUrl, programId: draw.programId });
+  }
+  if (verified.status !== "MATCH") {
+    throw new Error(`rng_v2 replay failed after settle: ${verified.reason}`);
+  }
+
+  return {
+    signature,
+    outcome: verified.outcome_id,
+    outcomeIds: verified.outcome_ids ?? [verified.outcome_id],
+    winnersCount: verified.winners_count,
+    entropySource: verified.entropy_source,
+    resolvedSlots: verified.resolved_slots,
+    winnerClaimHash: verified.winner_claim_hash,
+    runtimeId: draw.runtimeId,
+    resolveId: draw.resolveId,
+    artifactHash: draw.artifactHash,
+    programId: draw.programId,
+  };
+}
+
+export async function expireInlineRngV2(
+  draw: RngV2PreparedDraw,
+  opts: ResolveInlineOptions = {}
+): Promise<string> {
+  const rpcUrl = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
+  const client = await loadOutcomeClient({
+    rpcUrl,
+    walletPath: opts.walletPath,
+    programId: draw.programId,
+  });
+  const runtimeId = Buffer.from(draw.runtimeId, "hex");
+  const resolveId = BigInt(draw.resolveId);
+  const programConfig = await fetchProgramConfigState(client);
+  const instruction = await (outcomeMethods(client) as any)
+    .expireRngV2({ runtimeId: [...runtimeId], resolveId: new BN(draw.resolveId) })
+    .accounts({
+      payer: client.authority.publicKey,
+      programConfig: deriveProgramConfigPda(client.programId),
+      outcomeConfig: deriveOutcomeConfigPda(client.programId, runtimeId),
+      outcomeVault: deriveOutcomeVaultPda(client.programId, runtimeId),
+      rngV2State: deriveRngV2StatePda(client.programId, runtimeId, resolveId),
+      operator: new PublicKey(draw.actor),
+      protocolTreasury: programConfig.treasury,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+  return sendOperatorInstructions(client, [instruction]);
+}
+
+export type RngV2ResolveResult = ResolveInlineResult & {
+  rngVersion: 2;
+  prepareSignature: string;
+  targetSlots: string[];
+  expirySlot: string;
+  resolvedSlots?: string[];
+  entropySource?: string;
+  winnerClaimHash?: string;
+};
+
+// Wait until the cluster has passed `targetSlot`, sleeping by the slot clock instead of
+// polling every few hundred milliseconds, and fail once the settle window has closed.
+async function waitForSlotAfter(rpcUrl: string, targetSlot: bigint, expirySlot: bigint): Promise<void> {
+  const connection = new anchor.web3.Connection(rpcUrl, { commitment: "confirmed" });
+  for (;;) {
+    const slot = BigInt(await connection.getSlot("confirmed"));
+    if (slot > expirySlot) throw new Error("rng_v2 settle window passed before the target slots matured");
+    if (slot > targetSlot) return;
+    const slotsLeft = Number(targetSlot - slot) + 1;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(8000, Math.max(800, slotsLeft * 400))));
+  }
+}
+
+const SETTLE_RETRYABLE = /RngV2TargetSlotNotReady|RngV2SlotHashNotFound|429|blockhash/i;
+
+/**
+ * Single-phase rng_v2 draw in one call (Outcome Standard v1.2): commit the rules, prepare
+ * (fixes future target slots), wait for those slots, settle and replay. The winners come from
+ * the hashes of slots that did not exist when the rules were committed.
+ */
+export async function resolveInlineRngV2(
+  config: ArtifactConfig,
+  opts: ResolveInlineOptions = {}
+): Promise<RngV2ResolveResult> {
+  const rpcUrl = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
+  const draw = await prepareInlineRngV2(config, { ...opts, rpcUrl });
+  const lastTarget = BigInt(draw.targetSlots[draw.targetSlots.length - 1]);
+  const expiry = BigInt(draw.expirySlot);
+
+  let settled: RngV2SettleResult | undefined;
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 4 && !settled; attempt += 1) {
+    await waitForSlotAfter(rpcUrl, lastTarget + BigInt(attempt * 2), expiry);
+    try {
+      settled = await settleInlineRngV2(draw, { ...opts, rpcUrl });
+    } catch (error) {
+      lastError = error;
+      if (!SETTLE_RETRYABLE.test(String((error as Error)?.message ?? error))) break;
+    }
+  }
+  if (!settled) {
+    const reason = String((lastError as Error)?.message ?? lastError);
+    throw new Error(`rng_v2 settle failed after prepare ${draw.prepareSignature}: ${reason}`);
+  }
+
+  return {
+    signature: settled.signature,
+    outcome: settled.outcome,
+    outcomeIds: settled.outcomeIds,
+    winnersCount: settled.winnersCount,
+    runtimeId: draw.runtimeId,
+    resolveId: draw.resolveId,
+    artifactHash: draw.artifactHash,
+    programId: draw.programId,
+    artifactPath: draw.artifactPath,
+    resultPath: "",
+    rngVersion: 2,
+    prepareSignature: draw.prepareSignature,
+    targetSlots: draw.targetSlots,
+    expirySlot: draw.expirySlot,
+    resolvedSlots: settled.resolvedSlots,
+    entropySource: settled.entropySource,
+    winnerClaimHash: settled.winnerClaimHash,
+  };
 }
