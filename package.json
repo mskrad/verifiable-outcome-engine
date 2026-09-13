@@ -60,7 +60,8 @@
     "build:artifact": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/build_artifact.ts",
     "replay": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/replay_verify.ts",
     "resolve:operator": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/resolve_operator.ts",
-    "web": "node web/server.mjs"
+    "web": "node web/server.mjs",
+    "check:spec": "node scripts/check_spec_sync.mjs"
   },
   "dependencies": {
     "@irys/upload": "^0.0.14",
