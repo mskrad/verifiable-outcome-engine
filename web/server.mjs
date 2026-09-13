@@ -57,7 +57,8 @@ const REPLAY_TIMEOUT_MS = Number(process.env.REPLAY_TIMEOUT_MS || 30_000);
 const API_RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS || 60_000);
 const API_RATE_LIMIT_MAX = Number(process.env.API_RATE_LIMIT_MAX || 60);
 const REPLAY_RATE_LIMIT_MAX = Number(process.env.REPLAY_RATE_LIMIT_MAX || 12);
-const LIVE_RAFFLE_TIMEOUT_MS = 45_000;
+// Commit + ~10 s wait for future slots + settle + replay; stays under a 60 s proxy timeout.
+const LIVE_RAFFLE_TIMEOUT_MS = 55_000;
 const LIVE_RAFFLE_RATE_LIMIT_MS = 10_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
@@ -480,6 +481,34 @@ async function loadResolveInline() {
     });
   }
   return resolveInlinePromise;
+}
+
+let resolveInlineRngV2Promise;
+async function loadResolveInlineRngV2() {
+  ensureTsSdkRuntime();
+  if (!resolveInlineRngV2Promise) {
+    resolveInlineRngV2Promise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "operator.ts")).href
+    ).then((module) => {
+      if (typeof module.resolveInlineRngV2 !== "function") {
+        throw new Error("resolveInlineRngV2 export not found");
+      }
+      return module.resolveInlineRngV2;
+    });
+  }
+  return resolveInlineRngV2Promise;
+}
+
+// Additive rng_v2 fields shared by the draw responses.
+function rngV2ResponseFields(result) {
+  return {
+    rng_version: 2,
+    entropy_source: result.entropySource ?? "slot_hash",
+    prepare_signature: result.prepareSignature,
+    target_slots: result.targetSlots,
+    resolved_slots: result.resolvedSlots ?? null,
+    winner_claim_hash: result.winnerClaimHash ?? null,
+  };
 }
 
 async function loadVerifyOutcome() {
@@ -1414,7 +1443,7 @@ function buildLiveRaffleConfig(judgeAddress) {
   return {
     type: "raffle",
     input_lamports: 10,
-    payout_lamports: 3,
+    payout_lamports: 0,
     participants: [...weights.entries()].map(([address, weight]) => ({
       address,
       weight,
@@ -1430,7 +1459,8 @@ const PARTNER_DRAW_FORMULAS = new Set([
   "closest_to",
 ]);
 const PARTNER_DRAW_BASE_INPUT_LAMPORTS = 10;
-const PARTNER_DRAW_PAYOUT_LAMPORTS = 3;
+// rng_v2 draws are payout-free: the program records the winners, the integrator pays.
+const PARTNER_DRAW_PAYOUT_LAMPORTS = 0;
 
 function buildPartnerDrawConfig(participants, winnersCount, formula, target) {
   const inputLamports = Math.max(
@@ -2145,7 +2175,7 @@ async function handleLiveRaffle(req, res) {
   if (!limit.ok) {
     json(res, 429, {
       ok: false,
-      error: "Please wait 60 seconds between raffles",
+      error: "Please wait 10 seconds between raffles",
       retry_after_ms: limit.retryAfterMs,
     });
     return;
@@ -2158,7 +2188,7 @@ async function handleLiveRaffle(req, res) {
       reservedWorldIdNullifier = worldIdVerification.nullifier;
     }
     const config = buildLiveRaffleConfig(address);
-    const resolveInline = await loadResolveInline();
+    const resolveInline = await loadResolveInlineRngV2();
     const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
     const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
     const walletPath =
@@ -2185,6 +2215,8 @@ async function handleLiveRaffle(req, res) {
       artifactHash: result.artifactHash,
       programId: result.programId,
       participantCount: config.participants.length,
+      outcome_ids: result.outcomeIds ?? [result.outcome],
+      ...rngV2ResponseFields(result),
     };
     if (worldIdVerification) {
       responseBody.world_id = {
@@ -2325,7 +2357,7 @@ async function handlePartnerDraw(req, res, opts = {}) {
   if (!demoKey) {
     const rateCheck = checkPartnerDrawRateLimit(partner.key);
     if (!rateCheck.ok) {
-      json(res, 429, { ok: false, error: "rate limit exceeded; retry in 60s", retry_after_ms: rateCheck.retryAfterMs });
+      json(res, 429, { ok: false, error: "rate limit exceeded; retry in 10s", retry_after_ms: rateCheck.retryAfterMs });
       return;
     }
   }
@@ -2354,7 +2386,7 @@ async function handlePartnerDraw(req, res, opts = {}) {
     }
     throw error;
   }
-  const resolveInline = await loadResolveInline();
+  const resolveInline = await loadResolveInlineRngV2();
   const rpcUrl = resolveRpcUrl(process.env.LIVE_RAFFLE_RPC_URL || defaultRpc());
   const programId = validateProgramId(process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId());
   const walletPath = process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || undefined;
@@ -2402,6 +2434,7 @@ async function handlePartnerDraw(req, res, opts = {}) {
     replay_url: `https://verifiableoutcome.online/verify?sig=${result.signature}`,
     artifact_slot,
     resolution_slot,
+    ...rngV2ResponseFields(result),
   });
 }
 
