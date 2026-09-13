@@ -132,7 +132,7 @@
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">Last program deploy</div>
-                <div class="spec-kv-value mono">slot 495662430 · 2026-09-09</div>
+                <div class="spec-kv-value mono">slot 497829503 · 2026-09-13</div>
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">SDK</div>
@@ -159,7 +159,7 @@
               <table class="spec-table">
                 <thead><tr><th>Source</th><th>Where the entropy comes from</th><th>Operator can / cannot</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">rng_v1</td><td>A <span class="mono">master_seed</span> set by the operator when the runtime is created.</td><td>Cannot change the rules or the recorded result. <b>Can</b> compute the result before sending the transaction.</td><td>Legacy. Used by the public demo endpoints today; not planned for mainnet.</td></tr>
+                  <tr><td class="mono">rng_v1</td><td>A <span class="mono">master_seed</span> set by the operator when the runtime is created.</td><td>Cannot change the rules or the recorded result. <b>Can</b> compute the result before sending the transaction.</td><td>Legacy. Still used by scale snapshot draws; not planned for mainnet.</td></tr>
                   <tr><td class="mono">rng_v2 · single phase (v1.2)</td><td>Hashes of three Solana slots fixed at prepare, that do not exist yet.</td><td>Cannot predict the result. Can decline to settle after the slots land; an unsettled draw stays on-chain and expires.</td><td>Canonical. Default.</td></tr>
                   <tr><td class="mono">rng_v2 · two phase (v1.3.2)</td><td>Same slot hashes; anyone may seal them in.</td><td>Cannot predict and cannot abort: after seal the outcome is fixed, and skipping attest forfeits the stake.</td><td>Canonical. Opt-in per draw.</td></tr>
                   <tr><td class="mono">Unicorn-G (B8)</td><td>A VDF output verified with Groth16.</td><td>Designed to remove residual validator influence on the seed.</td><td>Research. Not in the current canonical build; see <a href="#paths">§06</a>.</td></tr>
@@ -176,7 +176,8 @@
 randomness   = SHA256(master_seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
 
 <span class="comment"># rng_v2</span>
-target_slots = prepare_slot + { 75, 90, 105 }
+<span class="comment"># offsets by path: draws { 8, 16, 24 } · sortition { 75, 90, 105 } · slot spins { 3, 4, 5 }</span>
+target_slots = prepare_slot + offsets
 <span class="comment"># each target resolves to that slot, or the nearest later slot present in SlotHashes</span>
 seed         = SHA256("VRE_RNG_V2" ‖ runtime_id ‖ resolve_id_u64le ‖ compiled_artifact_hash
                       ‖ snapshot_hash ‖ (slot_u64le ‖ slot_hash) × 3 [‖ operator_commit_hash])
@@ -191,8 +192,9 @@ expiry_slot  = target_slots[2] + 480
               <table class="spec-table">
                 <thead><tr><th>Endpoint</th><th>Resolution path</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">POST /api/examples/draw<br>POST /api/partner/draw<br>POST /api/live-raffle</td><td>rng_v1 resolve (<span class="mono">resolve_outcome</span>, <span class="mono">resolve_outcome_v4</span>, <span class="mono">resolve_outcome_v121</span>). Moving these to rng_v2 single phase is in progress.</td></tr>
-                  <tr><td class="mono">POST /api/partner/sortition/seal</td><td>Sortition seal on future slot hashes.</td></tr>
+                  <tr><td class="mono">POST /api/examples/draw<br>POST /api/partner/draw<br>POST /api/live-raffle</td><td>rng_v2 single phase, in one request: commit, <span class="mono">prepare_rng_v2</span>, wait for the target slots, <span class="mono">settle_rng_v2</span>, replay.</td></tr>
+                  <tr><td class="mono">POST /api/partner/snapshot/finalize</td><td>rng_v1 resolve on a scale snapshot (<span class="mono">resolve_outcome_v4</span>, <span class="mono">resolve_outcome_v121</span>).</td></tr>
+                  <tr><td class="mono">POST /api/partner/sortition/seal<br>POST /api/examples/sortition/seal</td><td>Sortition seal on future slot hashes.</td></tr>
                   <tr><td class="mono">POST /api/partner/conditions/resolve</td><td><span class="mono">resolve_conditions</span>: deterministic scoring of committed slips against revealed facts. No randomness.</td></tr>
                 </tbody>
               </table>
@@ -505,7 +507,7 @@ expiry_slot  = target_slots[2] + 480
             </div>
 
             <h3>Single-phase settle (v1.2) · default</h3>
-            <p><span class="mono">prepare_rng_v2</span> fixes the rules, the stake and three future target slots. After the last target slot and before expiry, the same operator calls <span class="mono">settle_rng_v2</span>, which reads SlotHashes, derives the randomness, resolves the artifact and writes the resolution. The operator cannot predict the result. It can still choose not to settle; the prepared draw then remains visible on-chain and expires through <span class="mono">expire_rng_v2</span>, which refunds the stake.</p>
+            <p><span class="mono">prepare_rng_v2</span> fixes the rules, the stake and three future target slots, 8, 16 and 24 slots ahead. A Solana leader produces four slots in a row, so the first target is always at least two leader groups after the slot that included prepare, and the three targets fall in three different groups. After the last target slot and before expiry, the same operator calls <span class="mono">settle_rng_v2</span>, which reads SlotHashes, derives the randomness, resolves the artifact and writes the resolution. The operator cannot predict the result. It can still choose not to settle; the prepared draw then remains visible on-chain and expires through <span class="mono">expire_rng_v2</span>, which refunds the stake. The public draw endpoints run this path in one request.</p>
 
             <h3>Two-phase seal and attest (v1.3.2)</h3>
             <ol class="spec-step-list">
@@ -517,10 +519,10 @@ expiry_slot  = target_slots[2] + 480
             <p>Use it when the operator has an interest in the result and must not be able to back out.</p>
 
             <h3>Compact artifacts on rng_v2</h3>
-            <p>Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects the winners itself, so callers pass empty winner arguments; non-empty ones fail with <span class="mono">RngV2CompactArgsMustBeEmpty</span>. The resolution stores <span class="mono">winner_claim_hash</span> as the digest of the winner list, and the list is emitted in <span class="mono">OutcomeResolvedV5</span>. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit <span class="mono">OutcomeResolvedV4</span>. Both must be payout-free. SDK 0.8.1 verifies these draws; the public draw endpoints do not use this path yet.</p>
+            <p>Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects the winners itself, so callers pass empty winner arguments; non-empty ones fail with <span class="mono">RngV2CompactArgsMustBeEmpty</span>. The resolution stores <span class="mono">winner_claim_hash</span> as the digest of the winner list, and the list is emitted in <span class="mono">OutcomeResolvedV5</span>. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit <span class="mono">OutcomeResolvedV4</span>. Both must be payout-free. SDK 0.8.1 verifies these draws, and the public draw endpoints resolve through this path.</p>
 
             <h3>Sortition-by-Claim (v1.4.0)</h3>
-            <p>Entrants register <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> before a deadline. <span class="mono">seal_sortition_draw</span> fixes <span class="mono">omega</span> from three future slot hashes. Each entrant claims by revealing the secret and wins when <span class="mono">sha256(secret ‖ omega) &lt; threshold</span>.</p>
+            <p>Entrants register <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> before a deadline. <span class="mono">seal_sortition_draw</span> fixes <span class="mono">omega</span> from three future slot hashes, 75, 90 and 105 slots after the draw was created; registration must close before the first of them. Each entrant claims by revealing the secret and wins when <span class="mono">sha256(secret ‖ omega) &lt; threshold</span>.</p>
             <ul class="spec-rule-list">
               <li><b>Cost.</b> A claim uses about 8,200 CU, under the 10k budget.</li>
               <li><b>Coverage.</b> 5 of 5 negative cases rejected.</li>
@@ -545,7 +547,7 @@ expiry_slot  = target_slots[2] + 480
           <section id="api" class="spec-section">
             <div class="spec-section-num">07</div>
             <h2>HTTP API</h2>
-            <p>Base URL <span class="mono">https://verifiableoutcome.online</span>. JSON in, JSON out. Draw endpoints sign with the server's operator key, so callers never hold one.</p>
+            <p>Base URL <span class="mono">https://verifiableoutcome.online</span>. JSON in, JSON out. Draw endpoints sign with the server's operator key, so callers never hold one. A draw resolves through rng_v2 inside the request: the server commits the rules, waits for the future target slots, about 10 seconds, then settles and replays, so a draw call takes much longer than a read.</p>
 
             <h3>Limits and statuses</h3>
             <div class="spec-table-wrap">
@@ -557,6 +559,7 @@ expiry_slot  = target_slots[2] + 480
                   <tr><td><span class="mono">POST /api/examples/draw</span>, per IP</td><td class="mono">1 draw / 15 s</td></tr>
                   <tr><td><span class="mono">POST /api/live-raffle</span></td><td class="mono">1 draw / 10 s</td></tr>
                   <tr><td><span class="mono">POST /api/partner/draw</span>, per key</td><td class="mono">1 draw / 10 s</td></tr>
+                  <tr><td><span class="mono">POST /api/examples/sortition/draw</span>, per IP</td><td class="mono">1 draw / 15 s</td></tr>
                 </tbody>
               </table>
             </div>
@@ -575,6 +578,10 @@ expiry_slot  = target_slots[2] + 480
                   <tr><td class="mono">GET /api/spec</td><td></td><td class="mono">{ ok, summary, blessed }</td></tr>
                   <tr><td class="mono">POST /api/conditions/score</td><td class="mono">fixtures, entrants</td><td>Scores and ranking, see below.</td></tr>
                   <tr><td class="mono">POST /api/examples/draw</td><td>Same body as partner draw.</td><td>Same response as partner draw. Runs on the server's demo key.</td></tr>
+                  <tr><td class="mono">POST /api/examples/sortition/draw</td><td>Same body as partner sortition draw.</td><td>Creates a sortition draw on the demo key.</td></tr>
+                  <tr><td class="mono">POST /api/examples/sortition/register</td><td class="mono">draw_id, ticket_id, commitment</td><td>Registers a ticket commitment.</td></tr>
+                  <tr><td class="mono">POST /api/examples/sortition/seal</td><td class="mono">draw_id</td><td>Seals <span class="mono">omega</span> from future slot hashes.</td></tr>
+                  <tr><td class="mono">POST /api/examples/sortition/claim</td><td class="mono">draw_id, ticket_id, secret</td><td>Reveals and claims a ticket.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -611,7 +618,7 @@ expiry_slot  = target_slots[2] + 480
               <table class="spec-table">
                 <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">POST /api/live-raffle</td><td class="mono">address, requireWorldId?, worldId?</td><td class="mono">{ ok, signature, outcome, runtimeId, resolveId, artifactHash, programId, participantCount, world_id? }</td></tr>
+                  <tr><td class="mono">POST /api/live-raffle</td><td class="mono">address, requireWorldId?, worldId?</td><td class="mono">{ ok, signature, outcome, outcome_ids, runtimeId, resolveId, artifactHash, programId, participantCount, world_id?, rng_version, entropy_source, prepare_signature, target_slots, resolved_slots, winner_claim_hash }</td></tr>
                   <tr><td class="mono">POST /api/world-id/rp-context</td><td></td><td class="mono">{ ok, enabled, …, rp_context }</td></tr>
                 </tbody>
               </table>
@@ -624,7 +631,7 @@ expiry_slot  = target_slots[2] + 480
               <table class="spec-table">
                 <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">POST /api/partner/draw</td><td class="mono">formula, participants, winners_count?, target?, label?, use_case?</td><td class="mono">{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot }</td></tr>
+                  <tr><td class="mono">POST /api/partner/draw</td><td class="mono">formula, participants, winners_count?, target?, label?, use_case?</td><td class="mono">{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot, rng_version, entropy_source, prepare_signature, target_slots, resolved_slots, winner_claim_hash }</td></tr>
                   <tr><td class="mono">GET /api/partner/draw/:signature/proof</td><td class="mono">?address=</td><td>Membership proof for a scale draw: <span class="mono">included, winner, merkle_root, leaf_hash, proof, proof_status, publication_status, irys_url</span>.</td></tr>
                   <tr><td class="mono">POST /api/partner/snapshot/init</td><td class="mono">label?, use_case?</td><td>A snapshot session id, valid for 24 hours.</td></tr>
                   <tr><td class="mono">POST /api/partner/snapshot/chunk</td><td class="mono">session_id, chunk_index, participants</td><td>Up to 5,000 participants per chunk, 2 MB per body.</td></tr>
@@ -661,7 +668,8 @@ expiry_slot  = target_slots[2] + 480
   -H <span class="ok">"x-api-key: vresk_YOUR_KEY"</span> \
   -d <span class="ok">'{"formula":"rank_desc","winners_count":2,"participants":[{"id":"alice","score":10},{"id":"bob","score":30},{"id":"carol","score":20}]}'</span>
 → { <span class="key">"ok"</span>: <span class="ok">true</span>, <span class="key">"signature"</span>: <span class="ok">"36oi8jNb…"</span>, <span class="key">"outcome_id"</span>: <span class="ok">"bob"</span>, <span class="key">"outcome_ids"</span>: [<span class="ok">"bob"</span>, <span class="ok">"carol"</span>],
-    <span class="key">"replay_url"</span>: <span class="ok">"https://verifiableoutcome.online/verify?sig=36oi8jNb…"</span>, <span class="key">"artifact_slot"</span>: <span class="num">…</span>, <span class="key">"resolution_slot"</span>: <span class="num">…</span> }</div>
+    <span class="key">"replay_url"</span>: <span class="ok">"https://verifiableoutcome.online/verify?sig=36oi8jNb…"</span>, <span class="key">"artifact_slot"</span>: <span class="num">…</span>, <span class="key">"resolution_slot"</span>: <span class="num">…</span>,
+    <span class="key">"rng_version"</span>: <span class="num">2</span>, <span class="key">"entropy_source"</span>: <span class="ok">"slot_hash"</span>, <span class="key">"target_slots"</span>: [ … ], <span class="key">"resolved_slots"</span>: [ … ] }</div>
             </div>
           </section>
 

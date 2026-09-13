@@ -29,7 +29,20 @@ for (const [name, text] of Object.entries(docs)) {
 
 // 2. API routes: every exact route the server handles appears in both specs.
 const routes = new Set([...server.matchAll(/pathname === "(\/api\/[^"]+)"/g)].map((m) => m[1]));
-routes.add("/api/partner/draw/:signature/proof");
+// Routes the server matches with a regular expression, written the way the spec documents them.
+const REGEX_ROUTES = [
+  "/api/partner/draw/:signature/proof",
+  "/api/examples/sortition/draw",
+  "/api/examples/sortition/register",
+  "/api/examples/sortition/seal",
+  "/api/examples/sortition/claim",
+];
+const REGEX_MATCHERS_DOCUMENTED = 2;
+const regexMatchers = (server.match(/pathname\.match\(/g) || []).length;
+if (regexMatchers !== REGEX_MATCHERS_DOCUMENTED) {
+  fail(`web/server.mjs has ${regexMatchers} pathname.match() routes, check_spec_sync.mjs documents ${REGEX_MATCHERS_DOCUMENTED}; add the new route to REGEX_ROUTES`);
+}
+for (const route of REGEX_ROUTES) routes.add(route);
 for (const route of routes) {
   if (!html.includes(route)) fail(`spec.html: missing API route ${route}`);
   if (!md.includes(route)) fail(`spec.md: missing API route ${route}`);

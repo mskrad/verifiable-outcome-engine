@@ -5,7 +5,7 @@ Machine-readable copy of https://verifiableoutcome.online/spec for agents and to
 - Product: Verifiable Outcome Engine (VRE). On-chain proof of who won.
 - Cluster: Solana devnet. Mainnet is a separate, later effort.
 - Canonical program: `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
-- Last program deploy: slot 495662430, 2026-09-09
+- Last program deploy: slot 497829503, 2026-09-13
 - SDK: `verifiable-outcome-sdk` 0.8.1 (npm)
 - Base URL: `https://verifiableoutcome.online`
 - Conventions: all integers little-endian; hashes are SHA-256; `‖` is byte concatenation.
@@ -39,7 +39,7 @@ Every path: commit the rules, bind a runtime, resolve, replay.
 
 | Source | Entropy | Operator can / cannot | Status |
 |---|---|---|---|
-| `rng_v1` | `master_seed` set by the operator at runtime creation | Cannot change rules or recorded result. Can compute the result before sending. | Legacy. Used by public demo endpoints today; not planned for mainnet. |
+| `rng_v1` | `master_seed` set by the operator at runtime creation | Cannot change rules or recorded result. Can compute the result before sending. | Legacy. Still used by scale snapshot draws; not planned for mainnet. |
 | `rng_v2` single phase (v1.2) | Hashes of three future slots fixed at prepare | Cannot predict. Can decline to settle; the unsettled draw stays on-chain and expires. | Canonical. Default. |
 | `rng_v2` two phase (v1.3.2) | Same slot hashes; anyone may seal | Cannot predict and cannot abort; skipping attest forfeits the stake. | Canonical. Opt-in per draw. |
 | Unicorn-G (B8) | VDF output verified with Groth16 | Designed to remove residual validator influence. | Research. Not in the current canonical build. |
@@ -49,7 +49,8 @@ Every path: commit the rules, bind a runtime, resolve, replay.
 randomness   = SHA256(master_seed ‖ runtime_id ‖ resolve_id_u64le ‖ actor)
 
 # rng_v2
-target_slots = prepare_slot + {75, 90, 105}
+# offsets by path: draws {8, 16, 24} · sortition {75, 90, 105} · slot spins {3, 4, 5}
+target_slots = prepare_slot + offsets
 # each target resolves to that slot, or the nearest later slot present in SlotHashes
 seed         = SHA256("VRE_RNG_V2" ‖ runtime_id ‖ resolve_id_u64le ‖ compiled_artifact_hash
                       ‖ snapshot_hash ‖ (slot_u64le ‖ slot_hash) × 3 [‖ operator_commit_hash])
@@ -64,8 +65,9 @@ Resolved slots and slot hashes are stored in the resolution account and the even
 
 | Endpoint | Resolution path |
 |---|---|
-| `POST /api/examples/draw`, `POST /api/partner/draw`, `POST /api/live-raffle` | rng_v1 resolve (`resolve_outcome`, `resolve_outcome_v4`, `resolve_outcome_v121`). Migration to rng_v2 single phase in progress. |
-| `POST /api/partner/sortition/seal` | Sortition seal on future slot hashes. |
+| `POST /api/examples/draw`, `POST /api/partner/draw`, `POST /api/live-raffle` | rng_v2 single phase in one request: commit, `prepare_rng_v2`, wait for target slots, `settle_rng_v2`, replay. |
+| `POST /api/partner/snapshot/finalize` | rng_v1 resolve on a scale snapshot (`resolve_outcome_v4`, `resolve_outcome_v121`). |
+| `POST /api/partner/sortition/seal`, `POST /api/examples/sortition/seal` | Sortition seal on future slot hashes. |
 | `POST /api/partner/conditions/resolve` | `resolve_conditions`: deterministic scoring against revealed facts. No randomness. |
 
 <a id="formats"></a>
@@ -307,7 +309,7 @@ Compact artifacts on rng_v2 (`prepare_rng_v2`, `settle_rng_v2`, `attest_winners`
 | B8 | Unicorn-G entropy | Research, not in current build |
 
 ### Single-phase settle (v1.2), default
-`prepare_rng_v2` fixes rules, stake and three future target slots. After the last target slot and before expiry, the same operator calls `settle_rng_v2`: reads SlotHashes, derives randomness, resolves, writes the resolution. The operator cannot predict the result but can choose not to settle; the prepared draw stays visible and expires via `expire_rng_v2` (stake refunded).
+`prepare_rng_v2` fixes rules, stake and three future target slots, 8, 16 and 24 slots ahead. A Solana leader produces 4 slots in a row, so the first target is always ≥ 2 leader groups after the slot that included prepare, and the three targets fall in three different groups. After the last target slot and before expiry, the same operator calls `settle_rng_v2`: reads SlotHashes, derives randomness, resolves, writes the resolution. The operator cannot predict the result but can choose not to settle; the prepared draw stays visible and expires via `expire_rng_v2` (stake refunded). The public draw endpoints run this path in one request.
 
 ### Two-phase seal and attest (v1.3.2)
 1. prepare: operator opens the draw with a stake and a bounty.
@@ -318,10 +320,10 @@ Compact artifacts on rng_v2 (`prepare_rng_v2`, `settle_rng_v2`, `attest_winners`
 Use when the operator has an interest in the result and must not be able to back out.
 
 ### Compact artifacts on rng_v2
-Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects winners; callers pass empty winner arguments (non-empty fails with `RngV2CompactArgsMustBeEmpty`). The resolution stores `winner_claim_hash` as the digest of the winner list; the list is emitted in `OutcomeResolvedV5`. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit `OutcomeResolvedV4`. Both payout-free. SDK 0.8.1 verifies these draws; public draw endpoints do not use this path yet.
+Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects winners; callers pass empty winner arguments (non-empty fails with `RngV2CompactArgsMustBeEmpty`). The resolution stores `winner_claim_hash` as the digest of the winner list; the list is emitted in `OutcomeResolvedV5`. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit `OutcomeResolvedV4`. Both payout-free. SDK 0.8.1 verifies these draws, and the public draw endpoints resolve through this path.
 
 ### Sortition-by-Claim (v1.4.0)
-Entrants register `sha256(secret ‖ ticket_id ‖ draw_id)` before a deadline. `seal_sortition_draw` fixes `omega` from three future slot hashes. Each entrant claims by revealing `secret`; wins iff `sha256(secret ‖ omega) < threshold`.
+Entrants register `sha256(secret ‖ ticket_id ‖ draw_id)` before a deadline. `seal_sortition_draw` fixes `omega` from three future slot hashes, 75, 90 and 105 slots after draw creation; registration must close before the first. Each entrant claims by revealing `secret`; wins iff `sha256(secret ‖ omega) < threshold`.
 - Claim ~8,200 CU (budget 10k).
 - 5/5 negative cases rejected.
 - 200 draws × 100 tickets, 10 expected winners: mean 9.7, variance 8.76 (binomial 10 / 9).
@@ -341,7 +343,7 @@ VDF output verified on-chain with an embedded Groth16 verifier. Measured on devn
 <a id="api"></a>
 ## 07 · HTTP API
 
-Base URL `https://verifiableoutcome.online`. JSON in and out. Draw endpoints sign with the server's operator key.
+Base URL `https://verifiableoutcome.online`. JSON in and out. Draw endpoints sign with the server's operator key. A draw resolves through rng_v2 inside the request: commit, wait for future target slots (~10 s), settle, replay; a draw call takes much longer than a read.
 
 ### Limits and statuses
 
@@ -352,6 +354,7 @@ Base URL `https://verifiableoutcome.online`. JSON in and out. Draw endpoints sig
 | `POST /api/examples/draw`, per IP | 1 draw / 15 s |
 | `POST /api/live-raffle` | 1 draw / 10 s |
 | `POST /api/partner/draw`, per key | 1 draw / 10 s |
+| `POST /api/examples/sortition/draw`, per IP | 1 draw / 15 s |
 
 Statuses: 200 success; 400 validation; 401 missing or unknown key; 403 key lacks permission; 429 rate limit; 503 partner config absent; 504 devnet timeout, retry.
 
@@ -367,6 +370,10 @@ Statuses: 200 success; 400 validation; 401 missing or unknown key; 403 key lacks
 | `GET /api/spec` | | `{ ok, summary, blessed }` |
 | `POST /api/conditions/score` | fixtures, entrants | Scores and ranking (below) |
 | `POST /api/examples/draw` | Same body as partner draw | Same response as partner draw; runs on the server's demo key |
+| `POST /api/examples/sortition/draw` | Same body as partner sortition draw | Creates a sortition draw on the demo key |
+| `POST /api/examples/sortition/register` | draw_id, ticket_id, commitment | Registers a ticket commitment |
+| `POST /api/examples/sortition/seal` | draw_id | Seals omega from future slot hashes |
+| `POST /api/examples/sortition/claim` | draw_id, ticket_id, secret | Reveals and claims a ticket |
 
 ### Scoring conditions without a key
 
@@ -395,7 +402,7 @@ Leg encoding: `op` 1 = add (totals), 2 = subtract (1x2); `comparison` 0 = greate
 
 | Endpoint | Request | Response |
 |---|---|---|
-| `POST /api/live-raffle` | address, requireWorldId?, worldId? | `{ ok, signature, outcome, runtimeId, resolveId, artifactHash, programId, participantCount, world_id? }` |
+| `POST /api/live-raffle` | address, requireWorldId?, worldId? | `{ ok, signature, outcome, outcome_ids, runtimeId, resolveId, artifactHash, programId, participantCount, world_id?, rng_version, entropy_source, prepare_signature, target_slots, resolved_slots, winner_claim_hash }` |
 | `POST /api/world-id/rp-context` | | `{ ok, enabled, …, rp_context }` |
 
 With `requireWorldId`, the caller sends a World ID 4.0 proof; the server verifies it and reserves its nullifier (one human, one entry). The public host runs World ID in staging (simulator). Wallet pages read only the address via Wallet Standard and never request signatures.
@@ -406,7 +413,7 @@ Header `x-api-key: vresk_<32 hex>`. Keys issued at onboarding, stored server-sid
 
 | Endpoint | Request | Response |
 |---|---|---|
-| `POST /api/partner/draw` | formula, participants, winners_count?, target?, label?, use_case? | `{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot }` |
+| `POST /api/partner/draw` | formula, participants, winners_count?, target?, label?, use_case? | `{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot, rng_version, entropy_source, prepare_signature, target_slots, resolved_slots, winner_claim_hash }` |
 | `GET /api/partner/draw/:signature/proof` | ?address= | Scale draw membership proof: included, winner, merkle_root, leaf_hash, proof, proof_status, publication_status, irys_url |
 | `POST /api/partner/snapshot/init` | label?, use_case? | Snapshot session id, valid 24 h |
 | `POST /api/partner/snapshot/chunk` | session_id, chunk_index, participants | ≤ 5,000 participants per chunk, ≤ 2 MB body |
@@ -432,7 +439,7 @@ Header `x-api-key: vresk_<32 hex>`. Keys issued at onboarding, stored server-sid
 curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
   -H "content-type: application/json" -H "x-api-key: vresk_YOUR_KEY" \
   -d '{"formula":"rank_desc","winners_count":2,"participants":[{"id":"alice","score":10},{"id":"bob","score":30},{"id":"carol","score":20}]}'
-# → { "ok": true, "signature": "…", "outcome_id": "bob", "outcome_ids": ["bob","carol"], "replay_url": "https://verifiableoutcome.online/verify?sig=…", "artifact_slot": …, "resolution_slot": … }
+# → { "ok": true, "signature": "…", "outcome_id": "bob", "outcome_ids": ["bob","carol"], "replay_url": "https://verifiableoutcome.online/verify?sig=…", "artifact_slot": …, "resolution_slot": …, "rng_version": 2, "entropy_source": "slot_hash", "target_slots": […], "resolved_slots": […] }
 ```
 
 <a id="sdk"></a>

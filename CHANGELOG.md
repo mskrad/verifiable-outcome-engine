@@ -18,15 +18,33 @@ Versions live on **two orthogonal axes**; don't conflate them:
   - **Scale** (V1.2 / V1.2.1, fmt 6/7): **Merkle snapshot**, only the root on-chain →
     **large** draws (thousands–millions).
 - **Randomness (`rng_version`) — about SECURITY.**
-  - **rng_v1** — operator `master_seed` (grindable). **Legacy, retained** (still the only path
-    for the compact/small-medium formats).
+  - **rng_v1** — operator `master_seed` (grindable). **Legacy, retained** (still used by scale snapshot draws;
+    public compact draws moved to rng_v2 on 2026-09-13).
   - **rng_v2** — future Solana SlotHash (unpredictable). **Current.** Two lifecycles:
     - **v1.2** single-phase `settle_rng_v2` — one settle; unpredictable, not no-abort. Fit for
       casino/game "simple random" (untrusted operator is not the threat).
     - **v1.3.2** two-phase `seal → attest` — adds no-abort (untrusted operator).
-  - rng_v2 currently binds the **scale (large)** format; compact stays rng_v1.
+  - rng_v2 accepts both compact and scale formats since 2026-09-09.
 
 ---
+
+## 2026-09-13 — Public draws on rng_v2, shorter draw window
+
+- **Draw target offsets `[8, 16, 24]`.** `prepare_rng_v2` now fixes its three future target slots
+  8, 16 and 24 slots ahead instead of 75, 90 and 105, so a draw's entropy exists about 10 seconds
+  after prepare instead of 42. A Solana leader produces four consecutive slots: the first target
+  is always at least two leader groups after the slot that included prepare, and the three targets
+  sit in three different groups. The longer offset added no protection, because the leader
+  schedule is public an epoch ahead. Sortition keeps `[75, 90, 105]`, since its registration window
+  must close before the first target. Slot spins keep `[3, 4, 5]`. Verification is unchanged: the
+  verifier reads the recorded target slots.
+- **Public draw endpoints resolve through rng_v2 single phase.** `POST /api/examples/draw`,
+  `POST /api/partner/draw` and `POST /api/live-raffle` commit the rules, prepare, wait for the
+  target slots, settle and replay inside the request. Responses keep their fields and add
+  `rng_version`, `entropy_source`, `prepare_signature`, `target_slots`, `resolved_slots` and
+  `winner_claim_hash`. Draw artifacts are payout-free. Scale snapshot draws stay on rng_v1.
+- **Deployed** to `6QtLot…` at slot `497829503` (upgrade `3hPmXzi3…`); the four blessed
+  signatures still replay to MATCH.
 
 ## 2026-09-09 — Hackathon-era integrations removed
 
