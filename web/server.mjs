@@ -292,6 +292,10 @@ function sendStatic(req, res, pathname) {
       ? "application/json; charset=utf-8"
       : ext === ".woff2"
       ? "font/woff2"
+      : ext === ".md"
+      ? "text/markdown; charset=utf-8"
+      : ext === ".txt"
+      ? "text/plain; charset=utf-8"
       : "application/octet-stream";
   const data = fs.readFileSync(abs);
   res.writeHead(200, {
