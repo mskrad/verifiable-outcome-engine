@@ -4,18 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Build · VRE</title>
-  <meta name="description" content="On-chain proof of who won. Build committed rules, resolve once, let anyone verify from a transaction signature." />
+  <meta name="description" content="On-chain proof of who won. Send participants, get winners picked from future Solana slots, share a signature anyone can replay." />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:title"       content="Build on VRE · Verifiable Outcomes API" />
-  <meta property="og:description" content="One POST request. Committed rules, on-chain resolution, replay-verifiable result. 30-minute integration for any Solana app." />
+  <meta property="og:description" content="One POST request: rules committed on-chain, winners from future Solana slots, a signature anyone can replay." />
   <meta property="og:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
   <meta property="og:url"         content="https://verifiableoutcome.online/build" />
   <meta property="og:site_name"   content="Verifiable Outcome Engine" />
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="Build on VRE · Verifiable Outcomes API" />
-  <meta name="twitter:description" content="One POST request. Committed rules, on-chain resolution, replay-verifiable result. 30-minute integration for any Solana app." />
+  <meta name="twitter:description" content="One POST request: rules committed on-chain, winners from future Solana slots, a signature anyone can replay." />
   <meta name="twitter:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
 
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
@@ -61,9 +61,9 @@
 
   <header class="page-head">
     <div class="container">
-      <span class="eyebrow"><span class="dot"></span> Config engine + SDK</span>
+      <span class="eyebrow"><span class="dot"></span> Partner API + SDK</span>
       <h1 class="page-title">Build with VRE</h1>
-      <p class="lead">On-chain proof of who won. Build committed W3O1 rules, resolve once, let anyone verify from the transaction signature.</p>
+      <p class="lead">On-chain proof of who won. Send participants and a formula, the VRE operator runs the draw on devnet, anyone verifies it from the transaction signature.</p>
     </div>
   </header>
 
@@ -72,8 +72,8 @@
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> How it works</span>
-        <h2>Three steps. One artifact. One replay path.</h2>
-        <p>The public surface is simple: build a deterministic artifact, resolve it on-chain with an operator path, then replay the signature from public RPC data. <span class="text-faint">Artifact building is open. Operator execution depends on the program instance you use.</span></p>
+        <h2>Three steps. One request. One replay path.</h2>
+        <p>You send one HTTP request; the operator commits your rules, waits for future Solana slots and settles the draw on-chain. <span class="text-faint">The canonical program binds only rules approved by its admin key, so draws run through the API; verification needs nothing.</span></p>
       </div>
 
       <div class="stepper">
@@ -82,9 +82,9 @@
             <div class="step-num">1</div>
             <div class="step-tag">commit</div>
           </div>
-          <h3>Build artifact bytes</h3>
-          <p>Define participants, weights or scores, winners count, and optional formula fields. The SDK compiles them into deterministic <span class="mono">W3O1</span> bytes.</p>
-          <div class="step-code"><span class="prompt">$</span> node build-artifact.mjs</div>
+          <h3>Send participants</h3>
+          <p>Participants, a formula and the number of winners go in one request with your partner key. The rules are committed on-chain before any randomness exists.</p>
+          <div class="step-code"><span class="prompt">$</span> curl -X POST …/api/partner/draw</div>
         </div>
 
         <div class="step">
@@ -92,9 +92,9 @@
             <div class="step-num">2</div>
             <div class="step-tag">resolve</div>
           </div>
-          <h3>Resolve on-chain</h3>
-          <p>An operator path submits the committed artifact to the canonical or partner-owned program. The resulting transaction becomes the public evidence surface.</p>
-          <div class="step-code"><span class="prompt">$</span> yarn -s resolve:operator --config raffle.json</div>
+          <h3>Winners from future slots</h3>
+          <p><span class="mono">prepare_rng_v2</span> fixes three slots 8, 16 and 24 slots ahead; once they exist, <span class="mono">settle_rng_v2</span> picks the winners from their hashes. The request returns in 12–45 seconds.</p>
+          <div class="step-code"><span class="prompt">→</span> prepare_rng_v2 · settle_rng_v2</div>
         </div>
 
         <div class="step">
@@ -103,8 +103,8 @@
             <div class="step-tag">verify</div>
           </div>
           <h3>Share &amp; verify</h3>
-          <p>You get a signature. Paste it at <span class="mono">/verify</span> or call <span class="mono">verifyOutcome()</span>. Anyone can replay the same outcome from public RPC data.</p>
-          <div class="step-code"><span class="prompt">$</span> node verify.mjs <span class="ok">→ MATCH / OK</span></div>
+          <p>You get a signature. Paste it at <span class="mono">/verify</span>, run <span class="mono">vre verify</span> or call <span class="mono">verifyOutcome()</span>. Anyone can replay the same outcome from public RPC data.</p>
+          <div class="step-code"><span class="prompt">$</span> vre verify --sig … <span class="ok">→ MATCH / OK</span></div>
         </div>
       </div>
     </div>
@@ -115,7 +115,7 @@
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> Install</span>
-        <h2>One npm package. Deterministic build + replay.</h2>
+        <h2>One npm package. Replay any result.</h2>
       </div>
 
       <div class="terminal">
@@ -126,11 +126,11 @@
         <div class="terminal-body"><span class="comment"># Install the public SDK</span>
 <span class="prompt">$</span> npm install verifiable-outcome-sdk
 
-<span class="comment"># Public surface: artifact builder + replay verifier</span>
-<span class="prompt">$</span> node -e 'import("verifiable-outcome-sdk").then(m =&gt; console.log(Object.keys(m)))'
-<span class="out">verifiable-outcome-sdk v0.4.0</span>
-<span class="out">surface: buildArtifact, verifyOutcome</span>
-<span class="out">formats: W3O1 v1-v3 · deterministic replay kernel</span></div>
+<span class="comment"># Or verify without installing</span>
+<span class="prompt">$</span> npx -p verifiable-outcome-sdk vre verify --sig MVE6v5…YFAy5H
+<span class="out">verification_result : MATCH</span>
+<span class="out">verification_reason : OK</span>
+<span class="out">rng_version         : 2</span></div>
       </div>
     </div>
   </section>
@@ -140,54 +140,43 @@
     <div class="container">
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> The shape</span>
-        <h2>Config in. Signature out. Replay anywhere.</h2>
+        <h2>Participants in. Signature out. Replay anywhere.</h2>
       </div>
 
       <div class="code-pair">
         <div>
-          <div class="code-pair-label"><span class="code-pair-name mono">raffle.json</span><span class="code-pair-tag">config</span></div>
+          <div class="code-pair-label"><span class="code-pair-name mono">body.json</span><span class="code-pair-tag">request</span></div>
           <div class="terminal">
-            <div class="terminal-body"><span class="comment">// Example formula config before compilation to W3O1 bytes</span>
+            <div class="terminal-body"><span class="comment">// POST /api/partner/draw</span>
 {
-  <span class="key">"type"</span>: <span class="ok">"formula_draw"</span>,
   <span class="key">"formula"</span>: <span class="ok">"rank_desc"</span>,
-  <span class="key">"input_lamports"</span>: <span class="num">12</span>,
-  <span class="key">"payout_lamports"</span>: <span class="num">3</span>,
   <span class="key">"winners_count"</span>: <span class="num">2</span>,
   <span class="key">"participants"</span>: [
     { <span class="key">"id"</span>: <span class="ok">"trader-alice"</span>, <span class="key">"score"</span>: <span class="num">1200</span> },
     { <span class="key">"id"</span>: <span class="ok">"trader-bob"</span>,   <span class="key">"score"</span>: <span class="num">950</span> },
     { <span class="key">"id"</span>: <span class="ok">"trader-carol"</span>, <span class="key">"score"</span>: <span class="num">1400</span> }
-  ],
-  <span class="key">"target"</span>: <span class="num">null</span>
+  ]
 }</div>
           </div>
         </div>
         <div>
-          <div class="code-pair-label"><span class="code-pair-name mono">app.ts</span><span class="code-pair-tag">programmatic</span></div>
+          <div class="code-pair-label"><span class="code-pair-name mono">app.js</span><span class="code-pair-tag">draw + verify</span></div>
           <div class="terminal">
-            <div class="terminal-body"><span class="comment">// Current public npm surface</span>
-<span class="key">import</span> { buildArtifact, verifyOutcome } <span class="key">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
+            <div class="terminal-body"><span class="key">import</span> { verifyOutcome } <span class="key">from</span> <span class="ok">"verifiable-outcome-sdk"</span>;
 
-<span class="key">const</span> artifact = buildArtifact({
-  type: <span class="ok">"formula_draw"</span>,
-  formula: <span class="ok">"rank_desc"</span>,
-  input_lamports: <span class="num">12</span>,
-  payout_lamports: <span class="num">3</span>,
-  winners_count: <span class="num">2</span>,
-  participants: [
-    { id: <span class="ok">"trader-alice"</span>, score: <span class="num">1200</span> },
-    { id: <span class="ok">"trader-bob"</span>, score: <span class="num">950</span> },
-    { id: <span class="ok">"trader-carol"</span>, score: <span class="num">1400</span> },
-  ],
+<span class="key">const</span> res = <span class="key">await</span> fetch(<span class="ok">"https://verifiableoutcome.online/api/partner/draw"</span>, {
+  method: <span class="ok">"POST"</span>,
+  headers: { <span class="ok">"content-type"</span>: <span class="ok">"application/json"</span>, <span class="ok">"x-api-key"</span>: KEY },
+  body: JSON.stringify(body),
 });
+<span class="key">const</span> draw = <span class="key">await</span> res.json();
 
 <span class="key">const</span> replay = <span class="key">await</span> verifyOutcome({
-  signature: <span class="ok">"5wZUU5…RVd2"</span>,
+  signature: draw.signature,
   rpcUrl: <span class="ok">"https://api.devnet.solana.com"</span>,
-  programId: <span class="ok">"6QtLot…CP6B"</span>,
+  programId: <span class="ok">"6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B"</span>,
 });
-<span class="comment">// { status: "MATCH", outcome_id, outcome_ids, ... }</span></div>
+<span class="comment">// replay.status === "MATCH", replay.outcome_ids = draw.outcome_ids</span></div>
           </div>
         </div>
       </div>
@@ -195,7 +184,7 @@
       <div class="mt-8 flex gap-3" style="flex-wrap:wrap;">
         <a class="btn btn-primary" href="/spec">Read the spec <span aria-hidden>→</span></a>
         <a class="btn btn-secondary" href="/verify">Try a verification <span aria-hidden>→</span></a>
-        <a class="btn btn-ghost" href="/spec#error-codes">Error code reference ↗</a>
+        <a class="btn btn-ghost" href="/spec#verification">Reason codes ↗</a>
       </div>
     </div>
   </section>
@@ -206,7 +195,7 @@
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> Partner Draw API</span>
         <h2>One POST request. Outcome committed on-chain.</h2>
-        <p>No SDK required. Send participants and a formula — get back a transaction signature and a public replay URL. Anyone can verify the result independently.</p>
+        <p>No SDK required. Send participants and a formula — get back a transaction signature and a public replay URL. One request takes 12–45 seconds because it waits for future Solana slots. One draw per 10 seconds per key.</p>
       </div>
 
       <!-- Tabs -->
@@ -240,13 +229,17 @@
             <div class="code-pair-label"><span class="code-pair-name mono">Response</span><span class="code-pair-tag">200 OK</span></div>
             <div class="terminal">
               <div class="terminal-body">{
-  <span class="key">"ok"</span>:             <span class="ok">true</span>,
-  <span class="key">"signature"</span>:      <span class="ok">"5wZUU5…RVd2"</span>,
-  <span class="key">"outcome_id"</span>:     <span class="ok">"alice"</span>,
-  <span class="key">"outcome_ids"</span>:    [<span class="ok">"alice"</span>],
-  <span class="key">"replay_url"</span>:     <span class="ok">"https://verifiableoutcome.online/verify?sig=5wZUU5…RVd2"</span>,
-  <span class="key">"artifact_slot"</span>:  <span class="num">312847201</span>,
-  <span class="key">"resolution_slot"</span>:<span class="num">312847203</span>
+  <span class="key">"ok"</span>:               <span class="ok">true</span>,
+  <span class="key">"signature"</span>:        <span class="ok">"5wZUU5…RVd2"</span>,
+  <span class="key">"outcome_id"</span>:       <span class="ok">"alice"</span>,
+  <span class="key">"outcome_ids"</span>:      [<span class="ok">"alice"</span>],
+  <span class="key">"replay_url"</span>:       <span class="ok">"https://verifiableoutcome.online/verify?sig=5wZUU5…RVd2"</span>,
+  <span class="key">"artifact_slot"</span>:    <span class="num">498390112</span>,
+  <span class="key">"resolution_slot"</span>:  <span class="num">498390152</span>,
+  <span class="key">"rng_version"</span>:      <span class="num">2</span>,
+  <span class="key">"entropy_source"</span>:   <span class="ok">"slot_hash"</span>,
+  <span class="key">"target_slots"</span>:     [<span class="ok">"498390136"</span>, <span class="ok">"498390144"</span>, <span class="ok">"498390152"</span>],
+  <span class="key">"resolved_slots"</span>:   [<span class="ok">"498390136"</span>, <span class="ok">"498390144"</span>, <span class="ok">"498390152"</span>]
 }</div>
             </div>
           </div>
@@ -277,13 +270,17 @@
             <div class="code-pair-label"><span class="code-pair-name mono">Response</span><span class="code-pair-tag">200 OK</span></div>
             <div class="terminal">
               <div class="terminal-body">{
-  <span class="key">"ok"</span>:             <span class="ok">true</span>,
-  <span class="key">"signature"</span>:      <span class="ok">"3xKPQ2…Mn4R"</span>,
-  <span class="key">"outcome_id"</span>:     <span class="ok">"trader-alice"</span>,
-  <span class="key">"outcome_ids"</span>:    [<span class="ok">"trader-alice"</span>, <span class="ok">"trader-carol"</span>],
-  <span class="key">"replay_url"</span>:     <span class="ok">"https://verifiableoutcome.online/verify?sig=3xKPQ2…Mn4R"</span>,
-  <span class="key">"artifact_slot"</span>:  <span class="num">312847310</span>,
-  <span class="key">"resolution_slot"</span>:<span class="num">312847312</span>
+  <span class="key">"ok"</span>:               <span class="ok">true</span>,
+  <span class="key">"signature"</span>:        <span class="ok">"3xKPQ2…Mn4R"</span>,
+  <span class="key">"outcome_id"</span>:       <span class="ok">"trader-alice"</span>,
+  <span class="key">"outcome_ids"</span>:      [<span class="ok">"trader-alice"</span>, <span class="ok">"trader-carol"</span>],
+  <span class="key">"replay_url"</span>:       <span class="ok">"https://verifiableoutcome.online/verify?sig=3xKPQ2…Mn4R"</span>,
+  <span class="key">"artifact_slot"</span>:    <span class="num">498390410</span>,
+  <span class="key">"resolution_slot"</span>:  <span class="num">498390450</span>,
+  <span class="key">"rng_version"</span>:      <span class="num">2</span>,
+  <span class="key">"entropy_source"</span>:   <span class="ok">"slot_hash"</span>,
+  <span class="key">"target_slots"</span>:     [<span class="ok">"498390434"</span>, <span class="ok">"498390442"</span>, <span class="ok">"498390450"</span>],
+  <span class="key">"resolved_slots"</span>:   [<span class="ok">"498390434"</span>, <span class="ok">"498390442"</span>, <span class="ok">"498390450"</span>]
 }</div>
             </div>
           </div>
@@ -315,13 +312,17 @@
             <div class="code-pair-label"><span class="code-pair-name mono">Response</span><span class="code-pair-tag">200 OK</span></div>
             <div class="terminal">
               <div class="terminal-body">{
-  <span class="key">"ok"</span>:             <span class="ok">true</span>,
-  <span class="key">"signature"</span>:      <span class="ok">"7mRTW9…Lp2K"</span>,
-  <span class="key">"outcome_id"</span>:     <span class="ok">"user-3"</span>,
-  <span class="key">"outcome_ids"</span>:    [<span class="ok">"user-3"</span>],
-  <span class="key">"replay_url"</span>:     <span class="ok">"https://verifiableoutcome.online/verify?sig=7mRTW9…Lp2K"</span>,
-  <span class="key">"artifact_slot"</span>:  <span class="num">312847490</span>,
-  <span class="key">"resolution_slot"</span>:<span class="num">312847492</span>
+  <span class="key">"ok"</span>:               <span class="ok">true</span>,
+  <span class="key">"signature"</span>:        <span class="ok">"7mRTW9…Lp2K"</span>,
+  <span class="key">"outcome_id"</span>:       <span class="ok">"user-3"</span>,
+  <span class="key">"outcome_ids"</span>:      [<span class="ok">"user-3"</span>],
+  <span class="key">"replay_url"</span>:       <span class="ok">"https://verifiableoutcome.online/verify?sig=7mRTW9…Lp2K"</span>,
+  <span class="key">"artifact_slot"</span>:    <span class="num">498390702</span>,
+  <span class="key">"resolution_slot"</span>:  <span class="num">498390741</span>,
+  <span class="key">"rng_version"</span>:      <span class="num">2</span>,
+  <span class="key">"entropy_source"</span>:   <span class="ok">"slot_hash"</span>,
+  <span class="key">"target_slots"</span>:     [<span class="ok">"498390725"</span>, <span class="ok">"498390733"</span>, <span class="ok">"498390741"</span>],
+  <span class="key">"resolved_slots"</span>:   [<span class="ok">"498390725"</span>, <span class="ok">"498390733"</span>, <span class="ok">"498390741"</span>]
 }</div>
             </div>
           </div>
@@ -334,17 +335,18 @@
           <thead><tr><th>Field</th><th>Required</th><th>Description</th></tr></thead>
           <tbody>
             <tr><td class="mono">formula</td><td>yes</td><td><span class="mono">weighted_random</span>, <span class="mono">rank_desc</span>, <span class="mono">rank_asc</span>, <span class="mono">first_n</span>, <span class="mono">closest_to</span></td></tr>
-            <tr><td class="mono">participants</td><td>yes</td><td>Array of 2–100 objects. Each has <span class="mono">id</span> (string) + <span class="mono">weight</span> (weighted_random) or <span class="mono">score</span> (others)</td></tr>
+            <tr><td class="mono">participants</td><td>yes</td><td>At least 2, about 100 at most (8 KB of rules). Unique <span class="mono">id</span> up to 64 printable ASCII bytes; optional <span class="mono">weight</span> for weighted_random, required <span class="mono">score</span> for rank_desc, rank_asc and closest_to; first_n keeps the order you send</td></tr>
             <tr><td class="mono">winners_count</td><td>no</td><td>Integer 1–10. Defaults to <span class="mono">1</span></td></tr>
             <tr><td class="mono">target</td><td>closest_to only</td><td>Signed integer. The value participants are ranked by proximity to</td></tr>
-            <tr><td class="mono">label</td><td>no</td><td>Free-form string up to 80 chars for your records</td></tr>
+            <tr><td class="mono">label</td><td>no</td><td>Free-form string for your records</td></tr>
+            <tr><td class="mono">use_case</td><td>no</td><td><span class="mono">raffle</span>, <span class="mono">airdrop</span> or <span class="mono">competition</span>; informational</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="mt-8 flex gap-3" style="flex-wrap:wrap;margin-top:16px;">
-        <a class="btn btn-primary" href="mailto:hello@verifiableoutcome.online">Request API key <span aria-hidden>→</span></a>
-        <a class="btn btn-ghost" href="/spec#partner-api">Full Partner API spec ↗</a>
+        <a class="btn btn-primary" href="https://t.me/maskradiation" target="_blank" rel="noopener">Request API key in Telegram <span aria-hidden>→</span></a>
+        <a class="btn btn-ghost" href="/spec#api">Full API reference ↗</a>
       </div>
     </div>
   </section>
@@ -355,28 +357,28 @@
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> Use cases</span>
         <h2>Committed rules. Single or multi-winner outcomes.</h2>
-        <p>Same SDK shape: build artifact, resolve on-chain, replay the signature.</p>
+        <p>Same request shape: participants and a formula in, a signature anyone can replay out.</p>
       </div>
       <div class="feature-grid feature-grid-compact">
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(20,241,149,0.12); color: var(--teal); border-color: rgba(20,241,149,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg></div>
           <h3>Raffle</h3>
-          <p>W3O1 v1 weighted random. One winner from a committed weighted participant list.</p>
+          <p><span class="mono">weighted_random</span>. One winner from a committed weighted participant list.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon" style="background: linear-gradient(135deg, rgba(20,241,149,0.14), rgba(251,191,36,0.16)); color: var(--amber); border-color: rgba(251,191,36,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V7a6 6 0 1 1 12 0v2"/><path d="M5 9h14l-1 12H6z"/></svg></div>
           <h3>Rewards Selection</h3>
-          <p>W3O1 v2 multi-winner weighted random. Replay returns full ordered <span class="mono">outcome_ids</span>.</p>
+          <p><span class="mono">weighted_random</span> with several winners. Replay returns the full ordered <span class="mono">outcome_ids</span>.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(251,191,36,0.12); color: var(--amber); border-color: rgba(251,191,36,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h12"/></svg></div>
           <h3>Trading Competition</h3>
-          <p>W3O1 v3 <span class="mono">rank_desc</span>. Signed scores and stable input order produce deterministic top-N winners.</p>
+          <p><span class="mono">rank_desc</span>. Signed scores and stable input order produce deterministic top-N winners.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon" style="background: rgba(168,85,247,0.12); color: var(--violet-2); border-color: rgba(168,85,247,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
           <h3>Prediction Market</h3>
-          <p>W3O1 v3 <span class="mono">closest_to</span>. Replay includes committed <span class="mono">target</span>, signed scores, and stable order.</p>
+          <p><span class="mono">closest_to</span>. Replay includes the committed <span class="mono">target</span>, signed scores and stable order.</p>
         </div>
       </div>
     </div>
@@ -389,15 +391,14 @@
         <span class="eyebrow"><span class="dot"></span> Access</span>
         <h3 style="margin: 14px 0 10px;">Get an API key</h3>
         <p class="text-faint" style="max-width: 54ch; margin: 0 auto 20px;">
-          Verification is open to everyone and needs no key: the replay endpoint, the SDK verifier and the verify page are public. A partner key is what unlocks the write side — server-side draws, the sortition flow and the conditions endpoints. Write to us with what you are building and the volume you expect.
+          Verification is open to everyone and needs no key: the replay endpoint, the SDK verifier and the verify page are public. A partner key is what unlocks the write side — server-side draws, the sortition flow and the conditions endpoints. Tell us in Telegram what you are building and the volume you expect.
         </p>
         <div class="flex gap-2 center" style="justify-content: center; flex-wrap: wrap;">
-          <span class="mono" style="font-size: 14px; color: var(--text);">hello@verifiableoutcome.online</span>
-          <button class="btn btn-secondary btn-sm" type="button" data-copy="hello@verifiableoutcome.online">Copy address</button>
-          <a href="mailto:hello@verifiableoutcome.online" class="btn btn-ghost btn-sm">Open in mail app <span aria-hidden="true">→</span></a>
+          <a href="https://t.me/maskradiation" class="btn btn-primary btn-sm" target="_blank" rel="noopener">t.me/maskradiation <span aria-hidden="true">→</span></a>
+          <a href="mailto:hello@verifiableoutcome.online" class="btn btn-ghost btn-sm">hello@verifiableoutcome.online</a>
         </div>
         <p class="text-faint" style="max-width: 54ch; margin: 22px auto 0; font-size: 12.5px;">
-          Running at scale? Platforms can deploy the engine under a partner agreement — their own program ID, no per-resolution fee.
+          Running at scale? Platforms can deploy the engine under a partner agreement with their own program ID.
         </p>
       </div>
     </div>
@@ -420,7 +421,7 @@
           <li><a href="/protocol-paths">Paths</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
-        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet</div>
       </div>
     </div>
   </footer>

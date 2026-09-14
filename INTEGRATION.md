@@ -1,423 +1,283 @@
-# Integration Guide — verifiable-outcome-sdk
+# Integration Guide — Verifiable Outcome Engine
 
-VRE gives your app on-chain proof of who won. Rules committed before the draw.
-Anyone verifies from a transaction signature. One POST request to get started.
+How to verify VRE results and how to run draws, sortition and conditions rounds on the
+canonical devnet program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
 
-## Roles
+Reference with every field and error code: [verifiableoutcome.online/spec](https://verifiableoutcome.online/spec).
+Questions, feedback and API keys: Telegram [t.me/maskradiation](https://t.me/maskradiation).
 
-| Role | What they do | Wallet needed? | Repo clone? |
-|------|-------------|----------------|-------------|
-| **Verifier** | Verify any resolved outcome on-chain | No | No |
-| **Builder** | Compile a config into a binary artifact locally | No | No |
-| **Operator** | Resolve outcomes against an existing deployed program | Yes (program admin) | No |
-| **Partner** | Own instance via partnership | Contact VRE team | Partner agreement |
+| You want to | You need | Part |
+|---|---|---|
+| Check that a result is genuine | nothing | 1 |
+| Run a draw (raffle, airdrop, leaderboard) | a partner key, or the demo endpoint | 2 |
+| Run a commit-and-claim ticket draw | a partner key, or your own devnet wallet | 3 |
+| Score prediction slips against match facts | nothing to score; a partner key to anchor on-chain | 4 |
 
-> The npm package (`verifiable-outcome-sdk`) covers Verifier, Builder, and Operator roles.  
-> The canonical Solana program (`6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`) is operated by the VRE team.
->
-> The SDK does **not** deploy a new Solana program instance. It builds artifacts,
-> resolves against an already deployed program, and verifies resolved outcomes.
-> To deploy your own instance under a partner agreement, contact the VRE team.
->
-> Verification is always free. The canonical program uses a protocol fee per
-> `resolveOutcome`; partner instances can run with `fee_lamports = 0` under a
-> commercial agreement.
-
-### Protocol Fee
-
-Each `resolveOutcome` call on the canonical program may collect a small protocol
-fee from the operator wallet to the VRE treasury. The fee is configured in
-`ProgramConfig.fee_lamports`.
-
-**Current fee: 0 lamports** on devnet.
-
-The fee can be updated by the VRE admin without a program upgrade. Verification
-(`/api/replay`, SDK verify, and `verify.html`) is always free. Dedicated partner
-instances can run with `fee_lamports = 0`; see [Part 4 — Partner Program](#part-4--partner-program).
+**Who executes what.** The program only binds rules approved by its admin key, so draws on the
+canonical program are executed by the VRE operator through the API. Your own wallet cannot
+resolve a draw there. Sortition needs no admin approval and can run from any funded wallet.
 
 ---
 
-## Part 1 — Verifier
+## Part 1 — Verify
 
-Anyone can verify any resolved outcome. No wallet, no setup beyond Node.js.
+Every result is a Solana transaction. Replaying it recomputes the outcome from the committed rules
+and the on-chain randomness and compares it with what the program recorded.
 
-### Install
+Browser: `https://verifiableoutcome.online/verify?sig=<SIGNATURE>`
 
-```bash
-npm install -g verifiable-outcome-sdk
-```
-
-### Verify a transaction
+Terminal (Node 18+):
 
 ```bash
-vre verify \
-  --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF \
-  --rpc https://api.devnet.solana.com
+npx -p verifiable-outcome-sdk vre verify --sig <SIGNATURE>
+# verification_result : MATCH
+# verification_reason : OK
 ```
 
-Or run without a global install:
+Options: `--rpc <URL>` (default `https://api.devnet.solana.com`), `--program-id <ID>`, `--json`.
+Exit code 0 on `MATCH`, 1 otherwise.
 
-```bash
-npx -p verifiable-outcome-sdk vre verify \
-  --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF \
-  --rpc https://api.devnet.solana.com
-```
-
-Expected output:
-
-```
-verification_result : MATCH
-verification_reason : OK
-program_id          : 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
-runtime_id          : dabf24dc2a1e8ee7c4ab54e76089c038
-compiled_artifact_hash : 4a5c908d...
-outcome_id          : <winner id>
-```
-
-`MATCH` means the on-chain result matches an independent local replay. No trust required.
-
-### Verify programmatically
+Code:
 
 ```js
 import { verifyOutcome } from "verifiable-outcome-sdk";
 
 const result = await verifyOutcome({
-  signature: "5wZUU5...",
+  signature: "<SIGNATURE>",
   rpcUrl: "https://api.devnet.solana.com",
+  programId: "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
 });
-console.log(result.status); // "MATCH"
+if (result.status !== "MATCH") throw new Error(result.reason);
+```
+
+HTTP: `POST https://verifiableoutcome.online/api/replay` with `{"signature": "<SIGNATURE>"}`
+(12 requests per 60 s per IP).
+
+`MISMATCH` comes with a reason code; the list is in [VERIFICATION_ERRORS.md](./VERIFICATION_ERRORS.md).
+`vre verify` replays draws and conditions rounds; it does not replay sortition transactions yet
+(Part 3 explains what enforces those).
+
+---
+
+## Part 2 — Draws
+
+### Get a key
+
+Ask in Telegram: [t.me/maskradiation](https://t.me/maskradiation). Send the key in the `x-api-key`
+header. To try without a key, `POST /api/examples/draw` takes the same body and returns the same
+response, limited to one draw per 15 s per IP.
+
+### Request
+
+```bash
+curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
+  -H "content-type: application/json" -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{
+    "formula": "weighted_random",
+    "winners_count": 2,
+    "participants": [
+      { "id": "wallet-1", "weight": 1 },
+      { "id": "wallet-2", "weight": 3 },
+      { "id": "wallet-3", "weight": 2 }
+    ]
+  }'
+```
+
+| Field | Rules |
+|---|---|
+| `formula` | `weighted_random`, `rank_desc`, `rank_asc`, `first_n`, `closest_to` |
+| `participants` | at least 2; unique `id`, up to 64 printable ASCII bytes |
+| `weight` | `weighted_random` only, optional (default equal chance) |
+| `score` | required for `rank_desc`, `rank_asc`, `closest_to`; not allowed for `weighted_random`, `first_n` |
+| `winners_count` | 1–10, not more than participants |
+| `target` | required for `closest_to`, a signed safe integer |
+| `label`, `use_case` | optional; `use_case` is `raffle`, `airdrop` or `competition` |
+
+`first_n` keeps the order you send. One draw holds about 100 participants (8 KB of rules).
+
+### What happens
+
+One request, 12–45 seconds:
+
+1. The rules and participants are committed on-chain.
+2. `prepare_rng_v2` fixes three target slots: 8, 16 and 24 slots after it lands.
+3. The server waits until those slots exist.
+4. `settle_rng_v2` takes their slot hashes and selects the winners on-chain.
+5. The server replays the transaction and returns the result.
+
+The winners depend on slot hashes that did not exist when the rules were committed. If a target
+slot is skipped, the next produced slot is used; `resolved_slots` shows which ones.
+
+### Response
+
+```json
+{
+  "ok": true,
+  "signature": "…",
+  "outcome_id": "wallet-2",
+  "outcome_ids": ["wallet-2", "wallet-3"],
+  "replay_url": "https://verifiableoutcome.online/verify?sig=…",
+  "artifact_slot": 497810330,
+  "resolution_slot": 498394097,
+  "rng_version": 2,
+  "entropy_source": "slot_hash",
+  "prepare_signature": "…",
+  "target_slots": ["498394081", "498394089", "498394097"],
+  "resolved_slots": ["498394081", "498394089", "498394097"],
+  "winner_claim_hash": "…"
+}
+```
+
+`artifact_slot` is the slot where these exact rules were first committed; identical rules reuse
+the same on-chain artifact, so it can be much older than the draw.
+
+### Errors
+
+| HTTP | Meaning |
+|---|---|
+| 400 | invalid body; `error` says which field |
+| 401 | missing or unknown key |
+| 403 | the key has no draw permission |
+| 409 | the body asks for a scale snapshot draw (`mode: "scale"` and similar), which this endpoint does not run |
+| 413 | the participant table does not fit a compact artifact |
+| 429 | another draw on this key started less than 10 s ago (`retry_after_ms`) |
+| 504 | devnet did not finish within 55 s; retry |
+
+---
+
+## Part 3 — Sortition-by-Claim
+
+A ticket draw where each entrant commits a secret before the draw and later proves a win.
+
+1. **Create** a draw with a 16-byte `draw_id`, a 32-byte `threshold` and a registration window.
+2. **Register** tickets: `commitment = sha256(secret ‖ ticket_id ‖ draw_id)` (32-byte secret, 16-byte ticket id).
+3. **Seal**: after registration closes and 105 slots have passed since creation, the draw takes
+   `omega` from three slot hashes (75, 90 and 105 slots after creation).
+4. **Claim**: reveal the secret; the ticket wins when `sha256(secret ‖ omega) < threshold`
+   (big-endian). The program checks this in the claim instruction — a losing claim fails with
+   `SortitionPredicateNotMet`.
+
+`threshold = 80` followed by 31 zero bytes gives each ticket a 50 % chance.
+`sortitionThresholdFromProbability(numerator, denominator)` in the SDK computes other odds.
+
+### Through the API
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `POST /api/partner/sortition/draw` | `draw_id`, `threshold`, `registration_duration_slots` (default 60, must be below 75), `claim_duration_slots` (default 120), `unclaimed_rule` (0–255) | `draw_id`, `draw_pda`, `signature` |
+| `POST /api/partner/sortition/register` | `draw_id`, `ticket_id`, `commitment` | `ticket_id`, `ticket_pda`, `signature` |
+| `POST /api/partner/sortition/seal` | `draw_id` | `signature` |
+| `POST /api/partner/sortition/claim` | `draw_id`, `ticket_id`, `secret` | `signature` |
+
+All values are hex. The VRE operator signs these transactions; you keep the secrets.
+Timing at ~400 ms per slot: registration closes ~24 s after creation with the default window, seal is
+possible after ~42 s, the claim window ends `claim_duration_slots` after the last target slot.
+
+A rejected instruction (registration still open, registration closed, predicate not met, ticket
+already claimed) currently comes back as HTTP 500 with the program error in `error`.
+
+The keyless demo of this flow is at [/examples](https://verifiableoutcome.online/examples)
+(`/api/examples/sortition/*`, one draw per 15 s per IP).
+
+### From your own wallet
+
+Sortition does not need the program admin, so a funded devnet wallet can run it with the SDK:
+
+```js
+import crypto from "node:crypto";
+import {
+  createSortitionClient, sortitionCommitment,
+  sortitionCreateDrawInline, sortitionRegisterTicketInline,
+  sortitionSealDrawInline, sortitionClaimTicketInline,
+} from "verifiable-outcome-sdk";
+
+const client = createSortitionClient({
+  rpcUrl: "https://api.devnet.solana.com",
+  walletPath: "~/.config/solana/id.json",
+});
+const drawId = crypto.randomBytes(16);
+const ticketId = crypto.randomBytes(16);
+const secret = crypto.randomBytes(32);
+
+await sortitionCreateDrawInline(client, {
+  drawId,
+  threshold: Buffer.from("80" + "00".repeat(31), "hex"),
+  registrationDurationSlots: 70,
+  claimDurationSlots: 1200,
+});
+await sortitionRegisterTicketInline(client, {
+  drawId, ticketId, commitment: sortitionCommitment(secret, ticketId, drawId),
+});
+await new Promise((r) => setTimeout(r, 105 * 400 + 8_000)); // wait for the committed slots
+await sortitionSealDrawInline(client, { drawId });
+await sortitionClaimTicketInline(client, { drawId, ticketId, secret }); // throws if the ticket did not win
 ```
 
 ---
 
-## Part 2 — Builder
+## Part 4 — Conditions
 
-Build a binary artifact from a config file, without deploying anything on-chain.
+Scores committed prediction slips (odds × revealed match facts) into a per-entrant score and a
+ranking. The off-chain scorer and the on-chain `resolve_conditions` produce identical bytes. VRE
+proves the ranking; escrow and payout stay with you.
 
-### Create a config
+### Score without a key
+
+`POST /api/conditions/score`:
 
 ```json
 {
-  "type": "raffle",
-  "input_lamports": 10,
-  "payout_lamports": 3,
-  "participants": [
-    { "address": "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4", "weight": 1000 },
-    { "address": "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU", "weight": 1000 },
-    { "address": "3nafSu5GVq9bDLAxCg2gPucT4Jzhi2Ybyy2QbhzTMFR9", "weight": 1000 }
+  "fixtures": [
+    { "fixture_id": 1, "stats": [{ "stat_key": 1, "value": 2 }, { "stat_key": 2, "value": 0 }] },
+    { "fixture_id": 2, "stats": [{ "stat_key": 1, "value": 1 }, { "stat_key": 2, "value": 1 }] }
+  ],
+  "entrants": [
+    { "wallet": "<base58 wallet>", "tier": 50, "entered_at": 100, "fixture_index": [0, 1],
+      "legs": [
+        { "stat_key_a": 1, "stat_key_b": 2, "op": 2, "comparison": 0, "odds_milli": 2150 },
+        { "stat_key_a": 1, "stat_key_b": 2, "op": 1, "comparison": 1, "line_x2": 5, "odds_milli": 1850 }
+      ] }
   ]
 }
 ```
 
-**Fields:**
-- `type` — `"raffle"` selects one winner by weighted random
-- `input_lamports` — entry cost per participant (1 SOL = 1,000,000,000 lamports)
-- `payout_lamports` — prize payout to the winner
-- `participants` — Solana wallet addresses with weights (equal weight = equal chance)
+Returns `winners_count`, `winning_score_sum`, `ranking[{rank, wallet, all_hit, score_fixed, slip_hash}]`
+and the exact artifact bytes.
 
-### Native W3O1 v3 formulas
+Leg codes: `term_kind` 0 = single, 1 = binary · `op` 0 = none, 1 = add (totals), 2 = subtract (1X2) ·
+`comparison` 0 = greater, 1 = less, 2 = equal · `odds_milli` = odds × 1000 · `line_x2` = line × 2
+(totals) · `stat_key` = period × 1000 + base (base 1 = side one goals, 2 = side two goals).
+Score = product of the odds of hit legs; any miss gives 0; a void leg counts as a push.
 
-The canonical program also supports formula-native artifacts:
+### Anchor on-chain (partner key)
 
-- `weighted_random`
-- `rank_desc`
-- `rank_asc`
-- `first_n`
-- `closest_to`
+1. At slate open: `POST /api/partner/conditions/commit` with `round_id`, `fixtures: [{ fixture_id, event_stat_root? }]`
+   and `entrants` → `commitment_ref`, `commit_signature`, `committed_at_slot`.
+2. After the matches: `POST /api/partner/conditions/resolve` with `round_id` and
+   `fixtures: [{ fixture_id, event_stat_root, stats }]` → `signature`, `verify_url`, `winners`,
+   `ranking`, `winning_score_sum`, `artifact`.
 
-Replay surfaces additional fields for v3 artifacts:
-
-- `artifact_format_version`
-- `resolution_formula`
-- `winners_count`
-- `target` for `closest_to`
-
-### Build
-
-```js
-import { buildArtifact } from "verifiable-outcome-sdk";
-
-const artifact = buildArtifact({
-  type: "raffle",
-  input_lamports: 10,
-  payout_lamports: 3,
-  participants: [
-    { address: "5RbvSHbSuo9CBjZLtw9RoP775KeqaJyMXkXNsb99AeR4", weight: 1000 },
-    { address: "Aip3wC6UCgE5628ukFW6z3rDGDVTAXKDG4V3j15tPvEU", weight: 1000 },
-  ],
-});
-console.log(artifact.toString("hex"));
-```
-
----
-
-## Part 3 — Operator
-
-Resolve outcomes on-chain against an **existing deployed program**. Requires the wallet that initialized that program (the program admin).
-
-> The canonical devnet program (`6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`) is operated by the VRE team and is subject to the protocol fee model. For a dedicated instance, see **Part 4 — Partner Program**.
->
-> `vre resolve` does not deploy a program. It commits an artifact and resolves
-> against the program ID you provide.
-
-### Prerequisites
-
-**Install Solana CLI:**
-
-```bash
-sh -c "$(curl -sSfL https://release.solana.com/stable/install)"
-solana --version
-```
-
-**Create or use your admin wallet:**
-
-```bash
-solana-keygen new --outfile ~/.config/solana/id.json
-solana-keygen pubkey ~/.config/solana/id.json
-```
-
-**Fund the wallet (devnet):**
-
-```bash
-solana config set --url devnet
-solana airdrop 2
-solana balance
-```
-
-You need at least **1 SOL** to cover transaction fees and artifact storage.  
-If `airdrop 2` is rate-limited, wait 30 seconds and retry, or use [faucet.solana.com](https://faucet.solana.com).
-
-### Resolve via CLI
-
-```bash
-vre resolve \
-  --config raffle.config.json \
-  --wallet ~/.config/solana/id.json \
-  --rpc https://api.devnet.solana.com \
-  --program-id <YOUR_PROGRAM_ID> \
-  --json
-```
-
-This command:
-1. Compiles the config into a binary artifact
-2. Uploads the artifact on-chain (pre-commits the rules)
-3. Submits the resolution transaction
-4. Returns the transaction signature
-
-Expected output:
-
-```json
-{ "signature": "5Kj3..." }
-```
-
-### Verify the result
-
-```bash
-vre verify \
-  --sig <SIGNATURE_FROM_ABOVE> \
-  --rpc https://api.devnet.solana.com \
-  --program-id <YOUR_PROGRAM_ID>
-```
-
-### Resolve programmatically
-
-```js
-import { resolveOperator } from "verifiable-outcome-sdk";
-
-const { signature } = await resolveOperator({
-  configPath: "./raffle.config.json",
-  walletPath: "~/.config/solana/id.json",
-  rpcUrl: "https://api.devnet.solana.com",
-  programId: "<YOUR_PROGRAM_ID>",
-});
-console.log("TX:", signature);
-```
-
----
-
-## Part 4 — Partner Program
-
-Large platforms, GameFi projects, and NFT marketplaces can run a dedicated VRE
-program instance under a partner agreement.
-
-### What a partner instance gives you
-
-- Full control over your program ID and admin wallet.
-- `fee_lamports = 0` for your dedicated deployment.
-- A commercial agreement that covers program source access, deployment support,
-  and operational terms.
-- The same public verification flow: anyone can still run `vre verify` against
-  your program ID.
-
-### How to get one
-
-Contact the VRE team at [hello@verifiableoutcome.online](mailto:hello@verifiableoutcome.online).
-The team will coordinate source access, deployment, fee configuration, and the
-program ID you should pass to the SDK/CLI.
-
-### Use your partner program
-
-After your partner instance is deployed and initialized, resolve against the
-program ID provided by the VRE team:
-
-```bash
-vre resolve \
-  --config raffle.config.json \
-  --wallet ~/.config/solana/id.json \
-  --rpc https://api.devnet.solana.com \
-  --program-id <YOUR_PROGRAM_ID> \
-  --json
-```
-
-```bash
-vre verify \
-  --sig <SIGNATURE> \
-  --rpc https://api.devnet.solana.com \
-  --program-id <YOUR_PROGRAM_ID>
-```
-
----
-
-## Part 5 — Conditions (parlay / prediction)
-
-The `conditions` mode (fc7/fv9) scores committed prediction slips (odds × proven facts) into a
-per-entrant score `S` and a round ranking. Off-chain and on-chain scoring are **byte-for-byte
-identical**. VRE proves the winner ranking; escrow and pro-rata payout stay with the partner —
-no fund custody. Live on the canonical program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
-
-### Off-chain scoring — one call, no key
-
-`POST /api/conditions/score` — send `{ fixtures:[{fixture_id, stats}], entrants:[{wallet, tier,
-entered_at, fixture_index[], legs:[…]}] }`, get back `winners_count`, `winning_score_sum`,
-`ranking[{rank, wallet, score_fixed, slip_hash}]`, and the exact fc7 `artifact.hex`.
-
-Leg codes: `term_kind` 0=single/1=binary · `op` 0=none/1=add(totals)/2=subtract(1x2) ·
-`comparison` 0=GT/1=LT/2=EQ · `odds_milli` = odds×1000 (1001…1_000_000) · `line_x2` =
-round(line×2) for totals · `stat_key` = period×1000 + base (base 1=P1 goals, 2=P2 goals).
-Scoring: `S = Π odds(hit legs)`, any miss → `S=0`, void = push; `score_fixed` = S×10000.
-
-### On-chain attestation — VRE-operated, two calls (partner key)
-
-VRE does all on-chain work with its own key; the partner supplies data via `x-api-key`. Two-phase
-commit-reveal so the rules are anchored on-chain before the outcome:
-
-1. `POST /api/partner/conditions/commit` at slate open — body `{ round_id, fixtures:[{fixture_id}],
-   entrants:[…] }` → `{ commitment_ref, commit_signature, committed_at_slot }`.
-2. `POST /api/partner/conditions/resolve` after the match — body `{ round_id, fixtures:[{fixture_id,
-   event_stat_root, stats:[{stat_key, value}]}] }` → `{ signature, verify_url, winners, ranking,
-   winning_score_sum, artifact }`. Resolve verifies the rules match the ones committed at step 1.
-
-The returned `signature` replays to `MATCH` at `/verify?sig=…`. Server env for the operator:
-`CONDITIONS_OPERATOR_WALLET` (the program-config admin keypair), optional `CONDITIONS_STORE_PATH`.
-
-Supported markets: 1X2 / totals / BTTS-yes. Facts are trusted from the partner's stats source
-(TxLINE) — VRE binds the facts-ref (`event_stat_root`) but does not re-verify them.
-
----
-
-## CLI reference
-
-```
-vre verify
-  --sig <TX_SIG>         Transaction signature to verify
-  --rpc <URL>            RPC endpoint (default: https://api.devnet.solana.com)
-  --program-id <PUBKEY>  Program ID (default: 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B)
-  --json                 Output as JSON
-
-vre resolve
-  --config <PATH>        Path to raffle.config.json
-  --wallet <PATH>        Path to Solana keypair JSON file
-  --rpc <URL>            RPC endpoint (default: https://api.devnet.solana.com)
-  --program-id <PUBKEY>  Program ID (default: 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B)
-  --out-dir <DIR>        Directory to write result artifacts (default: ./tmp)
-  --json                 Output as JSON
-```
+`event_stat_root` is a 32-byte hex reference to your facts source. VRE binds it into the resolution
+but does not check the facts behind it. The resolve `signature` replays to `MATCH`.
+Supported markets: 1X2, totals, both teams to score.
 
 ---
 
 ## Troubleshooting
 
-**`ProgramConfig admin mismatch`**  
-You are calling `resolve` against a program that was initialized by a different wallet. Use the correct admin wallet for that program, or contact the VRE team for a partner instance and pass the provided `--program-id` (Part 4).
+**401 `Invalid or missing API key`** — check the `x-api-key` header; keys are issued in Telegram.
 
-**`airdrop` fails / rate limit**  
-Wait 30 seconds and retry, or use [faucet.solana.com](https://faucet.solana.com).
+**429 on a draw** — one draw per 10 s per key (15 s per IP on the demo endpoint), counted from the
+start of the previous request. Send draws one after another.
 
-**`insufficient funds`**  
-Run `solana balance`. If below 0.5 SOL, airdrop more: `solana airdrop 2`.
+**504 `Devnet is slow right now`** — devnet did not finish in time. The draw may still complete;
+retry with a new request.
 
-**`verification_result: MISMATCH`**  
-On-chain data does not match local replay. Check that `--sig`, `--rpc`, and `--program-id` all match the transaction you are verifying.
+**`MISMATCH` with `ERR_TX_NOT_FOUND_OR_NO_LOGS`** — a fresh transaction can take a few seconds to
+appear on public RPC; retry.
 
-**`could not determine executable to run`** (when using `npx verifiable-outcome-sdk`)  
-The package binary is named `vre`. Use `vre` directly after `npm install -g verifiable-outcome-sdk`, or prefix with `npx -p verifiable-outcome-sdk vre`.
+**`could not determine executable to run`** — the command is `vre`: use
+`npx -p verifiable-outcome-sdk vre verify …` or install the package and run `vre`.
 
----
-
-## Current Limitations
-
-### Transaction size limit
-
-VRE currently commits the participant list directly inside a Solana transaction.
-Because Solana transactions have a strict size limit, large participant lists or long participant IDs may exceed the maximum transaction size.
-
-Example error:
-```
-Transaction too large: 1303 > 1232
-```
-
-**Practical limits for the Partner Draw API**
-
-For the `/api/partner/draw` flow, keep payloads small:
-
-| Parameter | Recommended |
-|-----------|-------------|
-| `participants` count | 2–10 for long readable IDs; up to ~15–20 with short IDs |
-| `winners_count` | 1–10 |
-| Participant ID length | Short when possible; avoid verbose labels |
-
-All participant IDs must be unique.
-
-**Recommended short-term workaround**
-
-Use short stable participant IDs:
-
-```json
-{ "id": "A1", "score": 18450 }
-```
-
-instead of:
-
-```json
-{ "id": "LongReadableTraderName", "score": 18450 }
-```
-
-If human-readable names are needed, keep the mapping off-chain:
-
-```
-A1 → wallet / username
-A2 → wallet / username
-```
-
-The committed ID is what gets verified on-chain; the display name is your concern.
-
-**Large snapshot path (local-only first pass)**
-
-For full leaderboards of any size, VRE supports a chunked snapshot commit flow (`W3O1 v4`):
-
-- Commit `sha256(participant_id)` instead of the raw string
-- Keep the full ID → hash mapping off-chain
-- Verification: hash the claimed winner ID and confirm it matches on-chain
-
-This allows base58 wallet addresses or longer IDs without expanding transaction size.
-
-1. Submit participant snapshot in chunks via `/api/partner/snapshot/init` → `/chunk` → `/finalize`
-2. Finalize snapshot hash on-chain (single anchor point)
-3. Resolve winners from the committed snapshot hash
-4. Verify by transaction signature + snapshot hash
-
-This removes the single-transaction payload limit entirely and supports competitions of any scale.
-
-The current first pass runs against a local validator only. Non-local deployment against a new isolated program id is planned as a follow-up — the canonical hackathon program is not used for this path.
-
-See [Part 12 — Large Snapshot Partner Flow](#12-large-snapshot-partner-flow-local-only-first-pass) for the full session flow.
+**`SortitionRegistrationClosed` / `SortitionRegistrationOpen`** — the call came outside the
+registration window; see the timing in Part 3.
