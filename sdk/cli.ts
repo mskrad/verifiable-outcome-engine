@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { resolveOperator } from "./operator.js";
 import { verifyOutcome } from "./verify.js";
 import { DEFAULT_PROGRAM_ID, DEFAULT_RPC_URL } from "./internals.js";
+
+const PUBLIC_DEVNET_RPC = "https://api.devnet.solana.com";
 
 type CliArgs = Record<string, string | boolean>;
 
@@ -28,6 +29,19 @@ function parseArgs(argv: string[]): { command?: string; args: CliArgs } {
 }
 
 function printHelp(): void {
+  process.stdout.write(`vre — replay a VRE outcome from public Solana data
+
+Usage:
+  vre verify --sig <TX_SIGNATURE> [--rpc <URL>] [--program-id <ID>] [--json]
+
+Options:
+  --sig         transaction signature of the resolution
+  --rpc         Solana RPC URL (default: ANCHOR_PROVIDER_URL, SOLANA_RPC_URL or ${PUBLIC_DEVNET_RPC})
+  --program-id  VRE program id (default: ${DEFAULT_PROGRAM_ID})
+  --json        print the full result as JSON
+
+Exit code is 0 on MATCH and 1 otherwise.
+`);
 }
 
 function printVerifyResult(result: Awaited<ReturnType<typeof verifyOutcome>>, asJson: boolean): void {
@@ -35,19 +49,28 @@ function printVerifyResult(result: Awaited<ReturnType<typeof verifyOutcome>>, as
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return;
   }
-}
-
-function printResolveResult(result: Awaited<ReturnType<typeof resolveOperator>>, asJson: boolean): void {
-  if (asJson) {
-    process.stdout.write(`${JSON.stringify(result)}\n`);
-    return;
+  const lines: Array<[string, unknown]> = [
+    ["verification_result", result.status],
+    ["verification_reason", result.reason],
+    ["outcome_id", result.outcome_id],
+    ["outcome_ids", result.outcome_ids?.join(",")],
+    ["winners_count", result.winners_count],
+    ["resolution_formula", result.resolution_formula],
+    ["rng_version", result.rng_version],
+    ["entropy_source", result.entropy_source],
+    ["target_slots", result.target_slots?.join(",")],
+    ["resolved_slots", result.resolved_slots?.join(",")],
+  ];
+  for (const [label, value] of lines) {
+    if (value === undefined || value === null || value === "") continue;
+    process.stdout.write(`${label.padEnd(20)}: ${value}\n`);
   }
 }
 
 async function runVerify(args: CliArgs): Promise<void> {
   const signature = args.sig as string | undefined;
   if (!signature) {
-    throw new Error("Provide --sig <TX_SIG>");
+    throw new Error("Provide --sig <TX_SIGNATURE>");
   }
   const result = await verifyOutcome({
     signature,
@@ -55,7 +78,7 @@ async function runVerify(args: CliArgs): Promise<void> {
       (args.rpc as string | undefined) ??
       (args.url as string | undefined) ??
       process.env.ANCHOR_PROVIDER_URL ??
-      DEFAULT_RPC_URL,
+      (DEFAULT_RPC_URL || PUBLIC_DEVNET_RPC),
     programId: (args["program-id"] as string | undefined) ?? DEFAULT_PROGRAM_ID,
   });
   printVerifyResult(result, Boolean(args.json));
@@ -64,27 +87,9 @@ async function runVerify(args: CliArgs): Promise<void> {
   }
 }
 
-async function runResolve(args: CliArgs): Promise<void> {
-  const configPath = args.config as string | undefined;
-  if (!configPath) {
-    throw new Error("Provide --config <PATH>");
-  }
-  const result = await resolveOperator({
-    configPath,
-    walletPath: args.wallet as string | undefined,
-    rpcUrl:
-      (args.rpc as string | undefined) ??
-      (args.url as string | undefined) ??
-      process.env.ANCHOR_PROVIDER_URL,
-    programId: (args["program-id"] as string | undefined) ?? DEFAULT_PROGRAM_ID,
-    outputDir: args["out-dir"] as string | undefined,
-  });
-  printResolveResult(result, Boolean(args.json));
-}
-
 async function main(): Promise<void> {
   const { command, args } = parseArgs(process.argv.slice(2));
-  if (!command || args.help || args.h) {
+  if (!command || command === "--help" || command === "-h" || command === "help" || args.help || args.h) {
     printHelp();
     return;
   }
@@ -92,11 +97,7 @@ async function main(): Promise<void> {
     await runVerify(args);
     return;
   }
-  if (command === "resolve") {
-    await runResolve(args);
-    return;
-  }
-  throw new Error(`Unknown command: ${command}`);
+  throw new Error(`Unknown command: ${command}. Run "vre --help".`);
 }
 
 main().catch((error) => {

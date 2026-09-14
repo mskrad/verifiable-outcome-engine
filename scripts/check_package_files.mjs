@@ -13,6 +13,8 @@ const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 const files = new Set((pkg.files || []).map((f) => f.replace(/^\.\//, "")));
 
 const entries = [pkg.main, pkg.types].filter(Boolean);
+if (typeof pkg.bin === "string") entries.push(pkg.bin);
+else for (const target of Object.values(pkg.bin || {})) entries.push(target);
 for (const target of Object.values(pkg.exports || {})) {
   if (typeof target === "string") entries.push(target);
   else for (const v of Object.values(target)) if (typeof v === "string") entries.push(v);

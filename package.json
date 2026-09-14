@@ -20,6 +20,9 @@
   },
   "type": "module",
   "main": "dist/sdk/index.js",
+  "bin": {
+    "vre": "dist/sdk/cli.js"
+  },
   "types": "dist/sdk/index.d.ts",
   "exports": {
     ".": {
@@ -50,6 +53,9 @@
     "dist/sdk/conditions.d.ts",
     "dist/sdk/slot.js",
     "dist/sdk/slot.d.ts",
+    "dist/sdk/cli.js",
+    "dist/sdk/confirm.js",
+    "dist/sdk/confirm.d.ts",
     "artifacts/outcome_idl.json",
     "README.md"
   ],
