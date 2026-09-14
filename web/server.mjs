@@ -122,6 +122,21 @@ const PARTNER_SNAPSHOT_MAX_WINNERS = Number(
   process.env.PARTNER_SNAPSHOT_MAX_WINNERS || 10
 );
 const resolutionsCache = new Map();
+// Результат реплея финализированной транзакции не меняется, а каждый проход списка исходов
+// перепроверяет одни и те же десятки сигнатур (большинство из них — записи чанков и prepare,
+// а не исходы). Без кеша проход упирается в лимит публичного RPC на метод, ответы 429
+// закрывают соединения, и исчерпанный лимит новых соединений роняет заодно идущий розыгрыш.
+// Не кешируем ответы, которые при повторе могут стать другими.
+const verifyResultCache = new Map();
+const VERIFY_RESULT_CACHE_MAX = 5000;
+const TRANSIENT_VERIFY_REASONS = new Set(["ERR_REPLAY_UNHANDLED", "ERR_TX_NOT_FOUND_OR_NO_LOGS"]);
+// Розыгрыши, которые сейчас пишут в сеть. Пока они идут, фоновый пересчёт исходов не стартует.
+let activeDraws = 0;
+function trackDraw(promise) {
+  activeDraws += 1;
+  promise.finally(() => { activeDraws -= 1; }).catch(() => {});
+  return promise;
+}
 // commit_slot никогда не меняется: артефакт коммитится один раз и остаётся тем же.
 // Держим его на диске, иначе каждый холодный запрос заново сканирует PDA артефакта —
 // а демо-сценарии переиспользуют одни и те же артефакты, так что после дня активности
@@ -477,7 +492,7 @@ async function loadResolveInline() {
       if (typeof module.resolveInline !== "function") {
         throw new Error("resolveInline export not found");
       }
-      return module.resolveInline;
+      return (config, opts) => trackDraw(module.resolveInline(config, opts));
     });
   }
   return resolveInlinePromise;
@@ -493,7 +508,7 @@ async function loadResolveInlineRngV2() {
       if (typeof module.resolveInlineRngV2 !== "function") {
         throw new Error("resolveInlineRngV2 export not found");
       }
-      return module.resolveInlineRngV2;
+      return (config, opts) => trackDraw(module.resolveInlineRngV2(config, opts));
     });
   }
   return resolveInlineRngV2Promise;
@@ -912,7 +927,7 @@ async function fetchResolutions(limit, opts = {}) {
   // Список исходов — витрина, а не источник истины; проверить любой из них всё равно
   // можно только реплеем по сигнатуре.
   if (cached) {
-    if (!resolutionsInFlight.has(cacheKey)) {
+    if (!resolutionsInFlight.has(cacheKey) && activeDraws === 0) {
       const refresh = computeResolutions(limit, opts, cacheKey)
         .catch((err) => console.warn("[resolutions] background refresh failed:", err?.message || err))
         .finally(() => resolutionsInFlight.delete(cacheKey));
@@ -984,8 +999,8 @@ async function computeResolutions(limit, opts, cacheKey) {
     ? [...blessedSigs, ...recentSigs]
     : [...recentSigs, ...(includeBlessed ? blessedSigs : [])];
 
-  // Verify in batches to avoid hammering devnet with too many concurrent RPC calls
-  const VERIFY_BATCH_SIZE = 8;
+  // Реплеи идут парами: пачка по 8 на публичном RPC давала 70 ответов 429 из 92 запросов.
+  const VERIFY_BATCH_SIZE = 2;
   const matches = [];
   for (let i = 0; i < allSigs.length && matches.length < limit; i += VERIFY_BATCH_SIZE) {
     if (Date.now() - startedAt > RESOLUTIONS_DEADLINE_MS) {
@@ -995,12 +1010,24 @@ async function computeResolutions(limit, opts, cacheKey) {
     const batch = allSigs.slice(i, i + VERIFY_BATCH_SIZE);
     const batchResults = await Promise.all(
       batch.map(async (sigEntry) => {
+        const cachedVerify = verifyResultCache.get(sigEntry.signature);
+        if (cachedVerify) {
+          return cachedVerify.status === "MATCH" ? { sigEntry, verified: cachedVerify } : null;
+        }
         try {
           const verified = await withTimeout(
             verifyOutcome({ signature: sigEntry.signature, rpcUrl, programId }),
             RESOLUTIONS_VERIFY_TIMEOUT_MS,
             "verify timeout"
           );
+          const finalized =
+            sigEntry.confirmationStatus === "finalized" || blessedSignatures.has(sigEntry.signature);
+          if (finalized && !TRANSIENT_VERIFY_REASONS.has(verified.reason)) {
+            if (verifyResultCache.size >= VERIFY_RESULT_CACHE_MAX) {
+              verifyResultCache.delete(verifyResultCache.keys().next().value);
+            }
+            verifyResultCache.set(sigEntry.signature, verified);
+          }
           if (verified.status !== "MATCH") return null;
           return { sigEntry, verified };
         } catch (_) {
@@ -3315,6 +3342,7 @@ loadCommitSlotCache();
 const RESOLUTIONS_WARM_INTERVAL_MS = Number(process.env.RESOLUTIONS_WARM_INTERVAL_MS || 45_000);
 
 function warmResolutions() {
+  if (activeDraws > 0) return;
   fetchResolutions(6, {
     preferBlessed: false,
     includeBlessed: false,
