@@ -5,7 +5,7 @@
   const DEFAULT_RPC = "https://api.devnet.solana.com";
   const DEFAULT_PROGRAM_ID = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
   const DEFAULT_SIGNATURE =
-    "47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF";
+    "MVE6v5ZGeBYYSKqDbp9kpVY85VKgSGXbFgUkh3eh2E1Xh7z2TPW3NZHfx2WSi2ERvVjuZB4LCP3nh1MN1YFAy5H";
 
   function short(value) {
     return String(value || "").slice(0, 8);
