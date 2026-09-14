@@ -1238,12 +1238,11 @@ function worldIdCapability() {
   };
 }
 
+// Public health output: the operator mode and program, never the server-side keypair path.
 function operatorModeCapability() {
-  const walletPath = process.env.LIVE_RAFFLE_WALLET || process.env.ANCHOR_WALLET || null;
   return {
     mode: "raw_keypair",
     program_id: process.env.LIVE_RAFFLE_PROGRAM_ID || defaultProgramId(),
-    wallet_path: walletPath,
   };
 }
 
@@ -2793,9 +2792,11 @@ async function fetchTimeline({
     jsonrpc: "2.0",
     id: 1,
     method: "getTransaction",
+    // `confirmed`: a draw response looks this up right after settle, before the transaction is
+    // finalized, and the RPC default (`finalized`) returns null for it.
     params: [
       signature,
-      { encoding: "json", maxSupportedTransactionVersion: 0 },
+      { encoding: "json", maxSupportedTransactionVersion: 0, commitment: "confirmed" },
     ],
   });
   if (!tx || typeof tx.slot !== "number") {
@@ -2813,7 +2814,7 @@ async function fetchTimeline({
     jsonrpc: "2.0",
     id: 2,
     method: "getSignaturesForAddress",
-    params: [artifactPda.toBase58(), { limit: 1000 }],
+    params: [artifactPda.toBase58(), { limit: 1000, commitment: "confirmed" }],
   });
   if (!Array.isArray(signatures) || signatures.length === 0) {
     throw new Error("artifact PDA transaction history not found");
