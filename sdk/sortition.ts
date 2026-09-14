@@ -18,9 +18,9 @@ import {
   SYSVAR_SLOT_HASHES_PUBKEY,
   Transaction,
   TransactionInstruction,
-  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 
+import { sendAndConfirmSigned } from "./confirm.js";
 import { DEFAULT_PROGRAM_ID } from "./internals.js";
 
 /** Maturity tag for the sortition path (canonical on devnet). */
@@ -454,8 +454,9 @@ async function sendInstruction(
   ix: TransactionInstruction
 ): Promise<string> {
   const tx = new Transaction().add(ix);
-  return sendAndConfirmTransaction(client.connection, tx, [client.payer], {
-    commitment: "confirmed",
+  return sendAndConfirmSigned(client.connection, tx, client.payer.publicKey, (unsigned) => {
+    unsigned.partialSign(client.payer);
+    return unsigned;
   });
 }
 

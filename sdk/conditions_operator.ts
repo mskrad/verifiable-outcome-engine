@@ -18,6 +18,7 @@ import {
   deriveProgramConfigPda, deriveApprovedArtifactPda, deriveApprovedArtifactChunkPda,
   deriveOutcomeConfigPda, deriveOutcomeVaultPda,
 } from "./internals.js";
+import { sendAndConfirmSigned } from "./confirm.js";
 
 const CHUNK_SIZE = 1024;
 const CHUNK_WRITE_BYTES = 900;
@@ -51,6 +52,14 @@ export function createConditionsOperator(opts: {
 
 // Submit + chunk + finalize an fc7 blob on-chain (idempotent on hash). Optionally self-review to
 // APPROVED (needed before an OutcomeConfig can bind it). Returns the artifact hash + chunk PDAs.
+// Anchor `.rpc()` and `sendAndConfirm` confirm through web3.js `confirmTransaction`, whose detached
+// status lookup kills the server process on a 429; send through the shared confirmation instead.
+function sendTx(op: ConditionsOperator, tx: Transaction): Promise<string> {
+  return sendAndConfirmSigned(op.connection, tx, op.wallet.publicKey, (unsigned) =>
+    op.provider.wallet.signTransaction(unsigned)
+  );
+}
+
 async function submitArtifact(op: ConditionsOperator, blob: Buffer, review: boolean): Promise<{
   hash: Buffer; artifactPda: PublicKey; chunkPdas: PublicKey[]; signature: string | null;
 }> {
@@ -61,26 +70,37 @@ async function submitArtifact(op: ConditionsOperator, blob: Buffer, review: bool
   const authority = op.wallet.publicKey;
   let signature: string | null = null;
 
-  if (!(await op.connection.getAccountInfo(artifactPda))) {
+  const existing = await op.connection.getAccountInfo(artifactPda);
+  if (!existing) {
     await op.m.submitCompiledArtifact({ compiledArtifactHash: [...hash], formatVersion: blob.readUInt16LE(4), blobLen: blob.length })
-      .accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda, systemProgram: SystemProgram.programId }).rpc();
+      .accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda, systemProgram: SystemProgram.programId }).transaction().then((tx: Transaction) => sendTx(op, tx));
+  }
+  // A new artifact, or one an earlier call left half-written: create missing chunks, append each
+  // from its on-chain written_len, then finalize.
+  const artifactState: any = existing ? await (op.program.account as any).approvedOutcomeArtifact.fetch(artifactPda) : null;
+  if (!artifactState || !artifactState.isFinalized) {
     for (let ci = 0; ci < chunkCount; ci++) {
-      await op.m.initCompiledArtifactChunk({ compiledArtifactHash: [...hash], chunkIndex: ci })
-        .accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda, approvedOutcomeArtifactChunk: chunkPdas[ci], systemProgram: SystemProgram.programId }).rpc();
+      let written = 0;
+      if (!(await op.connection.getAccountInfo(chunkPdas[ci]))) {
+        await op.m.initCompiledArtifactChunk({ compiledArtifactHash: [...hash], chunkIndex: ci })
+          .accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda, approvedOutcomeArtifactChunk: chunkPdas[ci], systemProgram: SystemProgram.programId }).transaction().then((tx: Transaction) => sendTx(op, tx));
+      } else {
+        written = Number(((await (op.program.account as any).approvedOutcomeArtifactChunk.fetch(chunkPdas[ci])) as any).writtenLen);
+      }
       const chunk = blob.subarray(ci * CHUNK_SIZE, Math.min(blob.length, (ci + 1) * CHUNK_SIZE));
-      for (let off = 0; off < chunk.length; off += CHUNK_WRITE_BYTES) {
+      for (let off = written; off < chunk.length; off += CHUNK_WRITE_BYTES) {
         await op.m.writeCompiledArtifactChunk({ compiledArtifactHash: [...hash], chunkIndex: ci, offset: off, data: Buffer.from(chunk.subarray(off, Math.min(chunk.length, off + CHUNK_WRITE_BYTES))) })
-          .accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda, approvedOutcomeArtifactChunk: chunkPdas[ci] }).rpc();
+          .accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda, approvedOutcomeArtifactChunk: chunkPdas[ci] }).transaction().then((tx: Transaction) => sendTx(op, tx));
       }
     }
     signature = await op.m.finalizeCompiledArtifact().accounts({ publisher: authority, approvedOutcomeArtifact: artifactPda })
-      .remainingAccounts(chunkPdas.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false }))).rpc();
+      .remainingAccounts(chunkPdas.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false }))).transaction().then((tx: Transaction) => sendTx(op, tx));
   }
   if (review) {
     const acc: any = await (op.program.account as any).approvedOutcomeArtifact.fetch(artifactPda);
     if (Number(acc.status) !== STATUS_APPROVED) {
       await op.m.reviewCompiledArtifact({ status: STATUS_APPROVED, auditHash: [...Buffer.alloc(32, 0)], artifactUri: Buffer.from("oddsol-conditions") })
-        .accounts({ programConfig: op.programConfigPda, admin: authority, approvedOutcomeArtifact: artifactPda }).rpc();
+        .accounts({ programConfig: op.programConfigPda, admin: authority, approvedOutcomeArtifact: artifactPda }).transaction().then((tx: Transaction) => sendTx(op, tx));
     }
   }
   return { hash, artifactPda, chunkPdas, signature };
@@ -129,7 +149,7 @@ export async function resolveConditionsRound(op: ConditionsOperator, args: {
   const authority = op.wallet.publicKey;
   await op.m.initializeOutcomeConfig({ runtimeId: [...runtimeId], minInputLamports: new BN(0), maxInputLamports: new BN(0), compiledArtifactHash: [...hash], masterSeed: [...Buffer.alloc(32, 0)] })
     .accounts({ authority, programConfig: op.programConfigPda, outcomeConfig: outcomeConfigPda, outcomeVault: outcomeVaultPda, treasury: authority, approvedOutcomeArtifact: artifactPda, systemProgram: SystemProgram.programId })
-    .remainingAccounts(chunkPdas.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false }))).rpc();
+    .remainingAccounts(chunkPdas.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false }))).transaction().then((tx: Transaction) => sendTx(op, tx));
 
   const keys = [
     { pubkey: authority, isSigner: true, isWritable: true },
@@ -139,7 +159,7 @@ export async function resolveConditionsRound(op: ConditionsOperator, args: {
     ...chunkPdas.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false })),
   ];
   const ix = new TransactionInstruction({ programId: op.programId, keys, data: Buffer.concat([RESOLVE_CONDITIONS_DISCRIMINATOR, runtimeId]) });
-  const signature = await op.provider.sendAndConfirm(new Transaction().add(ix), []);
+  const signature = await sendTx(op, new Transaction().add(ix));
 
   // Ranking with per-entrant slip_hash (same order the on-chain event uses).
   const ranked = rankRound(

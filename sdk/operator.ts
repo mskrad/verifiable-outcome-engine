@@ -6,7 +6,6 @@ import os from "os";
 import path from "path";
 import {
   ComputeBudgetProgram,
-  type Connection,
   Keypair,
   PublicKey,
   SystemProgram,
@@ -23,6 +22,7 @@ import {
   buildSnapshotClaimFromFile,
   deriveResolveRandomness,
 } from "./snapshot.js";
+import { pollSignature, sendAndConfirmSigned } from "./confirm.js";
 import { verifyOutcome } from "./verify.js";
 import {
   CHUNK_SIZE,
@@ -279,108 +279,12 @@ async function sendOperatorInstructions(
     preamble.push(ComputeBudgetProgram.requestHeapFrame({ bytes: budget.heapBytes }));
   }
   const tx = new Transaction().add(...preamble, ...instructions);
-  const connection = client.provider.connection;
-  // A transaction dropped before it lands expires with its blockhash; sign it again with a fresh one.
-  for (let attempt = 1; ; attempt += 1) {
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-    tx.feePayer = client.provider.wallet.publicKey;
-    tx.recentBlockhash = blockhash;
-    const signed = await client.provider.wallet.signTransaction(tx);
-    const signature = await connection.sendRawTransaction(signed.serialize(), {
-      preflightCommitment: "confirmed",
-    });
-    try {
-      await pollSignature(connection, signature, lastValidBlockHeight);
-      return signature;
-    } catch (error) {
-      if (attempt >= SEND_ATTEMPTS || !(error instanceof BlockhashExpiredError)) throw error;
-    }
-  }
-}
-
-const SEND_ATTEMPTS = 3;
-const POLL_INTERVAL_MS = 2000;
-const POLL_DEADLINE_MS = 90_000;
-
-class BlockhashExpiredError extends Error {}
-
-// Confirms without `confirmTransaction`: web3.js runs that call's status lookup in a detached
-// promise with no catch, so a 429 from public RPC there becomes an unhandled rejection that
-// kills a Node process mid-draw. The websocket notification usually arrives within a slot and
-// costs no HTTP request; a slow status poll backs it up, and every failed RPC call is retried.
-async function pollSignature(
-  connection: Connection,
-  signature: string,
-  lastValidBlockHeight: number
-): Promise<void> {
-  let notified: { err: unknown } | undefined;
-  let wake = () => {};
-  let subscriptionId: number | undefined;
-  try {
-    subscriptionId = connection.onSignature(
-      signature,
-      (result) => {
-        notified = { err: result.err };
-        wake();
-      },
-      "confirmed"
-    );
-  } catch {
-    // No websocket: the status poll below still confirms.
-  }
-  try {
-    const deadline = Date.now() + POLL_DEADLINE_MS;
-    for (let tick = 1; Date.now() < deadline; tick += 1) {
-      await new Promise<void>((resolve) => {
-        wake = resolve;
-        if (notified) resolve();
-        else setTimeout(resolve, POLL_INTERVAL_MS);
-      });
-      let err = notified?.err;
-      let done = notified !== undefined;
-      let blockHeight: number | undefined;
-      if (!done) {
-        try {
-          const status = (await connection.getSignatureStatuses([signature])).value[0];
-          err = status?.err;
-          done =
-            Boolean(status?.err) ||
-            status?.confirmationStatus === "confirmed" ||
-            status?.confirmationStatus === "finalized";
-          if (!done && tick % 5 === 0) blockHeight = await connection.getBlockHeight("confirmed");
-        } catch {
-          continue;
-        }
-      }
-      if (err) {
-        throw new Error(
-          `Transaction ${signature} failed: ${JSON.stringify(err)}. Logs: ${await fetchLogs(connection, signature)}`
-        );
-      }
-      if (done) return;
-      if (blockHeight !== undefined && blockHeight > lastValidBlockHeight) {
-        throw new BlockhashExpiredError(`Transaction ${signature} expired: blockhash is no longer valid`);
-      }
-    }
-    throw new Error(`Transaction ${signature} was not confirmed within ${POLL_DEADLINE_MS / 1000}s`);
-  } finally {
-    // A delivered notification already disposed of its subscription.
-    if (subscriptionId !== undefined && !notified) {
-      connection.removeSignatureListener(subscriptionId).catch(() => {});
-    }
-  }
-}
-
-async function fetchLogs(connection: Connection, signature: string): Promise<string> {
-  try {
-    const tx = await connection.getTransaction(signature, {
-      commitment: "confirmed",
-      maxSupportedTransactionVersion: 0,
-    });
-    return JSON.stringify(tx?.meta?.logMessages?.slice(-10) ?? []);
-  } catch {
-    return "[]";
-  }
+  return sendAndConfirmSigned(
+    client.provider.connection,
+    tx,
+    client.provider.wallet.publicKey,
+    (unsigned) => client.provider.wallet.signTransaction(unsigned)
+  );
 }
 
 async function ensureWalletFunds(
@@ -549,6 +453,67 @@ async function buildReviewCompiledArtifactInstruction(
     .instruction();
 }
 
+// Creates any missing chunk account and appends each chunk from its on-chain `written_len`,
+// so the same call writes a fresh artifact and completes a partially written one.
+async function writeArtifactChunks(
+  client: OutcomeClient,
+  artifactPda: PublicKey,
+  compiledArtifactHash: Buffer,
+  blob: Buffer
+): Promise<PublicKey[]> {
+  const chunkCount = Math.ceil(blob.length / CHUNK_SIZE);
+  const chunkPdas: PublicKey[] = [];
+  for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
+    const chunkPda = deriveApprovedArtifactChunkPda(client.programId, compiledArtifactHash, chunkIndex);
+    chunkPdas.push(chunkPda);
+
+    let writtenLen = 0;
+    const chunkInfo = await client.provider.connection.getAccountInfo(chunkPda, "confirmed");
+    if (!chunkInfo) {
+      const init = await outcomeMethods(client)
+        .initCompiledArtifactChunk({
+          compiledArtifactHash: [...compiledArtifactHash],
+          chunkIndex,
+        })
+        .accounts({
+          publisher: client.authority.publicKey,
+          approvedOutcomeArtifact: artifactPda,
+          approvedOutcomeArtifactChunk: chunkPda,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+      await sendOperatorInstructions(client, [init]);
+    } else {
+      const chunkAccount = await (outcomeAccounts(client) as any).approvedOutcomeArtifactChunk.fetch(
+        chunkPda,
+        "confirmed"
+      );
+      writtenLen = Number(chunkAccount.writtenLen);
+    }
+
+    const chunkStart = chunkIndex * CHUNK_SIZE;
+    const chunkBytes = blob.subarray(chunkStart, Math.min(blob.length, chunkStart + CHUNK_SIZE));
+    for (let offset = writtenLen; offset < chunkBytes.length; offset += CHUNK_WRITE_BYTES) {
+      const part = chunkBytes.subarray(offset, Math.min(chunkBytes.length, offset + CHUNK_WRITE_BYTES));
+      const write = await outcomeMethods(client)
+        .writeCompiledArtifactChunk({
+          compiledArtifactHash: [...compiledArtifactHash],
+          chunkIndex,
+          offset,
+          data: Buffer.from(part),
+        })
+        .accounts({
+          publisher: client.authority.publicKey,
+          approvedOutcomeArtifact: artifactPda,
+          approvedOutcomeArtifactChunk: chunkPda,
+        })
+        .instruction();
+      await sendOperatorInstructions(client, [write]);
+    }
+  }
+  return chunkPdas;
+}
+
 async function submitApprovedArtifact(
   client: OutcomeClient,
   opts: {
@@ -589,6 +554,9 @@ async function submitApprovedArtifact(
     ) as ApprovedOutcomeArtifactAccount;
 
     if (!artifactAccount.isFinalized) {
+      // An earlier submit can stop before every chunk is written (a dropped request, a crashed
+      // process). Finish the chunks from where they stopped; finalize rejects missing ones.
+      await writeArtifactChunks(client, artifactPda, compiledArtifactHash, opts.blob);
       const instruction = await buildFinalizeCompiledArtifactInstruction(
         client,
         artifactPda,
@@ -630,60 +598,7 @@ async function submitApprovedArtifact(
     .instruction();
   await sendOperatorInstructions(client, [instruction]);
 
-  const chunkCount = Math.ceil(opts.blob.length / CHUNK_SIZE);
-  const chunkPdas: PublicKey[] = [];
-  for (let chunkIndex = 0; chunkIndex < chunkCount; chunkIndex += 1) {
-    const chunkPda = deriveApprovedArtifactChunkPda(
-      client.programId,
-      compiledArtifactHash,
-      chunkIndex
-    );
-    chunkPdas.push(chunkPda);
-
-    instruction = await outcomeMethods(client)
-      .initCompiledArtifactChunk({
-        compiledArtifactHash: [...compiledArtifactHash],
-        chunkIndex,
-      })
-      .accounts({
-        publisher: client.authority.publicKey,
-        approvedOutcomeArtifact: artifactPda,
-        approvedOutcomeArtifactChunk: chunkPda,
-        systemProgram: SystemProgram.programId,
-      })
-      .instruction();
-    await sendOperatorInstructions(client, [instruction]);
-
-    const chunkStart = chunkIndex * CHUNK_SIZE;
-    const chunkBytes = opts.blob.subarray(
-      chunkStart,
-      Math.min(opts.blob.length, chunkStart + CHUNK_SIZE)
-    );
-    for (
-      let offset = 0;
-      offset < chunkBytes.length;
-      offset += CHUNK_WRITE_BYTES
-    ) {
-      const part = chunkBytes.subarray(
-        offset,
-        Math.min(chunkBytes.length, offset + CHUNK_WRITE_BYTES)
-      );
-      instruction = await outcomeMethods(client)
-        .writeCompiledArtifactChunk({
-          compiledArtifactHash: [...compiledArtifactHash],
-          chunkIndex,
-          offset,
-          data: Buffer.from(part),
-        })
-        .accounts({
-          publisher: client.authority.publicKey,
-          approvedOutcomeArtifact: artifactPda,
-          approvedOutcomeArtifactChunk: chunkPda,
-        })
-        .instruction();
-      await sendOperatorInstructions(client, [instruction]);
-    }
-  }
+  const chunkPdas = await writeArtifactChunks(client, artifactPda, compiledArtifactHash, opts.blob);
 
   instruction = await buildFinalizeCompiledArtifactInstruction(
     client,
