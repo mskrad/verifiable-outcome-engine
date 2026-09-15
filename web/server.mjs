@@ -1886,30 +1886,14 @@ async function sortSnapshotFile(inputPath, outputPath) {
   });
 }
 
-function isLocalRpcUrl(rpcUrl) {
-  const parsed = new URL(rpcUrl);
-  const hostname = parsed.hostname.toLowerCase();
-  return (
-    hostname === "localhost" ||
-    hostname.endsWith(".localhost") ||
-    hostname.endsWith(".local") ||
-    isPrivateIp(hostname)
-  );
-}
-
+// Snapshot draws run on the same program and RPC as other draws unless overridden.
 function resolveSnapshotRpcUrl() {
   const raw = String(
     process.env.PARTNER_SNAPSHOT_RPC_URL ||
       process.env.LIVE_RAFFLE_RPC_URL ||
       process.env.ANCHOR_PROVIDER_URL ||
-      ""
+      defaultRpc()
   ).trim();
-  if (!raw) {
-    throw httpError(
-      503,
-      "scale snapshot finalize requires PARTNER_SNAPSHOT_RPC_URL pointing to a local validator or isolated runtime"
-    );
-  }
   let parsed;
   try {
     parsed = new URL(raw);
@@ -1922,30 +1906,15 @@ function resolveSnapshotRpcUrl() {
   parsed.hash = "";
   parsed.username = "";
   parsed.password = "";
-  const rpcUrl = parsed.toString();
-  if (!isLocalRpcUrl(rpcUrl) && process.env.PARTNER_SNAPSHOT_ALLOW_NONLOCAL !== "1") {
-    throw httpError(
-      503,
-      "scale snapshot finalize is local-only by default; set PARTNER_SNAPSHOT_RPC_URL to localhost or use PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1 with an isolated program id"
-    );
-  }
-  return rpcUrl;
+  return parsed.toString();
 }
 
-function resolveSnapshotProgramId(rpcUrl) {
-  const defaultProgram = defaultProgramId();
-  const programId = validateProgramId(
+function resolveSnapshotProgramId() {
+  return validateProgramId(
     process.env.PARTNER_SNAPSHOT_PROGRAM_ID ||
       process.env.LIVE_RAFFLE_PROGRAM_ID ||
-      defaultProgram
+      defaultProgramId()
   );
-  if (!isLocalRpcUrl(rpcUrl) && programId === defaultProgram) {
-    throw httpError(
-      503,
-      "scale snapshot non-local validation requires a brand new isolated program id; canonical hackathon program is blocked for this path"
-    );
-  }
-  return programId;
 }
 
 function buildPartnerSnapshotConfig({
@@ -2598,7 +2567,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
 
   // Refuse before building or publishing anything the chosen program would not accept.
   const rpcUrl = resolveSnapshotRpcUrl();
-  const programId = resolveSnapshotProgramId(rpcUrl);
+  const programId = resolveSnapshotProgramId();
 
   const meta = loadSnapshotSessionForFinalize(sessionId, partner.key);
   meta.status = "finalizing";

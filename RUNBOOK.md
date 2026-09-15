@@ -162,15 +162,15 @@ solana program deploy target/deploy/outcome.so \
   entries / 8,185 bytes, overflows at 104 entries / 8,264 bytes.
 - `Outcome Standard V1.2` — scale extension with a snapshot and Merkle root.
 
-## 9) Large snapshot flow (local-only)
+## 9) Large snapshot flow
 
 Small lists stay on `POST /api/partner/draw`. The snapshot flow commits a large participant set as a
 hash and keeps the on-chain payload compact.
 
-It is local-only by default: set `PARTNER_SNAPSHOT_RPC_URL` to a local validator such as
-`http://127.0.0.1:8899`. A non-local RPC also needs `PARTNER_SNAPSHOT_ALLOW_NONLOCAL=1` and
-`PARTNER_SNAPSHOT_PROGRAM_ID` pointing at a separate program; the canonical program is refused
-for this path.
+It runs on the same program and RPC as other draws (override with `PARTNER_SNAPSHOT_RPC_URL` and
+`PARTNER_SNAPSHOT_PROGRAM_ID`, for example a local validator at `http://127.0.0.1:8899`). Finalize
+publishes the snapshot first (`PARTNER_SNAPSHOT_STORAGE`, Irys devnet by default), then resolves the
+draw on rng_v2 in the background; poll `GET /api/partner/snapshot/status?session_id=`.
 
 ```bash
 curl -s -X POST http://127.0.0.1:8787/api/partner/snapshot/init \
