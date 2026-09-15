@@ -128,7 +128,7 @@
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">Cluster</div>
-                <div class="spec-kv-value">Solana devnet. Mainnet is a separate, later effort.</div>
+                <div class="spec-kv-value">Solana devnet. Mainnet is planned for this year.</div>
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">Last program deploy</div>
@@ -162,7 +162,7 @@
                   <tr><td class="mono">rng_v1</td><td>A <span class="mono">master_seed</span> set by the operator when the runtime is created.</td><td>Cannot change the rules or the recorded result. <b>Can</b> compute the result before sending the transaction.</td><td>Legacy. Still used by scale snapshot draws; not planned for mainnet.</td></tr>
                   <tr><td class="mono">rng_v2 · single phase (v1.2)</td><td>Hashes of three Solana slots fixed at prepare, that do not exist yet.</td><td>Cannot predict the result. Can decline to settle after the slots land; an unsettled draw stays on-chain and expires.</td><td>Canonical. Default.</td></tr>
                   <tr><td class="mono">rng_v2 · two phase (v1.3.2)</td><td>Same slot hashes; anyone may seal them in.</td><td>Cannot predict and cannot abort: after seal the outcome is fixed, and skipping attest forfeits the stake.</td><td>Canonical. Opt-in per draw.</td></tr>
-                  <tr><td class="mono">Unicorn-G (B8)</td><td>A VDF output verified with Groth16.</td><td>Designed to remove residual validator influence on the seed.</td><td>Research. Not in the current canonical build; see <a href="#paths">§06</a>.</td></tr>
+                  <tr><td class="mono">Unicorn-G (B8)</td><td>A VDF output verified with Groth16.</td><td>Designed to remove residual validator influence on the seed.</td><td>Implemented; not deployed to the canonical program; see <a href="#paths">§06</a>.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -539,15 +539,16 @@ expiry_slot  = target_slots[2] + 480
             <h3>Slot spins (SF1)</h3>
             <p><span class="mono">prepare_slot_spin</span> binds the player, the bet and the committed game before the entropy exists. <span class="mono">settle_slot_spin</span> derives randomness from future slot hashes, replays the reels from the artifact, applies the max-win cap and pays the bound player from the vault. The public demo game runs on its own devnet program, <span class="mono">6R5n5uPTj1bg4xz6P3xCmVkyorTySbLQQZuENe8SSaKK</span>; verify its spins with the SDK and that program ID.</p>
 
-            <h3>Unicorn-G entropy (B8) · research</h3>
-            <p>An alternative entropy source: a VDF output verified on-chain with an embedded Groth16 verifier. It was measured on devnet in June 2026: seal with verification 247,476 CU, attest 61,466 CU, and a wrong proof rejected as <span class="mono">InvalidUnicornGProof</span>. Its instructions sit behind a build feature and are <b>not included in the current canonical build</b>. A known soundness gap in the circuit and a pending trusted-setup ceremony keep it a research track; it is not planned for mainnet in its current form.</p>
+            <h3>Unicorn-G entropy (B8) · implemented, not deployed</h3>
+            <p>An alternative entropy source: a VDF output verified on-chain with an embedded Groth16 verifier. It was measured on devnet in June 2026: seal with verification 247,476 CU, attest 61,466 CU, and a wrong proof rejected as <span class="mono">InvalidUnicornGProof</span>. Its instructions sit behind a build feature that the canonical program is <b>not built with</b>. Before mainnet it needs the circuit soundness fix and a trusted-setup ceremony.</p>
           </section>
 
           <!-- ============================================================ 07 -->
           <section id="api" class="spec-section">
             <div class="spec-section-num">07</div>
             <h2>HTTP API</h2>
-            <p>Base URL <span class="mono">https://verifiableoutcome.online</span>. JSON in, JSON out. Draw endpoints sign with the server's operator key, so callers never hold one. A draw resolves through rng_v2 inside the request: the server commits the rules, waits for the future target slots, about 10 seconds, then settles and replays, so a draw call takes much longer than a read.</p>
+            <p>Base URL <span class="mono">https://verifiableoutcome.online</span>. JSON in, JSON out. Draw endpoints sign with the server's operator key, so callers never hold one. A draw resolves through rng_v2 inside the request: the server commits the rules, waits for the future target slots, about 10 seconds, then settles and replays, so a draw call takes 12–45 seconds in total.</p>
+            <p>The canonical program binds only artifacts approved by the <span class="mono">ProgramConfig</span> admin, so a draw cannot be resolved there with your own wallet; the API runs it with the operator key. Sortition instructions need no admin and can be sent from any funded wallet (<a href="#sdk">§08</a>).</p>
 
             <h3>Limits and statuses</h3>
             <div class="spec-table-wrap">
@@ -563,7 +564,7 @@ expiry_slot  = target_slots[2] + 480
                 </tbody>
               </table>
             </div>
-            <p>Statuses: <span class="mono">200</span> success; <span class="mono">400</span> validation error; <span class="mono">401</span> missing or unknown key; <span class="mono">403</span> key without the needed permission; <span class="mono">429</span> rate limit; <span class="mono">503</span> partner config absent on the host; <span class="mono">504</span> devnet timeout, retry.</p>
+            <p>Statuses: <span class="mono">200</span> success; <span class="mono">400</span> validation error; <span class="mono">401</span> missing or unknown key; <span class="mono">403</span> key without the needed permission; <span class="mono">404</span> unknown conditions round; <span class="mono">409</span> a scale-shaped body sent to a draw endpoint, or a duplicate snapshot chunk; <span class="mono">413</span> participant table too large for a compact artifact; <span class="mono">429</span> rate limit, counted from the start of the previous draw; <span class="mono">500</span> the program rejected the instruction, with the program error in <span class="mono">error</span> (for example <span class="mono">SortitionRegistrationClosed</span>, <span class="mono">SortitionPredicateNotMet</span>); <span class="mono">503</span> partner config absent on the host; <span class="mono">504</span> devnet timeout, retry.</p>
 
             <h3>Public, no key</h3>
             <div class="spec-table-wrap">
@@ -626,7 +627,7 @@ expiry_slot  = target_slots[2] + 480
             <p>With <span class="mono">requireWorldId</span>, the caller sends a World ID 4.0 proof; the server verifies it and reserves its nullifier, so one human enters once. The public host runs World ID in staging, through the simulator. Wallet pages read only the address through the Wallet Standard and never ask to sign.</p>
 
             <h3>Partner API</h3>
-            <p>Every partner endpoint takes <span class="mono">x-api-key: vresk_&lt;32 hex&gt;</span>. Keys are issued at onboarding and stored server-side only. Draws additionally require <span class="mono">draw_enabled</span> on the key.</p>
+            <p>Every partner endpoint takes <span class="mono">x-api-key: vresk_&lt;32 hex&gt;</span>. Keys are issued on request in <a href="https://t.me/maskradiation" target="_blank" rel="noopener">Telegram</a> and stored server-side only. Draws additionally require <span class="mono">draw_enabled</span> on the key.</p>
             <div class="spec-table-wrap">
               <table class="spec-table">
                 <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
@@ -655,7 +656,8 @@ expiry_slot  = target_slots[2] + 480
               <li><b>winners_count.</b> 1 to 10, not more than the participants.</li>
               <li><b>target.</b> Required for <span class="mono">closest_to</span>; a signed safe integer.</li>
               <li><b>use_case.</b> <span class="mono">raffle</span>, <span class="mono">airdrop</span> or <span class="mono">competition</span>; informational.</li>
-              <li><b>Scale mode.</b> <span class="mono">mode: "scale"</span>, <span class="mono">scale: true</span>, <span class="mono">public_proof: true</span> or <span class="mono">standard_version: "1.2"</span> commits a snapshot instead of an inline table.</li>
+              <li><b>Scale-shaped body.</b> <span class="mono">mode: "scale"</span>, <span class="mono">scale: true</span>, <span class="mono">public_proof: true</span> or <span class="mono">standard_version: "1.2"</span> on this endpoint returns <span class="mono">409</span> with <span class="mono">route: "scale_snapshot"</span> and the snapshot endpoints.</li>
+              <li><b>artifact_slot.</b> The slot where these exact rules were first committed; identical rules reuse one artifact, so it can predate the draw.</li>
             </ul>
 
             <div class="terminal">
@@ -680,6 +682,12 @@ expiry_slot  = target_slots[2] + 480
             <p><span class="mono">verifiable-outcome-sdk</span> is the TypeScript library for building artifacts and verifying outcomes. It is an ES module for Node 18 and later.</p>
             <div class="terminal">
               <div class="terminal-body">npm install verifiable-outcome-sdk   <span class="comment"># 0.8.1</span></div>
+            </div>
+
+            <h3>Verify from a terminal</h3>
+            <div class="terminal">
+              <div class="terminal-body">npx -p verifiable-outcome-sdk vre verify --sig &lt;signature&gt; [--rpc &lt;url&gt;] [--program-id &lt;id&gt;] [--json]
+<span class="comment"># exit code 0 on MATCH, 1 otherwise</span></div>
             </div>
 
             <h3>Verify a transaction</h3>
@@ -718,12 +726,12 @@ const bytes = buildArtifact({
                   <tr><td>Artifacts</td><td class="mono">buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121</td></tr>
                   <tr><td>Snapshots and Merkle</td><td class="mono">buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine</td></tr>
                   <tr><td>Composite</td><td class="mono">buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact</td></tr>
-                  <tr><td>Sortition</td><td class="mono">createSortitionClient, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers</td></tr>
+                  <tr><td>Sortition</td><td class="mono">createSortitionClient, sortitionCreateDrawInline, sortitionRegisterTicketInline, sortitionSealDrawInline, sortitionClaimTicketInline, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers</td></tr>
                   <tr><td>Conditions and slot</td><td>Scoring, artifact encoders and replay helpers for fc7 and SF1.</td></tr>
                 </tbody>
               </table>
             </div>
-            <p>The operator resolve client and an rng_v2 prepare-and-settle client are not in the published package yet.</p>
+            <p>The operator resolve client and the rng_v2 prepare-and-settle client are not in the published package: draws run through the HTTP API. <span class="mono">verifyOutcome</span> and <span class="mono">vre verify</span> do not replay sortition transactions; the claim instruction enforces the sortition predicate on-chain.</p>
           </section>
 
           <!-- ============================================================ 09 -->

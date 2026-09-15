@@ -3,7 +3,7 @@
 Machine-readable copy of https://verifiableoutcome.online/spec for agents and tools. Same sections, same anchors, same facts.
 
 - Product: Verifiable Outcome Engine (VRE). On-chain proof of who won.
-- Cluster: Solana devnet. Mainnet is a separate, later effort.
+- Cluster: Solana devnet. Mainnet is planned for this year.
 - Canonical program: `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
 - Last program deploy: slot 497829503, 2026-09-13
 - SDK: `verifiable-outcome-sdk` 0.8.1 (npm)
@@ -42,7 +42,7 @@ Every path: commit the rules, bind a runtime, resolve, replay.
 | `rng_v1` | `master_seed` set by the operator at runtime creation | Cannot change rules or recorded result. Can compute the result before sending. | Legacy. Still used by scale snapshot draws; not planned for mainnet. |
 | `rng_v2` single phase (v1.2) | Hashes of three future slots fixed at prepare | Cannot predict. Can decline to settle; the unsettled draw stays on-chain and expires. | Canonical. Default. |
 | `rng_v2` two phase (v1.3.2) | Same slot hashes; anyone may seal | Cannot predict and cannot abort; skipping attest forfeits the stake. | Canonical. Opt-in per draw. |
-| Unicorn-G (B8) | VDF output verified with Groth16 | Designed to remove residual validator influence. | Research. Not in the current canonical build. |
+| Unicorn-G (B8) | VDF output verified with Groth16 | Designed to remove residual validator influence. | Implemented; not deployed to the canonical program. |
 
 ```text
 # rng_v1
@@ -337,13 +337,15 @@ Scores committed prediction slips (legs with odds) against revealed match facts 
 ### Slot spins (SF1)
 `prepare_slot_spin` binds player, bet and committed game before entropy exists. `settle_slot_spin` derives randomness from future slot hashes, replays reels, applies the max-win cap, pays the bound player from the vault. Public demo game program: `6R5n5uPTj1bg4xz6P3xCmVkyorTySbLQQZuENe8SSaKK`; verify its spins with the SDK and that program ID.
 
-### Unicorn-G entropy (B8), research
-VDF output verified on-chain with an embedded Groth16 verifier. Measured on devnet June 2026: seal with verification 247,476 CU, attest 61,466 CU, wrong proof rejected as `InvalidUnicornGProof`. Instructions are behind a build feature and not included in the current canonical build. A known circuit soundness gap and a pending trusted-setup ceremony keep it research; not planned for mainnet in current form.
+### Unicorn-G entropy (B8), implemented, not deployed
+VDF output verified on-chain with an embedded Groth16 verifier. Measured on devnet June 2026: seal with verification 247,476 CU, attest 61,466 CU, wrong proof rejected as `InvalidUnicornGProof`. The instructions sit behind a build feature that the canonical program is not built with. Before mainnet it needs the circuit soundness fix and a trusted-setup ceremony.
 
 <a id="api"></a>
 ## 07 · HTTP API
 
-Base URL `https://verifiableoutcome.online`. JSON in and out. Draw endpoints sign with the server's operator key. A draw resolves through rng_v2 inside the request: commit, wait for future target slots (~10 s), settle, replay; a draw call takes much longer than a read.
+Base URL `https://verifiableoutcome.online`. JSON in and out. Draw endpoints sign with the server's operator key. A draw resolves through rng_v2 inside the request: commit, wait for future target slots (~10 s), settle, replay; a draw call takes 12–45 s in total.
+
+The canonical program binds only artifacts approved by the `ProgramConfig` admin, so a draw cannot be resolved there with your own wallet; the API runs it with the operator key. Sortition instructions need no admin and can be sent from any funded wallet (§08).
 
 ### Limits and statuses
 
@@ -356,7 +358,7 @@ Base URL `https://verifiableoutcome.online`. JSON in and out. Draw endpoints sig
 | `POST /api/partner/draw`, per key | 1 draw / 10 s |
 | `POST /api/examples/sortition/draw`, per IP | 1 draw / 15 s |
 
-Statuses: 200 success; 400 validation; 401 missing or unknown key; 403 key lacks permission; 429 rate limit; 503 partner config absent; 504 devnet timeout, retry.
+Statuses: 200 success; 400 validation; 401 missing or unknown key; 403 key lacks permission; 404 unknown conditions round; 409 a scale-shaped body sent to a draw endpoint, or a duplicate snapshot chunk; 413 participant table too large for a compact artifact; 429 rate limit (counted from the start of the previous draw); 500 the program rejected the instruction, with the program error in `error` (for example `SortitionRegistrationClosed`, `SortitionPredicateNotMet`); 503 partner config absent; 504 devnet timeout, retry.
 
 ### Public, no key
 
@@ -409,7 +411,7 @@ With `requireWorldId`, the caller sends a World ID 4.0 proof; the server verifie
 
 ### Partner API
 
-Header `x-api-key: vresk_<32 hex>`. Keys issued at onboarding, stored server-side. Draws also require `draw_enabled` on the key.
+Header `x-api-key: vresk_…`. Keys are issued on request (https://t.me/maskradiation) and stored server-side. Draws also require `draw_enabled` on the key.
 
 | Endpoint | Request | Response |
 |---|---|---|
@@ -433,7 +435,8 @@ Header `x-api-key: vresk_<32 hex>`. Keys issued at onboarding, stored server-sid
 - `winners_count`: 1–10, ≤ participants.
 - `target`: required for `closest_to`; signed safe integer.
 - `use_case`: `raffle` | `airdrop` | `competition`; informational.
-- Scale mode: `mode: "scale"`, `scale: true`, `public_proof: true` or `standard_version: "1.2"` commits a snapshot instead of an inline table.
+- `mode: "scale"`, `scale: true`, `public_proof: true` or `standard_version: "1.2"` on this endpoint returns 409 with `route: "scale_snapshot"` and the snapshot endpoints.
+- `artifact_slot` is the slot where these exact rules were first committed; identical rules reuse one artifact, so it can predate the draw.
 
 ```bash
 curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
@@ -449,6 +452,10 @@ curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
 
 ```bash
 npm install verifiable-outcome-sdk
+
+# or verify from a terminal without installing
+npx -p verifiable-outcome-sdk vre verify --sig <signature> [--rpc <url>] [--program-id <id>] [--json]
+# exit code 0 on MATCH, 1 otherwise
 ```
 
 ```js
@@ -478,10 +485,10 @@ const bytes = buildArtifact({
 | Artifacts | buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121 |
 | Snapshots and Merkle | buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine |
 | Composite | buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact |
-| Sortition | createSortitionClient, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers |
+| Sortition | createSortitionClient, sortitionCreateDrawInline, sortitionRegisterTicketInline, sortitionSealDrawInline, sortitionClaimTicketInline, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers |
 | Conditions and slot | Scoring, artifact encoders and replay helpers for fc7 and SF1 |
 
-Not in the published package yet: the operator resolve client and an rng_v2 prepare-and-settle client.
+Not in the published package: the operator resolve client and the rng_v2 prepare-and-settle client (draws run through the HTTP API). `verifyOutcome` and `vre verify` do not replay sortition transactions; the claim instruction enforces the sortition predicate on-chain.
 
 <a id="use-cases"></a>
 ## 09 · Use Cases
