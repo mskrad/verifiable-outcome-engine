@@ -358,7 +358,9 @@ The canonical program binds only artifacts approved by the `ProgramConfig` admin
 | `POST /api/partner/draw`, per key | 1 draw / 10 s |
 | `POST /api/examples/sortition/draw`, per IP | 1 draw / 15 s |
 
-Statuses: 200 success; 400 validation; 401 missing or unknown key; 403 key lacks permission; 404 unknown conditions round; 409 a scale-shaped body sent to a draw endpoint, or a duplicate snapshot chunk; 413 participant table too large for a compact artifact; 429 rate limit (counted from the start of the previous draw); 500 the program rejected the instruction, with the program error in `error` (for example `SortitionRegistrationClosed`, `SortitionPredicateNotMet`); 503 partner config absent; 504 devnet timeout, retry.
+Statuses: 200 success; 400 validation; 401 missing or unknown key; 403 key lacks permission; 404 unknown conditions round, or an account that does not exist (`AccountNotInitialized`); 409 a scale-shaped body sent to a draw endpoint, a duplicate snapshot chunk, or a program state conflict (`SortitionRegistrationOpen`, `SortitionRegistrationClosed`, `SortitionClaimWindowClosed`, `SortitionAlreadyClaimed`, `AccountAlreadyInUse` for a reused id); 413 participant table too large for a compact artifact; 422 the program rejected the input (`SortitionPredicateNotMet` for a losing ticket, `InvalidSortitionSecret`, other `InvalidSortition*`); 429 rate limit (counted from the start of the previous draw); 500 server-side failure; 503 partner config absent; 504 devnet timeout, retry.
+
+When the program rejects an instruction the body carries `error_code` (the program error name), `error_number` and a readable `error`: `{ "ok": false, "error": "Sortition predicate not met", "error_code": "SortitionPredicateNotMet", "error_number": 6045 }`.
 
 ### Public, no key
 

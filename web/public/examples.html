@@ -788,7 +788,7 @@
     ];
 
     function readVerdict(data) {
-      const text = typeof data?.error === "string" ? data.error : "";
+      const text = [data?.error_code, data?.error].filter((v) => typeof v === "string").join(" ");
       const hit = VERDICTS.find(([code]) => text.includes(code));
       return hit ? hit[1] : null;
     }

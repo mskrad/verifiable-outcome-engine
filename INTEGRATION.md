@@ -173,8 +173,18 @@ All values are hex. The VRE operator signs these transactions; you keep the secr
 Timing at ~400 ms per slot: registration closes ~24 s after creation with the default window, seal is
 possible after ~42 s, the claim window ends `claim_duration_slots` after the last target slot.
 
-A rejected instruction (registration still open, registration closed, predicate not met, ticket
-already claimed) currently comes back as HTTP 500 with the program error in `error`.
+A rejected instruction comes back with the program error name in `error_code`:
+
+| HTTP | `error_code` | Meaning |
+|---|---|---|
+| 409 | `SortitionRegistrationOpen` | seal before registration closed and the committed slots exist |
+| 409 | `SortitionRegistrationClosed` | register after the window |
+| 409 | `SortitionClaimWindowClosed` | claim after the claim window |
+| 409 | `SortitionAlreadyClaimed` | the ticket was claimed before |
+| 409 | `AccountAlreadyInUse` | a draw or ticket with this id already exists |
+| 422 | `SortitionPredicateNotMet` | the ticket did not win — a normal outcome, not a failed call |
+| 422 | `InvalidSortitionSecret` | the secret does not match the commitment |
+| 404 | `AccountNotInitialized` | the draw or ticket does not exist |
 
 The keyless demo of this flow is at [/examples](https://verifiableoutcome.online/examples)
 (`/api/examples/sortition/*`, one draw per 15 s per IP).
@@ -279,5 +289,7 @@ appear on public RPC; retry.
 **`could not determine executable to run`** — the command is `vre`: use
 `npx -p verifiable-outcome-sdk vre verify …` or install the package and run `vre`.
 
-**`SortitionRegistrationClosed` / `SortitionRegistrationOpen`** — the call came outside the
+**409 `SortitionRegistrationClosed` / `SortitionRegistrationOpen`** — the call came outside the
 registration window; see the timing in Part 3.
+
+**422 `SortitionPredicateNotMet`** — the ticket lost. Nothing to retry.

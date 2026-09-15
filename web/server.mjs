@@ -220,6 +220,75 @@ function isCorsApiPath(pathname) {
   );
 }
 
+// A rejected program instruction is about the caller's request (a closed window, a losing ticket,
+// a wrong secret), not a server fault: answer 4xx with the program error name. Program errors that
+// point at the operator's own setup stay 500, still named, so both sides can see what failed.
+const PROGRAM_ERROR_STATUS = new Map([
+  ["SortitionRegistrationOpen", 409],
+  ["SortitionRegistrationClosed", 409],
+  ["SortitionClaimWindowClosed", 409],
+  ["SortitionAlreadyClaimed", 409],
+  ["SortitionCloseTooEarly", 409],
+  ["InvalidSortitionStatus", 409],
+  ["AccountAlreadyInUse", 409],
+  ["SortitionPredicateNotMet", 422],
+  ["InvalidSortitionSecret", 422],
+  ["InvalidSortitionTicket", 422],
+  ["InvalidSortitionCommitment", 422],
+  ["InvalidSortitionThreshold", 422],
+  ["InvalidSortitionWindow", 422],
+  ["InvalidSortitionConfig", 422],
+  ["InvalidSkimBps", 422],
+  ["AccountNotInitialized", 404],
+]);
+
+let programErrorsByNumber;
+function programErrorFromNumber(number) {
+  if (!programErrorsByNumber) {
+    programErrorsByNumber = new Map();
+    try {
+      const idl = JSON.parse(fs.readFileSync(path.join(REF_ROOT, "artifacts", "outcome_idl.json"), "utf8"));
+      for (const entry of idl.errors || []) programErrorsByNumber.set(entry.code, entry);
+    } catch (_) {
+      // without the IDL only named errors in the logs are recognised
+    }
+  }
+  return programErrorsByNumber.get(number);
+}
+
+function programErrorResponse(error) {
+  const logs = Array.isArray(error?.transactionLogs) ? error.transactionLogs.join("\n") : "";
+  const text = `${error?.message || String(error)}\n${logs}`;
+  let name = text.match(/Error Code: (\w+)/)?.[1];
+  let number = Number(text.match(/Error Number: (\d+)/)?.[1]);
+  let message = text.match(/Error Message: ([^\n"]*?)\.?(?:"|\n|$)/)?.[1];
+  if (!name) {
+    const hex = text.match(/custom program error: (0x[0-9a-f]+)/i)?.[1];
+    const entry = hex ? programErrorFromNumber(parseInt(hex, 16)) : undefined;
+    if (entry) {
+      name = entry.name;
+      number = entry.code;
+      message = entry.msg;
+    }
+  }
+  if (!name && /already in use/i.test(text)) {
+    name = "AccountAlreadyInUse";
+    message = "An account with this id already exists";
+  }
+  if (!name) return null;
+  const status = PROGRAM_ERROR_STATUS.get(name) ?? 500;
+  return {
+    status,
+    body: {
+      ok: false,
+      error: message || name,
+      error_code: name,
+      ...(Number.isFinite(number) ? { error_number: number } : {}),
+      ...(status >= 500 ? { details: error?.message || String(error) } : {}),
+    },
+  };
+}
+
 function httpError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = statusCode;
@@ -2257,6 +2326,11 @@ async function handleLiveRaffle(req, res) {
     if (reservedWorldIdNullifier) {
       worldIdNullifiers.delete(reservedWorldIdNullifier);
     }
+    const programError = programErrorResponse(error);
+    if (programError) {
+      json(res, programError.status, programError.body);
+      return;
+    }
     const message = error?.message || String(error);
     const isTimeout = message.includes("Devnet is slow");
     json(res, isTimeout ? 504 : 500, {
@@ -2431,6 +2505,11 @@ async function handlePartnerDraw(req, res, opts = {}) {
       "Devnet is slow right now, try again"
     );
   } catch (error) {
+    const programError = programErrorResponse(error);
+    if (programError) {
+      json(res, programError.status, programError.body);
+      return;
+    }
     const msg = error?.message || String(error);
     const isTimeout = msg.includes("Devnet is slow");
     json(res, isTimeout ? 504 : 500, { ok: false, error: msg });
@@ -2837,7 +2916,7 @@ async function fetchTimeline({
 // response carries a `maturity` field. The default resolution path stays
 // replay-by-signature; sortition is an alternative canonical path.
 
-const SORTITION_MATURITY_NOTE = "canonical-devnet; default resolution path is replay-by-signature";
+const SORTITION_MATURITY_NOTE = "canonical-devnet";
 
 function sortitionProgramId(sortitionModule) {
   return (
@@ -3323,6 +3402,11 @@ async function handleApi(req, res, pathname) {
 
     json(res, 404, { ok: false, error: "api route not found" });
   } catch (error) {
+    const programError = error?.statusCode ? null : programErrorResponse(error);
+    if (programError) {
+      json(res, programError.status, programError.body);
+      return;
+    }
     const statusCode = error?.statusCode || 500;
     json(res, statusCode, {
       ok: false,

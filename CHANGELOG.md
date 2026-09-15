@@ -1,8 +1,8 @@
 # Changelog
 
 Protocol version history for the Verifiable Outcome Engine. All entries describe the
-canonical **devnet** program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`. Mainnet is a
-separate, later effort. Numbers below come from `artifacts/public_evidence_summary.json`.
+canonical **devnet** program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`. Mainnet is planned
+for this year. Numbers come from the evidence files named in each entry.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/); this project tracks
 **protocol/standard versions** (not npm package versions).
@@ -21,12 +21,39 @@ Versions live on **two orthogonal axes**; don't conflate them:
   - **rng_v1** — operator `master_seed` (grindable). **Legacy, retained** (still used by scale snapshot draws;
     public compact draws moved to rng_v2 on 2026-09-13).
   - **rng_v2** — future Solana SlotHash (unpredictable). **Current.** Two lifecycles:
-    - **v1.2** single-phase `settle_rng_v2` — one settle; unpredictable, not no-abort. Fit for
-      casino/game "simple random" (untrusted operator is not the threat).
+    - **v1.2** single-phase `settle_rng_v2` — one settle; unpredictable, not no-abort. The default
+      for draws, where the operator declining to settle is visible and leaves the draw to expire.
     - **v1.3.2** two-phase `seal → attest` — adds no-abort (untrusted operator).
   - rng_v2 accepts both compact and scale formats since 2026-09-09.
 
 ---
+
+## 2026-09-15 — Partner API ready for outside builders
+
+- **Readable errors.** When the program rejects an instruction, partner and demo endpoints answer
+  409 (state conflict: `SortitionRegistrationOpen`, `SortitionRegistrationClosed`,
+  `SortitionClaimWindowClosed`, `SortitionAlreadyClaimed`, `AccountAlreadyInUse`), 422 (rejected
+  input: `SortitionPredicateNotMet`, `InvalidSortitionSecret`, other `InvalidSortition*`) or 404
+  (`AccountNotInitialized`) with `error_code`, `error_number` and a readable `error`. Program errors
+  caused by the operator's own setup stay 500 and are named too. Before, every rejection was a 500
+  with raw simulation text.
+- **Docs** rewritten for partners: README, INTEGRATION.md, /build, /verify reason codes, /spec
+  statuses, runbooks, security policy and roadmap.
+
+## 2026-09-14 — Showcase draws on rng_v2, CLI, reliability fixes
+
+- **Showcase draws reissued on rng_v2.** Raffle `MVE6v5…`, Rewards selection `KQdZCB…`, Trading
+  competition `3GEUW1…`, Prediction market `4XywhA…` — same configs, zero payout, each replays to
+  MATCH with `rng_version 2`. The earlier rng_v1 signatures stay in each entry.
+- **`vre verify` CLI ships in the npm package** (verify only; `resolve` removed).
+- **SDK:** sortition and the conditions operator no longer confirm through web3.js
+  `confirmTransaction`, whose detached status lookup ended the process on an RPC 429. An artifact
+  left half-written by an interrupted submit is completed from each chunk's `written_len` instead of
+  failing finalize with `InvalidArtifactChunkPda`.
+- **Server:** draw responses fill `artifact_slot` and `resolution_slot` (read at `confirmed`);
+  `/api/health` no longer shows a key path; resolutions replays are cached and paced so they do not
+  exhaust public RPC connection limits during a draw; unhandled rejections are logged instead of
+  ending the process.
 
 ## 2026-09-13 — Public draws on rng_v2, shorter draw window
 
@@ -48,7 +75,7 @@ Versions live on **two orthogonal axes**; don't conflate them:
   `rng_version`, `entropy_source`, `prepare_signature`, `target_slots`, `resolved_slots` and
   `winner_claim_hash`. Draw artifacts are payout-free. Scale snapshot draws stay on rng_v1.
 - **Deployed** to `6QtLot…` at slot `497829503` (upgrade `3hPmXzi3…`); the four blessed
-  signatures still replay to MATCH.
+  signatures of the time (rng_v1) still replayed to MATCH.
 
 ## 2026-09-09 — Hackathon-era integrations removed
 
@@ -97,7 +124,8 @@ Versions live on **two orthogonal axes**; don't conflate them:
 ## 2026-07-03 — settle_rng_v2 (v1.2) restored + size pass
 
 - **`settle_rng_v2` (v1.2)** restored from the pre-1.3.2 design (INFRA-003): single-phase
-  rng_v2 settle — future SlotHash entropy, one settle, executes payout. Gives operators the
+  rng_v2 settle — future SlotHash entropy, one settle, executes payout (draw artifacts are
+  payout-free since 2026-09-13). Gives operators the
   choice per draw: fast single-phase (v1.2) or no-abort two-phase (v1.3.2). Resolution tagged
   `protocol_revision = 2`, `entropy_source = SlotHash`. **Live on `6QtLot` since 2026-07-03**
   (canonical redeploy, slot 473728377).
@@ -126,21 +154,21 @@ protocol after the promotion below. Commits `208d2ef` (product-sync) and `9eb588
 The full protocol was promoted to the canonical devnet program `6QtLot…`. There is no longer a
 separate isolated program for these paths.
 
-- **Default entropy stays SlotHashes.** Unicorn-G is **opt-in**, selected explicitly per draw.
-- Sortition-by-Claim (v1.4.0), sortition economics (v1.4.1), and the Unicorn-G entropy source
-  became canonical paths on the one program; replay-by-signature remains the **default**.
+- **Default entropy stays SlotHashes.**
+- Sortition-by-Claim (v1.4.0) and sortition economics (v1.4.1) became canonical paths on the one
+  program. Unicorn-G was listed as opt-in at the time; since 2026-07-03 it sits behind a build
+  feature the canonical program is not built with (implemented, not deployed).
 
 ---
 
 ## Protocol paths
 
-### Unicorn-G entropy source (B8) — canonical · opt-in
+### Unicorn-G entropy source (B8) — implemented, not deployed
 `PROTOCOL-INFRA-014-B8`
 
 Alternative global-Ω entropy: a VDF output `y` verified on-chain via an embedded Groth16
-verifier. Default entropy remains SlotHashes; Unicorn-G is opt-in and relies on a Groth16
-trusted setup (devnet RSA modulus) — a multi-party ceremony is the path to a stronger setup
-before any mainnet use.
+verifier. The instructions sit behind a build feature the canonical program is not built with.
+Before mainnet it needs the circuit soundness fix and a multi-party trusted-setup ceremony.
 
 - Seal (integrated, on-chain Groth16 verify + commit binding): **247,476 CU**.
 - Attest: **61,466 CU**.
@@ -172,11 +200,10 @@ threshold`.
 - Distribution (200 draws, 100 tickets, expected 10 winners): observed mean `9.7`, variance
   `8.76` vs binomial mean `10`, variance `9`.
 
-### global-Ω resolve / replay-by-signature (v1.3.2) — canonical · default
-Two-phase settle global-Ω resolution and standalone replay-by-signature. The default reviewer
-entry point: recompute an outcome locally from a transaction signature. Four blessed canonical
-devnet signatures replay to MATCH / OK (Raffle, Rewards Selection, Trading Competition,
-Prediction Market).
+### Two-phase global-Ω resolve (v1.3.2) — canonical · optional
+`seal_randomness` → `attest_winners`: anyone may seal, the operator stakes and cannot back out.
+Replay-by-signature applies to every path; the four showcase signatures (Raffle, Rewards selection,
+Trading competition, Prediction market) replay to MATCH / OK and use single-phase rng_v2.
 
 ### Baseline (hackathon)
 `rng_v1` / `rng_v2` resolve plus the blessed devnet signature set and replay-by-signature —
