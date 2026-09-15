@@ -326,6 +326,12 @@ export type VerifyOutcomeOptions = {
   rpcUrl: string;
   programId?: string;
   artifactPath?: string;
+  /** Hash-addressed snapshot mirrors (`<mirror>/sha256/<hash>.jsonl`); default VRE_SNAPSHOT_MIRRORS or the VRE host. */
+  snapshotMirrors?: string[];
+  /** Local copy of a snapshot draw's snapshot, accepted only if its hash matches the commitment. */
+  snapshotFile?: string;
+  /** Per-source timeout when downloading a snapshot. */
+  snapshotTimeoutMs?: number;
 };
 
 export type VerifyResult = {

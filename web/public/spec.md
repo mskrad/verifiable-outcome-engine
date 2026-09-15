@@ -220,6 +220,7 @@ Example from devnet signature `237xT8M5YE9drfMTdJKRCrgbWU6b1pZAB7YPHZkgy8A3pqi8J
 | `ERR_RANDOMNESS_MISMATCH` | Recomputed randomness differs from event or account |
 | `ERR_RNG_V2_EVIDENCE_MISSING` | Resolved slots, slot hashes or commit evidence missing |
 | `ERR_RNG_V2_SNAPSHOT_HASH_MISMATCH` | Event snapshot hash differs from artifact, or non-zero for a compact artifact |
+| `ERR_SNAPSHOT_UNAVAILABLE` | No source (committed URI, hash-addressed mirror, local copy) served the snapshot with the committed hash; unverifiable, not disproven |
 | `ERR_RNG_V2_STATE_MISMATCH` | Event differs from prepared `RngV2State` |
 | `ERR_RNG_V2_RESOLUTION_MISMATCH` | rng_v2 evidence differs between event and resolution account |
 | `ERR_RNG_V2_OPERATOR_REVEAL_MISMATCH` | Operator reveal missing or does not hash to its commitment |

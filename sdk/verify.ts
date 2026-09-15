@@ -50,6 +50,12 @@ import type {
   VerifyResult,
 } from "./types.js";
 import { OUTCOME_IDL } from "./idl.js";
+import {
+  DEFAULT_SNAPSHOT_MIRRORS,
+  DEFAULT_SNAPSHOT_TIMEOUT_MS,
+  SnapshotUnavailableError,
+  fetchCommittedSnapshot,
+} from "./snapshot_source.js";
 
 const DEFAULT_PROGRAM_ID = "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B";
 const CHUNK_SIZE = 1024;
@@ -1540,43 +1546,6 @@ function selectOutcomes(
   };
 }
 
-async function materializeSnapshotUri(snapshotUri: string): Promise<{
-  snapshotPath: string;
-  cleanup: () => void;
-}> {
-  if (/^https?:\/\//i.test(snapshotUri)) {
-    const response = await fetch(snapshotUri);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch snapshot_uri: HTTP ${response.status}`);
-    }
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vre-snapshot-"));
-    const snapshotPath = path.join(tempDir, "snapshot.jsonl");
-    fs.writeFileSync(snapshotPath, Buffer.from(await response.arrayBuffer()));
-    return {
-      snapshotPath,
-      cleanup: () => {
-        try {
-          fs.rmSync(tempDir, { recursive: true, force: true });
-        } catch (_) {
-          // ignore temp cleanup errors
-        }
-      },
-    };
-  }
-  if (snapshotUri.startsWith("file://")) {
-    return {
-      snapshotPath: fileURLToPath(snapshotUri),
-      cleanup: () => {},
-    };
-  }
-  return {
-    snapshotPath: path.isAbsolute(snapshotUri)
-      ? snapshotUri
-      : path.resolve(process.cwd(), snapshotUri),
-    cleanup: () => {},
-  };
-}
-
 async function reconstructArtifactBlob(
   connection: anchor.web3.Connection,
   coder: any,
@@ -2426,9 +2395,28 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
 
     let cleanupSnapshot = () => {};
     try {
-      const materialized = await materializeSnapshotUri(parsedV4.snapshotUri);
-      const snapshotPath = materialized.snapshotPath;
-      cleanupSnapshot = materialized.cleanup;
+      const snapshot = await fetchCommittedSnapshot({
+        snapshotUri: parsedV4.snapshotUri,
+        snapshotHash: parsedV4.snapshotHash.toString("hex"),
+        mirrors: opts.snapshotMirrors,
+        localFile: opts.snapshotFile || undefined,
+        timeoutMs: opts.snapshotTimeoutMs,
+      }).catch((error) => {
+        if (error instanceof SnapshotUnavailableError) {
+          mismatch("ERR_SNAPSHOT_UNAVAILABLE", error.message);
+        }
+        throw error;
+      });
+      const snapshotDir = fs.mkdtempSync(path.join(os.tmpdir(), "vre-snapshot-"));
+      const snapshotPath = path.join(snapshotDir, "snapshot.jsonl");
+      fs.writeFileSync(snapshotPath, snapshot.bytes);
+      cleanupSnapshot = () => {
+        try {
+          fs.rmSync(snapshotDir, { recursive: true, force: true });
+        } catch (_) {
+          // ignore temp cleanup errors
+        }
+      };
       const inspectedSnapshot = await inspectSnapshotFile({
         snapshotPath,
         formula,
@@ -2966,11 +2954,18 @@ export async function verifyOutcome(opts: VerifyOutcomeOptions): Promise<VerifyR
     throw new Error("Provide rpcUrl");
   }
 
+  const envMirrors = String(process.env.VRE_SNAPSHOT_MIRRORS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
   const normalized: Required<VerifyOutcomeOptions> = {
     signature: opts.signature,
     rpcUrl: opts.rpcUrl,
     programId: opts.programId ?? DEFAULT_PROGRAM_ID,
     artifactPath: opts.artifactPath ?? "",
+    snapshotMirrors: opts.snapshotMirrors ?? (envMirrors.length ? envMirrors : DEFAULT_SNAPSHOT_MIRRORS),
+    snapshotFile: opts.snapshotFile ?? "",
+    snapshotTimeoutMs: opts.snapshotTimeoutMs ?? DEFAULT_SNAPSHOT_TIMEOUT_MS,
   };
 
   try {

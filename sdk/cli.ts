@@ -32,12 +32,14 @@ function printHelp(): void {
   process.stdout.write(`vre — replay a VRE outcome from public Solana data
 
 Usage:
-  vre verify --sig <TX_SIGNATURE> [--rpc <URL>] [--program-id <ID>] [--json]
+  vre verify --sig <TX_SIGNATURE> [--rpc <URL>] [--program-id <ID>] [--snapshot-file <PATH>] [--snapshot-mirror <URL,...>] [--json]
 
 Options:
   --sig         transaction signature of the resolution
   --rpc         Solana RPC URL (default: ANCHOR_PROVIDER_URL, SOLANA_RPC_URL or ${PUBLIC_DEVNET_RPC})
   --program-id  VRE program id (default: ${DEFAULT_PROGRAM_ID})
+  --snapshot-file    local copy of a snapshot draw's participant list, used if its hash matches
+  --snapshot-mirror  comma-separated hash-addressed mirrors (<url>/sha256/<hash>.jsonl)
   --json        print the full result as JSON
 
 Exit code is 0 on MATCH and 1 otherwise.
@@ -80,6 +82,10 @@ async function runVerify(args: CliArgs): Promise<void> {
       process.env.ANCHOR_PROVIDER_URL ??
       (DEFAULT_RPC_URL || PUBLIC_DEVNET_RPC),
     programId: (args["program-id"] as string | undefined) ?? DEFAULT_PROGRAM_ID,
+    ...(args["snapshot-file"] ? { snapshotFile: args["snapshot-file"] as string } : {}),
+    ...(args["snapshot-mirror"]
+      ? { snapshotMirrors: String(args["snapshot-mirror"]).split(",").map((v) => v.trim()).filter(Boolean) }
+      : {}),
   });
   printVerifyResult(result, Boolean(args.json));
   if (result.status !== "MATCH") {

@@ -46,6 +46,14 @@ export {
   MAX_COMPOSITE_FIELDS,
 } from "./composite_rank_desc.js";
 export { verifyOutcome, fetchSnapshotCommitment } from "./verify.js";
+export {
+  DEFAULT_SNAPSHOT_MIRRORS,
+  SNAPSHOT_URI_GATEWAYS,
+  SnapshotUnavailableError,
+  fetchCommittedSnapshot,
+  snapshotSourceCandidates,
+} from "./snapshot_source.js";
+export type { SnapshotSourceAttempt } from "./snapshot_source.js";
 export type { SnapshotCommitment } from "./verify.js";
 // OddSol `conditions` mode (fc7/fv9): isolated devnet partner integration, non-canonical.
 // Fixed-point slip scoring + slip_hash + artifact build/parse/replay. See PROTOCOL-INFRA-016.
