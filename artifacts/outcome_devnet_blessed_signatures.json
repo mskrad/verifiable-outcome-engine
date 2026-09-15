@@ -3,7 +3,7 @@
   "program_id": "6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B",
   "rpc_url": "https://api.devnet.solana.com",
   "updated_utc": "2026-09-14T19:34:16.042Z",
-  "notes": "New canonical program 6QtLot… (full feature set: rng/global-Ω + Sortition + economics + Unicorn-G + conditions; upgrade authority HvVtTyqH…, held by the team). Supersedes legacy 9tEram… (608 KB pre-Unicorn-G binary whose upgrade authority is a multisig vault). All four re-blessed on 6QtLot and replay to MATCH.",
+  "notes": "Canonical devnet program 6QtLot…. The four showcase draws were reissued on 2026-09-14 through single-phase rng_v2 (future slot hashes, zero payout); each replays to MATCH with rng_version 2. previous_rng_v1_signature keeps the earlier rng_v1 resolution of the same config.",
   "entries": [
     {
       "id": "outcome_core_devnet_sig_1",

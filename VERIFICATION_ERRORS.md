@@ -56,7 +56,15 @@ Use this reference when the verifier (`/verify`, `POST /api/replay`, or SDK `ver
 - all derived on-chain accounts were present and decodable
 - the config, resolution, artifact header, and artifact chunks were bound to the same compiled artifact hash
 - the artifact was finalized and had a status that allowed binding
+- for rng_v2, the target slots, resolved slots and slot hashes recorded in the resolution account and
+  the event agree, and the seed recomputed from them gives the recorded randomness
 - randomness, input, output, outcome ID, and effects digest all matched an independent local replay
+- for compact rng_v2 draws, the digest of the replayed winner list equals the recorded `winner_claim_hash`
+- for conditions rounds, the recomputed ranking matches `winners_digest`, `facts_ref_root` and
+  `winning_score_sum` in the event
+
+Sortition transactions are not replayed by the verifier; the claim instruction checks the
+predicate on-chain.
 
 It does not mean the operator is trusted. It means the published outcome can be
 recomputed from public RPC data and matches the recorded on-chain result.

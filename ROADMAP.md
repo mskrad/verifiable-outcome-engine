@@ -1,71 +1,38 @@
 # Roadmap — Verifiable Outcome Engine
 
-**Hackathon:** Colosseum Frontier, Apr 6 – May 11, 2026 ✅ Submitted
+VRE lets any Solana app that picks winners commit its rules on-chain before the draw and let anyone
+check the result from the transaction signature.
 
----
+## Done
 
-## Vision
+- **Replay by signature.** `/verify`, the `vre verify` CLI, `verifyOutcome()` in the SDK and an
+  embeddable widget; documented reason codes.
+- **Randomness from future slots.** Draws take their randomness from three Solana slots that did not
+  exist when the rules were committed (rng_v2, single phase by default, two phase optional).
+- **Draw API.** `POST /api/partner/draw` with five formulas and a keyless demo endpoint; results come
+  back in one request with the slots used.
+- **Sortition-by-Claim** with an optional fee layer, and **Conditions** for scoring prediction slips.
+- **Showcase draws** on the canonical devnet program, all replaying to `MATCH`.
+- **npm package** `verifiable-outcome-sdk`.
+- Colosseum Frontier hackathon submission (April–May 2026).
 
-Any developer building a Solana dApp that involves outcome selection — raffle, airdrop, generative mint, loot — can integrate VRE to make that outcome independently verifiable, without trusting the operator.
+## Now
 
----
+- Hackathon participants try the partner API; feedback in Telegram [t.me/maskradiation](https://t.me/maskradiation).
+- Readable 4xx errors with program error names across partner endpoints.
 
-## Sprint 1 — Demo Surface ✅ (Apr 6–11)
+## Next
 
-- Standalone replay verifier by transaction signature
-- Reviewer-facing web UI (play → verify → MATCH)
-- Two active devnet blessed signatures
-- Operator resolve helper (`resolve:operator`)
-- Clean public repo, docs aligned
+- Mainnet this year, after a release gate: key custody and upgrade governance, an external review
+  of rng_v2, sortition and conditions, production RPC.
+- Unicorn-G entropy (implemented, not deployed): circuit soundness fix and a trusted-setup ceremony
+  before it can be deployed.
 
----
+## What VRE proves
 
-## Sprint 2 — Make the Guarantee Visible (Apr 12–18)
+> The winners follow from rules committed on-chain before the randomness existed, and the rules and
+> the recorded result could not be changed after commit.
 
-- **Real raffle artifact:** replace demo outcomes with actual Solana wallet addresses as participants; replay returns `winner: <address>`
-- **Pre-commitment timeline:** show `artifact committed at slot X < resolved at slot Y` — makes tamper-resistance visible, not just claimed
-- **Explorer links:** one-click TX view on Solana Explorer for each blessed signature
-- **Public web deploy:** hosted verify URL, no `yarn install` required
-
----
-
-## Sprint 3 — Developer Story (Apr 19–25)
-
-- **Integration guide:** step-by-step for operators building on VRE (compile spec → submit artifact → resolve → verify)
-- **Second use case:** airdrop / whitelist selection — same protocol, different narrative
-- **Open smart contract:** source or verified program link so judges can inspect the on-chain engine
-
----
-
-## Sprint 4 — Production Signal (Apr 26 – May 4)
-
-- **SDK interface:** importable `verifyOutcome()` — not just a CLI
-- **Error taxonomy:** documented mismatch codes and failure modes
-- **Submission prep:** Colosseum form, project description finalized
-
----
-
-## Sprint 5 — Final Submission (May 5–11) ✅
-
-- Pitch video (≤3 min): problem → solution → live demo → developer story
-- Final docs pass
-- Colosseum submission
-
----
-
-## Post-Hackathon Sprint 1 — Scale & Permanence
-
-- **Large snapshot non-local validation** (PARTICIPANT-SCALE-002): isolated devnet deployment under a new program id; two representative cases (`1001`, `100001` participants) replay `MATCH / OK` against isolated RPC
-- **Public snapshot publication + Merkle proof API** (PARTICIPANT-SCALE-003): upload participant snapshot to Irys (Arweave L2) after finalize; build merkle tree over the sorted list; `GET /api/partner/draw/:sig/proof?address=<wallet>` returns O(log N) membership proof — "Did I win?" without downloading the full list
-- **Partner Draw API rate limit tuning**: expose `PARTNER_DRAW_RATE_LIMIT_MS` as a configurable env var per partner tier
-- **Phantom Connect embedded wallet**: replace the current extension-only Phantom path with Phantom Connect so users can connect on `play` and `verify` without requiring the Phantom browser extension
-
----
-
-## What VRE Guarantees
-
-VRE proves a specific, bounded property:
-
-> The outcome was selected by applying a fixed algorithm to a pre-committed artifact, using on-chain randomness from the resolution transaction. The operator could not have changed the rules or the result after the artifact was committed.
-
-It does not claim the participant list was fair — only that the selection step was not manipulated after commitment.
+It does not prove that the participant list was fair or complete, only that it did not change after
+commit, and it does not pay prizes. What each resolution path does and does not prove:
+[spec · Overview](https://verifiableoutcome.online/spec#overview).

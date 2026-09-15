@@ -2,57 +2,56 @@
 
 ## Scope
 
-This repository is a hackathon-facing public reference for Verifiable Outcome Engine.
-The current canonical deployment is Solana devnet only. Mainnet deployment is not
-yet in scope.
+Verifiable Outcome Engine runs on Solana devnet. Mainnet is planned for this year and will get its
+own release gate.
 
-Security review scope for `HACKATHON-SECURITY-AUDIT-001`:
+In scope:
 
-- Anchor program source under `programs/outcome/src/`
-- Critical instructions: `resolve_outcome`, `admin_withdraw`, `refresh_master_seed`
-- Artifact lifecycle instructions: submit, chunk init/write, finalize, review
-- Math modules: `math/rng_v1.rs` and `math/compiled_outcome_v1.rs`
-- Web server: `web/server.mjs`
+- Anchor program `programs/outcome/src/` deployed as `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`:
+  artifact lifecycle (submit, chunk init and write, finalize, review), runtime binding,
+  `prepare_rng_v2` / `settle_rng_v2`, `seal_randomness` / `attest_winners`, `resolve_outcome*` (rng_v1),
+  sortition instructions, `resolve_conditions`, admin and fee instructions
+- Verifier and SDK: `sdk/` (`verifiable-outcome-sdk` on npm)
+- Web server and public API: `web/server.mjs`
 
-## Responsible Disclosure
+## Responsible disclosure
 
-Please report security issues privately to
-[hello@verifiableoutcome.online](mailto:hello@verifiableoutcome.online).
+Report security issues privately to
+[hello@verifiableoutcome.online](mailto:hello@verifiableoutcome.online) or in Telegram
+[t.me/maskradiation](https://t.me/maskradiation).
 
-Include the affected component, reproduction steps, transaction signatures or logs
-when applicable, expected impact, actual impact, and any suggested mitigation.
+Include the affected component, reproduction steps, transaction signatures or logs, expected and
+actual impact, and a suggested mitigation if you have one.
 
-## Known Limitations
+## Known limitations
 
-- Randomness v1 is deterministic and publicly verifiable. It is not suitable for
-  adversarial economic payouts without an external randomness design such as VRF,
-  commit-reveal, or another anti-grinding mechanism.
-- `master_seed`, `runtime_id`, `next_resolve_id`, artifact data, and actor pubkeys
-  are public or inferable from chain state. A participant can precompute outcomes
-  for candidate actor pubkeys.
-- Devnet examples are demonstration evidence, not a production financial guarantee.
-- Mainnet deployment requires a final release gate after the current hardening
-  work, including production RPC allowlist and operator-key custody review.
+- **rng_v1** (operator seed, legacy): the seed and all other inputs are public, so the operator and
+  anyone else can compute the result before it is sent. Draw endpoints no longer use it.
+- **rng_v2** (future slot hashes): the operator cannot predict the winners, but a validator that
+  produces one of the target slots has limited influence over its hash. In single phase the operator
+  can decline to settle; two phase removes that option. The spec lists measured numbers.
+- **Partner API**: draws, sortition and conditions on the public host are signed by the VRE operator
+  key. A rejected program instruction returns 409, 422 or 404 with `error_code`; server failures
+  return 500.
+- The verifier does not replay sortition transactions; the claim instruction enforces the predicate.
+- Devnet results are demonstration evidence, not a production financial guarantee.
+- The devnet upgrade authority is a single key. Mainnet governance (multisig, timelock or immutable)
+  is decided before launch.
 
-## Current Hardening
+## Current hardening
 
-- Fresh `ProgramConfig` bootstrap is guarded by the current upgrade authority.
-- Public replay and timeline APIs validate signature, program id, JSON body size,
-  RPC URL, and artifact path inputs.
-- Custom replay RPC and artifact overrides are disabled by default. Operators can
-  enable them explicitly with `VRE_ALLOW_REPLAY_OVERRIDES=1` and
-  `VRE_ALLOWED_RPC_URLS`.
-- Replay subprocess execution has a timeout.
-- Static file serving enforces resolved path containment.
-- Public API rate limiting uses the socket remote address by default. Set
-  `TRUST_PROXY=1` only behind a trusted proxy that owns `X-Forwarded-For`.
+- `ProgramConfig` bootstrap is guarded by the upgrade authority; artifact approval by the
+  `ProgramConfig` admin, which is a separate key.
+- Public replay and timeline APIs validate signature, program id, JSON body size and RPC URL.
+- Custom replay RPC and artifact overrides are disabled on the public host
+  (`VRE_ALLOW_REPLAY_OVERRIDES`, `VRE_ALLOWED_RPC_URLS`).
+- Replay runs with a timeout; static file serving enforces path containment.
+- Rate limits: general API, replay, demo draws per IP; partner draws per key.
+- `/api/health` reports the operator mode and program id, not key locations.
 
-## Review Summary
+## Review history
 
-Review date: 2026-04-23
-
-Critical findings: none identified in static source review.
-
-High and Medium findings were either mitigated in code or documented as current
-limitations. RNG v1 remains a documented limitation and must be replaced or wrapped
-with an anti-grinding design before adversarial mainnet economic use.
+- 2026-04-23: static review of the rng_v1 program, artifact lifecycle and web server; no critical
+  findings.
+- rng_v2, sortition, conditions and the partner API were built after that review and have not had an
+  external audit.

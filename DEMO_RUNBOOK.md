@@ -1,113 +1,68 @@
 # Demo Runbook
 
-Purpose: show Verifiable Outcome Engine against the current canonical devnet program, active blessed signatures, and native W3O1 v3 formulas.
+Show a VRE result end to end on the canonical devnet program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`:
+pick a showcase draw, replay it, then run a fresh draw and replay that one.
 
-Protocol version history and per-path mechanics are in [`CHANGELOG.md`](CHANGELOG.md).
+Version history: [CHANGELOG.md](CHANGELOG.md). API details: [INTEGRATION.md](INTEGRATION.md).
 
-## 1) Install
+## 1) Replay a showcase draw
+
+Showcase signatures (all rng_v2, all `MATCH`), also in `artifacts/outcome_devnet_blessed_signatures.json`:
+
+| Draw | Signature |
+|---|---|
+| Raffle — `weighted_random`, 1 winner | `MVE6v5ZGeBYYSKqDbp9kpVY85VKgSGXbFgUkh3eh2E1Xh7z2TPW3NZHfx2WSi2ERvVjuZB4LCP3nh1MN1YFAy5H` |
+| Rewards selection — `weighted_random`, 3 winners | `KQdZCBaDAt7VekWAAyvZDcfiwmQ9BXbyyw1z5oMjMzEnGvRJhQHV1WijQGvkwSiQcaLWTXQUrUBriuGGqD56Qfk` |
+| Trading competition — `rank_desc`, 2 winners | `3GEUW1ZTGSAjkVExXupEwojqL7Wx6srSU48FeqtKAJGvWEGHcnWaMqEAeKnptrwkDeNuiWpU2MVQWYW6o1dkYAD8` |
+| Prediction market — `closest_to`, target 22450 | `4XywhAqU84x3me5vGpGsoE85VsE1YPDqzyzfEM1jVYdXXRYsq8MWjREjZEgFA6Z8hp57yGsZDfKDNFTCZzpxXmqz` |
+
+Browser: `https://verifiableoutcome.online/verify?sig=<SIGNATURE>`
+
+Terminal:
 
 ```bash
-cd verifiable-outcome-engine
-yarn install
+npx -p verifiable-outcome-sdk vre verify --sig MVE6v5ZGeBYYSKqDbp9kpVY85VKgSGXbFgUkh3eh2E1Xh7z2TPW3NZHfx2WSi2ERvVjuZB4LCP3nh1MN1YFAy5H
 ```
 
-## 2) Pick an included devnet signature
-
-Use one active signature from:
-
-- `artifacts/outcome_devnet_blessed_signatures.json`
-- `artifacts/EXPECTED_TX_EXAMPLES.md`
-
-Default demo signature:
+Expected:
 
 ```text
-47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF
+verification_result : MATCH
+verification_reason : OK
+rng_version         : 2
+entropy_source      : slot_hash
 ```
 
-Other active examples:
+If public devnet RPC is busy (`ERR_TX_NOT_FOUND_OR_NO_LOGS`, `ERR_REPLAY_UNHANDLED`), retry after a few seconds.
 
-- `3F5UeDYgfsg4NhsucruqUbCTSd8YJjDjnGZuDMVunbVL9yAVDmf39Ace8gUMmoginoJ6fFiczNhDUZnYvQDhBFnN` — `Rewards Selection`
-- `4Ge4ggoRaT5nCQbdZXr51AU3sPPfuPeJgExLziy2HNtQ85AEhMMxDaazUs4ZCnPEckcHP8UuJ8vnTaBCaqJizT8o` — `Trading Competition` (`rank_desc`)
-- `3XxRQhYvzakKdX7uwi4wN5YKGu5Mdm8oGwSoLr8GiAFDWYcEEyxPAVkTNJZe1AV9gbsFpbWFauHWQakYR2SFEw8G` — `Prediction Market` (`closest_to`, target `22450`)
+## 2) Run a fresh draw and replay it
 
-## 3) Replay from public RPC data
+No key needed — the demo endpoint allows one draw per 15 s per IP:
 
 ```bash
-ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-yarn -s replay \
-  --sig 47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF \
-  --url https://api.devnet.solana.com \
-  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
+curl -s -X POST https://verifiableoutcome.online/api/examples/draw \
+  -H "content-type: application/json" \
+  -d '{"formula":"weighted_random","winners_count":1,"participants":[{"id":"alice"},{"id":"bob"},{"id":"carol"}]}'
 ```
 
-## 4) Expected result
+The request takes 12–45 s: the rules are committed, three future slots are fixed, and the winners
+come from their hashes. Copy `signature` from the response and replay it as in step 1.
+`target_slots` and `resolved_slots` in the response show which slots were used.
 
-Expected terminal lines:
+The same flow with buttons: [/examples](https://verifiableoutcome.online/examples).
 
-- `verification_result : MATCH`
-- `verification_reason : OK`
-
-If devnet RPC is unavailable, retry later or use another active signature from `artifacts/outcome_devnet_blessed_signatures.json`.
-
-> **Resolution paths note.** This demo uses the default replay-by-signature + global-Ω
-> resolve path. The protocol also carries other canonical paths on the same program
-> `6QtLot…`: Sortition-by-Claim (`v1.4.0`), sortition economics (`v1.4.1`), and the
-> Unicorn-G entropy source (B8, canonical opt-in — default entropy stays SlotHashes).
-> See `README.md` → "Resolution Paths" and `RUNBOOK.md` §6b–§6c. Mainnet is a separate,
-> later effort; these describe the canonical devnet protocol.
-
----
-
-## Optional: Live Resolve Path
-
-To generate a fresh on-chain outcome and verify it in one flow (requires funded devnet wallet):
-
-```bash
-# Step 1 — resolve a new outcome on-chain, capture signature
-ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-ANCHOR_WALLET=~/.config/solana/id.json \
-yarn -s resolve:operator \
-  --url https://api.devnet.solana.com \
-  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B \
-  --json
-
-# Step 2 — replay the returned signature
-yarn -s replay \
-  --sig <signature> \
-  --url https://api.devnet.solana.com \
-  --program-id 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B
-```
-
-Expected: `verification_result : MATCH` / `verification_reason : OK`
-
-This path demonstrates the operator cycle against an existing deployed program: commit rules on-chain → resolve → independently verify.
-
----
-
-## Optional: Embedded Widget Path
-
-To show verification directly inside another page, use the public widget script.
-
-For a fixed transaction signature:
+## 3) Embed the verifier
 
 ```html
 <script src="https://verifiableoutcome.online/widget.js"></script>
-<vre-verify
-  sig="YOUR_TX_SIGNATURE"
-  rpc="https://api.devnet.solana.com"
-  program-id="YOUR_PROGRAM_ID">
-</vre-verify>
-```
-
-For a paste-your-own-signature flow:
-
-```html
-<script src="https://verifiableoutcome.online/widget.js"></script>
+<vre-verify sig="YOUR_TX_SIGNATURE"></vre-verify>
 <vre-verify-form></vre-verify-form>
 ```
 
-The local demo page is available at:
+Local demo page: `http://127.0.0.1:8787/widget` after `yarn web`.
 
-```text
-http://127.0.0.1:8787/widget.html
-```
+## Resolution paths
+
+Draws use single-phase rng_v2 (v1.2). The same program also runs two-phase rng_v2 (v1.3.2),
+Sortition-by-Claim (v1.4.0) with optional economics (v1.4.1) and Conditions (fc7). Unicorn-G (B8) is
+implemented but not deployed. Details: [/protocol-paths](https://verifiableoutcome.online/protocol-paths).
