@@ -245,7 +245,7 @@ Example from devnet signature `237xT8M5YE9drfMTdJKRCrgbWU6b1pZAB7YPHZkgy8A3pqi8J
 | Item | Value |
 |---|---|
 | Program ID | `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B` |
-| Upgrade authority | `HvVtTyqH9NbB7jrBzrpsRdyUMYj9Q4EEVFdVhzoVUava` |
+| Upgrade authority | `9Ei6bPifoK3UKkAPn5eMTHboFjCe6wF2jSRcrGBtqe4b` |
 | ProgramConfig admin | `CJN7pVC8LCsia4QPy1yWiTX3iQMtVbnwjoUmyNK4ce2Y` |
 | Treasury | `GQcdfnLVQn8Jur7SAyokBGL9uspveS2GbUo7r95kgLQm` |
 
