@@ -151,6 +151,8 @@ export type ResolveInlineOptions = {
   programId?: string;
   outputDir?: string;
   label?: string;
+  /** Local copy of a snapshot draw's snapshot; `config.snapshot_uri` may be a public URI, not a path. */
+  snapshotPath?: string;
 };
 
 export type ResolveInlineResult = {
@@ -948,6 +950,7 @@ async function resolveConfig(
     programId?: string;
     outputDir?: string;
     label: string;
+    snapshotPath?: string;
   }
 ): Promise<ResolveOperatorResult> {
   const inputLamports = asBigInt(config.input_lamports);
@@ -991,7 +994,7 @@ async function resolveConfig(
           protocolTreasury,
           winnerIds: (
             await buildSnapshotClaimFromFile({
-              snapshotPath: config.snapshot_uri,
+              snapshotPath: opts.snapshotPath ?? config.snapshot_uri,
               formula: config.formula,
               winnersCount: Number(config.winners_count ?? 1),
               randomness: deriveResolveRandomness(
@@ -1010,7 +1013,7 @@ async function resolveConfig(
       : config.type === "outcome_standard_v1_2_1"
       ? await (async () => {
           const claim = await buildSnapshotClaimFromFile({
-            snapshotPath: config.snapshot_uri,
+            snapshotPath: opts.snapshotPath ?? config.snapshot_uri,
             formula: config.formula,
             winnersCount: Number(config.winners_count ?? 1),
             randomness: deriveResolveRandomness(
@@ -1089,6 +1092,7 @@ export async function resolveInline(
     programId: opts.programId,
     outputDir: opts.outputDir,
     label: opts.label ?? `live-raffle-${Date.now()}`,
+    snapshotPath: opts.snapshotPath,
   });
 
   const verified = await verifyOutcome({

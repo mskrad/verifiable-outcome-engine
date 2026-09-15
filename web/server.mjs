@@ -7,6 +7,7 @@ import net from "net";
 import { register } from "node:module";
 import { fileURLToPath, pathToFileURL } from "url";
 import { PublicKey } from "@solana/web3.js";
+import { createSnapshotStorage, mirrorPath, mirrorUrl, storeMirrorCopy } from "./snapshot-storage.mjs";
 import { signRequest } from "@worldcoin/idkit-core/signing";
 import { hashSignal } from "@worldcoin/idkit-core/hashing";
 
@@ -63,11 +64,13 @@ const LIVE_RAFFLE_RATE_LIMIT_MS = 10_000;
 const LIVE_RAFFLE_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "live-raffle");
 const PARTNER_DRAW_OUTPUT_DIR = path.join(REF_ROOT, "tmp", "partner-draw");
 const PARTNER_SNAPSHOT_ROOT_DIR = path.join(REF_ROOT, "tmp", "partner-snapshot");
+// Hash-addressed copies of every published snapshot, served at /sha256/<hash>.jsonl and never expired.
+const PARTNER_SNAPSHOT_STORE_DIR =
+  process.env.PARTNER_SNAPSHOT_STORE_DIR || path.join(REF_ROOT, "tmp", "snapshot-store");
 const PARTNER_SNAPSHOT_SIGNATURE_DIR = path.join(
   PARTNER_SNAPSHOT_ROOT_DIR,
   "by-signature"
 );
-const IRYS_GATEWAY_BASE_URL = "https://gateway.irys.xyz";
 const WORLD_VERIFY_URL =
   process.env.WORLD_VERIFY_URL || "https://developer.world.org/api/v4/verify";
 const WORLD_VERIFY_URL_STAGING_V2 = "https://developer.worldcoin.org/api/v2/verify";
@@ -333,6 +336,28 @@ const STATIC_REDIRECTS = new Map([
   ["/showcase.html", "/examples"],
   ["/favicon.ico", "/assets/favicon.svg"],
 ]);
+
+// Hash-addressed snapshot copies: the content is fixed by its name, so it can be cached forever.
+function sendSnapshotMirror(req, res, snapshotHash) {
+  const filePath = mirrorPath(PARTNER_SNAPSHOT_STORE_DIR, snapshotHash);
+  const headers = { "access-control-allow-origin": "*" };
+  if (!fs.existsSync(filePath)) {
+    res.writeHead(404, { ...headers, "content-type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: false, error: "snapshot not found" }));
+    return;
+  }
+  res.writeHead(200, {
+    ...headers,
+    "content-type": "application/x-ndjson; charset=utf-8",
+    "content-length": fs.statSync(filePath).size,
+    "cache-control": "public, max-age=31536000, immutable",
+  });
+  if (req.method === "HEAD") {
+    res.end();
+    return;
+  }
+  fs.createReadStream(filePath).pipe(res);
+}
 
 function sendStatic(req, res, pathname) {
   const redirectTo = STATIC_REDIRECTS.get(pathname);
@@ -608,6 +633,23 @@ async function loadVerifyOutcome() {
     });
   }
   return verifyOutcomePromise;
+}
+
+let snapshotSourcePromise;
+async function loadSnapshotSource() {
+  ensureTsSdkRuntime();
+  if (!snapshotSourcePromise) {
+    snapshotSourcePromise = import(
+      pathToFileURL(path.join(REF_ROOT, "sdk", "snapshot_source.ts")).href
+    );
+  }
+  return snapshotSourcePromise;
+}
+
+let snapshotStorage;
+function snapshotStorageProvider() {
+  if (!snapshotStorage) snapshotStorage = createSnapshotStorage(process.env);
+  return snapshotStorage;
 }
 
 async function loadSnapshotHelpers() {
@@ -1729,6 +1771,8 @@ function cleanupExpiredSnapshotSessions() {
     if (!fs.existsSync(metaPath)) continue;
     try {
       const meta = readJsonFile(metaPath);
+      // A finalized session backs a committed draw and its proofs; only abandoned uploads expire.
+      if (meta.status === "finalized") continue;
       const createdAtMs = Number(meta.created_at_ms || 0);
       if (createdAtMs > 0 && now - createdAtMs > PARTNER_SNAPSHOT_SESSION_TTL_MS) {
         fs.rmSync(path.join(PARTNER_SNAPSHOT_ROOT_DIR, entry.name), {
@@ -1819,6 +1863,7 @@ async function sortSnapshotFile(inputPath, outputPath) {
   await new Promise((resolve, reject) => {
     const child = spawn("sort", [inputPath, "-o", outputPath], {
       cwd: REF_ROOT,
+      env: { ...process.env, LC_ALL: "C" },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
@@ -2066,7 +2111,7 @@ function buildSnapshotProofManifest({
     program_id: programId,
     snapshot_hash: finalized.snapshotHash,
     snapshot_count: finalized.snapshotCount,
-    snapshot_uri: finalized.canonicalPath,
+    snapshot_uri: finalized.publicUri || finalized.canonicalPath,
     merkle_root: finalized.merkleRoot,
     formula,
     winners_count: outcomeIds.length,
@@ -2081,98 +2126,6 @@ function buildSnapshotProofManifest({
     proof_status: "pending",
     ...(target === undefined ? {} : { target: String(target) }),
   };
-}
-
-function resolveIrysPublicationConfig() {
-  return {
-    enabled: process.env.PARTNER_SNAPSHOT_IRYS_ENABLED !== "0",
-    privateKey: String(process.env.PARTNER_SNAPSHOT_IRYS_PRIVATE_KEY || "").trim(),
-    network: String(process.env.PARTNER_SNAPSHOT_IRYS_NETWORK || "devnet")
-      .trim()
-      .toLowerCase(),
-    providerUrl: String(
-      process.env.PARTNER_SNAPSHOT_IRYS_PROVIDER_URL ||
-        process.env.LIVE_RAFFLE_RPC_URL ||
-        process.env.ANCHOR_PROVIDER_URL ||
-        ""
-    ).trim(),
-  };
-}
-
-function buildIrysGatewayUrl(id, fileName = "") {
-  const base = `${IRYS_GATEWAY_BASE_URL}/${id}`;
-  return fileName ? `${base}/${fileName}` : base;
-}
-
-async function publishSnapshotBundleToIrys(bundleDir) {
-  const config = resolveIrysPublicationConfig();
-  if (!config.enabled) {
-    return { publicationStatus: "skipped_disabled", irysUrl: null, proofManifestUrl: null };
-  }
-  if (!config.privateKey) {
-    return {
-      publicationStatus: "skipped_unconfigured",
-      irysUrl: null,
-      proofManifestUrl: null,
-      publicationError: "PARTNER_SNAPSHOT_IRYS_PRIVATE_KEY is not configured",
-    };
-  }
-  if (config.network === "devnet" && !config.providerUrl) {
-    return {
-      publicationStatus: "skipped_unconfigured",
-      irysUrl: null,
-      proofManifestUrl: null,
-      publicationError: "PARTNER_SNAPSHOT_IRYS_PROVIDER_URL is required for Irys devnet uploads",
-    };
-  }
-
-  let Uploader;
-  let Solana;
-  try {
-    ({ Uploader } = await import("@irys/upload"));
-    ({ Solana } = await import("@irys/upload-solana"));
-  } catch (error) {
-    return {
-      publicationStatus: "failed_missing_sdk",
-      irysUrl: null,
-      proofManifestUrl: null,
-      publicationError: error?.message || String(error),
-    };
-  }
-
-  try {
-    let uploaderPromise = Uploader(Solana).withWallet(config.privateKey);
-    if (config.network === "devnet") {
-      uploaderPromise = uploaderPromise.withRpc(config.providerUrl).devnet();
-    } else if (config.providerUrl) {
-      uploaderPromise = uploaderPromise.withRpc(config.providerUrl);
-    }
-    const uploader = await uploaderPromise;
-    const receipt = await uploader.uploadFolder(bundleDir, {
-      indexFile: "manifest.json",
-      batchSize: 10,
-      keepDeleted: false,
-    });
-    const manifestId = receipt?.manifestId || receipt?.id;
-    if (!manifestId) {
-      throw new Error("Irys upload did not return manifestId");
-    }
-    return {
-      publicationStatus: "published",
-      irysUrl: buildIrysGatewayUrl(manifestId, "canonical_snapshot.jsonl"),
-      proofManifestUrl: buildIrysGatewayUrl(manifestId, "proof_manifest.json"),
-      manifestUrl: buildIrysGatewayUrl(manifestId),
-      irys_manifest_id: manifestId,
-      irys_receipt_id: receipt?.id || null,
-    };
-  } catch (error) {
-    return {
-      publicationStatus: "failed",
-      irysUrl: null,
-      proofManifestUrl: null,
-      publicationError: error?.message || String(error),
-    };
-  }
 }
 
 function runReplay({ signature, rpcUrl, programId, artifactPath }) {
@@ -2638,6 +2591,10 @@ async function handlePartnerSnapshotFinalize(req, res) {
     throw httpError(400, "target is only supported for closest_to");
   }
 
+  // Refuse before building or publishing anything the chosen program would not accept.
+  const rpcUrl = resolveSnapshotRpcUrl();
+  const programId = resolveSnapshotProgramId(rpcUrl);
+
   const meta = loadSnapshotSession(sessionId, partner.key);
   const finalized = await finalizeSnapshotSession({
     sessionMeta: meta,
@@ -2649,20 +2606,51 @@ async function handlePartnerSnapshotFinalize(req, res) {
   const sessionDir = snapshotSessionDir(sessionId);
   const manifestPath = path.join(sessionDir, "manifest.json");
   const proofManifestPath = path.join(sessionDir, "proof_manifest.json");
+
+  // Publish the exact snapshot before anything is committed. Its URI is part of the artifact hash,
+  // so it cannot be changed later, and a draw must not point at a copy nobody else can read.
+  const snapshotBytes = fs.readFileSync(finalized.canonicalPath);
+  const mirrorFile = storeMirrorCopy(PARTNER_SNAPSHOT_STORE_DIR, finalized.snapshotHash, snapshotBytes);
+  const storage = snapshotStorageProvider();
+  let published;
+  try {
+    published = await storage.publish(snapshotBytes, { snapshotHash: finalized.snapshotHash });
+    const { fetchCommittedSnapshot } = await loadSnapshotSource();
+    let readBack;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        await fetchCommittedSnapshot({
+          snapshotUri: published.uri,
+          snapshotHash: finalized.snapshotHash,
+          mirrors: [],
+          timeoutMs: 15_000,
+        });
+        readBack = null;
+        break;
+      } catch (error) {
+        readBack = error;
+        await new Promise((resolve) => setTimeout(resolve, 2_000 * (attempt + 1)));
+      }
+    }
+    if (readBack) throw readBack;
+  } catch (error) {
+    throw httpError(502, `snapshot publication failed (${storage.name}): ${error?.message || String(error)}`);
+  }
+  finalized.publicUri = published.uri;
+  finalized.manifest = { ...finalized.manifest, snapshot_uri: published.uri };
   writeJsonFile(manifestPath, finalized.manifest);
+
   const config = buildPartnerSnapshotConfig({
     formula,
     snapshotHash: finalized.snapshotHash,
     snapshotCount: finalized.snapshotCount,
-    snapshotUri: finalized.canonicalPath,
+    snapshotUri: published.uri,
     merkleRoot: finalized.merkleRoot,
     winnersCount,
     target,
   });
 
   const resolveInline = await loadResolveInline();
-  const rpcUrl = resolveSnapshotRpcUrl();
-  const programId = resolveSnapshotProgramId(rpcUrl);
   const walletPath =
     process.env.PARTNER_SNAPSHOT_WALLET ||
       process.env.LIVE_RAFFLE_WALLET ||
@@ -2674,50 +2662,41 @@ async function handlePartnerSnapshotFinalize(req, res) {
     walletPath,
     outputDir: sessionDir,
     label: meta.label || `partner-snapshot-${Date.now()}`,
+    snapshotPath: mirrorFile,
   });
   const outcomeIds = result.outcomeIds ?? [result.outcome];
-  let proofManifest = buildSnapshotProofManifest({
-    signature: result.signature,
-    programId,
-    finalized,
-    outcomeIds,
-    formula,
-    target,
-    manifestPath,
-  });
-  writeJsonFile(proofManifestPath, proofManifest);
-
-  const bundleDir = path.join(sessionDir, "publication_bundle");
-  ensureDir(bundleDir);
-  fs.copyFileSync(finalized.canonicalPath, path.join(bundleDir, "canonical_snapshot.jsonl"));
-  fs.copyFileSync(manifestPath, path.join(bundleDir, "manifest.json"));
-  fs.copyFileSync(proofManifestPath, path.join(bundleDir, "proof_manifest.json"));
-
-  const publication = await publishSnapshotBundleToIrys(bundleDir);
+  const snapshotMirrorUrl = mirrorUrl(finalized.snapshotHash);
+  const publication = {
+    publicationStatus: "published",
+    storage: storage.name,
+    uri: published.uri,
+    irysUrl: published.url,
+    receiptId: published.receiptId,
+    mirrorUrl: snapshotMirrorUrl,
+  };
   finalized.manifest = {
     ...finalized.manifest,
-    proof_manifest_url: publication.proofManifestUrl || proofManifestPath,
-    publication_url: publication.irysUrl || null,
-    publication_status: publication.publicationStatus,
-    ...(publication.publicationError
-      ? { publication_error: publication.publicationError }
-      : {}),
+    publication_url: published.url,
+    publication_status: "published",
     proof_status: "ready",
   };
   writeJsonFile(manifestPath, finalized.manifest);
-  proofManifest = {
-    ...proofManifest,
-    publication_url: publication.irysUrl || null,
-    proof_manifest_url: publication.proofManifestUrl || proofManifestPath,
-    publication_status: publication.publicationStatus,
-    ...(publication.publicationError
-      ? { publication_error: publication.publicationError }
-      : {}),
+  const proofManifest = {
+    ...buildSnapshotProofManifest({
+      signature: result.signature,
+      programId,
+      finalized,
+      outcomeIds,
+      formula,
+      target,
+      manifestPath,
+    }),
+    snapshot_mirror_url: snapshotMirrorUrl,
+    publication_url: published.url,
+    publication_status: "published",
     proof_status: "ready",
   };
   writeJsonFile(proofManifestPath, proofManifest);
-  fs.copyFileSync(manifestPath, path.join(bundleDir, "manifest.json"));
-  fs.copyFileSync(proofManifestPath, path.join(bundleDir, "proof_manifest.json"));
   writeJsonFile(path.join(sessionDir, "publication_result.json"), publication);
 
   meta.status = "finalized";
@@ -2727,13 +2706,15 @@ async function handlePartnerSnapshotFinalize(req, res) {
   meta.snapshot_hash = finalized.snapshotHash;
   meta.snapshot_count = finalized.snapshotCount;
   meta.merkle_root = finalized.merkleRoot;
-  meta.snapshot_uri = finalized.canonicalPath;
+  meta.snapshot_uri = published.uri;
+  meta.snapshot_local_path = mirrorFile;
+  meta.snapshot_mirror_url = snapshotMirrorUrl;
+  meta.snapshot_storage = storage.name;
   meta.manifest_path = manifestPath;
   meta.proof_manifest_path = proofManifestPath;
-  meta.proof_manifest_url = publication.proofManifestUrl || proofManifestPath;
-  meta.irys_url = publication.irysUrl || null;
-  meta.publication_status = publication.publicationStatus;
-  meta.publication_error = publication.publicationError || null;
+  meta.irys_url = published.url;
+  meta.publication_status = "published";
+  meta.publication_error = null;
   meta.mode = finalized.mode;
   meta.signature = result.signature;
   meta.program_id = result.programId;
@@ -2757,15 +2738,12 @@ async function handlePartnerSnapshotFinalize(req, res) {
     replay_url: `https://verifiableoutcome.online/verify?sig=${result.signature}`,
     snapshot_hash: finalized.snapshotHash,
     snapshot_count: finalized.snapshotCount,
-    snapshot_uri: finalized.canonicalPath,
-    manifest_uri: manifestPath,
+    snapshot_uri: published.uri,
+    snapshot_url: published.url,
+    snapshot_mirror_url: snapshotMirrorUrl,
+    snapshot_storage: storage.name,
     merkle_root: finalized.merkleRoot,
-    publication_url: publication.irysUrl,
-    proof_manifest_url: publication.proofManifestUrl || proofManifestPath,
-    publication_status: publication.publicationStatus,
-    ...(publication.publicationError
-      ? { publication_error: publication.publicationError }
-      : {}),
+    publication_status: "published",
     proof_status: "ready",
     mode: finalized.mode,
     thresholds: snapshotThresholds(),
@@ -2782,7 +2760,11 @@ async function handlePartnerDrawProof(req, res, signature) {
   const formula = validatePartnerFormula(meta.formula);
   const snapshotHelpers = await loadSnapshotHelpers();
   const proof = await snapshotHelpers.buildSnapshotMerkleProofFromFile({
-    snapshotPath: String(meta.snapshot_uri || ""),
+    snapshotPath: String(
+      meta.snapshot_local_path ||
+        (path.isAbsolute(String(meta.snapshot_uri || "")) ? meta.snapshot_uri : "") ||
+        mirrorPath(PARTNER_SNAPSHOT_STORE_DIR, String(meta.snapshot_hash || ""))
+    ),
     formula,
     participantId: address,
     expectedHash: meta.snapshot_hash,
@@ -3448,6 +3430,11 @@ process.on("unhandledRejection", (reason) => {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+  const mirrorMatch = /^\/sha256\/([0-9a-f]{64})\.jsonl$/.exec(url.pathname);
+  if (mirrorMatch && (req.method === "GET" || req.method === "HEAD")) {
+    sendSnapshotMirror(req, res, mirrorMatch[1]);
+    return;
+  }
   if (url.pathname.startsWith("/api/")) {
     await handleApi(req, res, url.pathname);
     return;
