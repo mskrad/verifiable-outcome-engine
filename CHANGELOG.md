@@ -50,6 +50,11 @@ Versions live on **two orthogonal axes**; don't conflate them:
   `irys://`, `ar://`, then mirrors by hash (`--snapshot-mirror`, `VRE_SNAPSHOT_MIRRORS`) or a local
   file (`--snapshot-file`); every source is checked against `snapshot_hash`. No source →
   `ERR_SNAPSHOT_UNAVAILABLE`. Storage can change without a program upgrade.
+- **Fixed in SDK 0.9.1: single-phase snapshot draws were labelled two phase.** The verifier
+  mapped every `protocol_revision >= 1` to `standard_version: "1.3.2"`, but the program writes 1
+  for two-phase `attest_winners` and 2 for single-phase `settle_rng_v2`. Format 7 draws settled in
+  one phase, which includes every `/api/partner/snapshot/finalize` draw, now report `"1.2.1"`.
+  MATCH results were not affected.
 - **SDK 0.9.0:** `verifySnapshotMerkleProof`, `computeSnapshotMerkleRootFromProof`,
   `canonicalSnapshotLine`, `fetchSnapshotCommitment`, `fetchCommittedSnapshot`.
 

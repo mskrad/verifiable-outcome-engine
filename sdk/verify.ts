@@ -361,6 +361,18 @@ function readVecOutcomeIds(buf: Buffer, offset: { value: number }): Buffer[] {
   return out;
 }
 
+// OutcomeResolution.protocol_revision as written by the program: 1 = two-phase attest_winners
+// (v1.3.2), 2 = single-phase settle_rng_v2 (v1.2, restored after v1.3.2, hence the larger number).
+// Resolutions from before revisions existed carry 0 and are single phase.
+export const PROTOCOL_REVISION_V1_3_2 = 1;
+export const PROTOCOL_REVISION_V1_2 = 2;
+
+export function standardVersionForRngV2Revision(
+  revision: number
+): typeof OUTCOME_STANDARD_V1_3_2 | typeof OUTCOME_STANDARD_V1_2_1 {
+  return revision === PROTOCOL_REVISION_V1_3_2 ? OUTCOME_STANDARD_V1_3_2 : OUTCOME_STANDARD_V1_2_1;
+}
+
 function pick<T>(obj: any, snake: string, camel: string): T {
   if (obj && obj[snake] !== undefined) return obj[snake] as T;
   if (obj && obj[camel] !== undefined) return obj[camel] as T;
@@ -2502,10 +2514,9 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
           outcome_id: selected.outcomeIds[0],
           outcome_ids: selected.outcomeIds,
           winners_count: selected.winnersCount,
-          standard_version:
-            Number(pick(outcomeResolution, "protocol_revision", "protocolRevision") ?? 0) >= 1
-              ? OUTCOME_STANDARD_V1_3_2
-              : OUTCOME_STANDARD_V1_2_1,
+          standard_version: standardVersionForRngV2Revision(
+            Number(pick(outcomeResolution, "protocol_revision", "protocolRevision") ?? 0)
+          ),
           resolution_formula: formula,
           ...(formula === "closest_to"
             ? {
