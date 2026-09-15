@@ -6,7 +6,7 @@ Machine-readable copy of https://verifiableoutcome.online/spec for agents and to
 - Cluster: Solana devnet. Mainnet is planned for this year.
 - Canonical program: `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
 - Last program deploy: slot 497829503, 2026-09-13
-- SDK: `verifiable-outcome-sdk` 0.8.2 (npm)
+- SDK: `verifiable-outcome-sdk` 0.9.0 (npm)
 - Base URL: `https://verifiableoutcome.online`
 - Conventions: all integers little-endian; hashes are SHA-256; `‖` is byte concatenation.
 
@@ -452,7 +452,7 @@ curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
 <a id="sdk"></a>
 ## 08 · SDK
 
-`verifiable-outcome-sdk` 0.8.2: TypeScript, ES module, Node 18+.
+`verifiable-outcome-sdk` 0.9.0: TypeScript, ES module, Node 18+.
 
 ```bash
 npm install verifiable-outcome-sdk
@@ -487,7 +487,7 @@ const bytes = buildArtifact({
 |---|---|
 | Verification | verifyOutcome |
 | Artifacts | buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121 |
-| Snapshots and Merkle | buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine; after 0.8.2: canonicalSnapshotLine, verifySnapshotMerkleProof, computeSnapshotMerkleRootFromProof, fetchSnapshotCommitment, fetchCommittedSnapshot, snapshotSourceCandidates, SnapshotUnavailableError |
+| Snapshots and Merkle | buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine; since 0.9.0: canonicalSnapshotLine, verifySnapshotMerkleProof, computeSnapshotMerkleRootFromProof, fetchSnapshotCommitment, fetchCommittedSnapshot, snapshotSourceCandidates, SnapshotUnavailableError |
 | Composite | buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact |
 | Sortition | createSortitionClient, sortitionCreateDrawInline, sortitionRegisterTicketInline, sortitionSealDrawInline, sortitionClaimTicketInline, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers |
 | Conditions and slot | Scoring, artifact encoders and replay helpers for fc7 and SF1 |

@@ -50,7 +50,7 @@ Versions live on **two orthogonal axes**; don't conflate them:
   `irys://`, `ar://`, then mirrors by hash (`--snapshot-mirror`, `VRE_SNAPSHOT_MIRRORS`) or a local
   file (`--snapshot-file`); every source is checked against `snapshot_hash`. No source →
   `ERR_SNAPSHOT_UNAVAILABLE`. Storage can change without a program upgrade.
-- **SDK** (after 0.8.2): `verifySnapshotMerkleProof`, `computeSnapshotMerkleRootFromProof`,
+- **SDK 0.9.0:** `verifySnapshotMerkleProof`, `computeSnapshotMerkleRootFromProof`,
   `canonicalSnapshotLine`, `fetchSnapshotCommitment`, `fetchCommittedSnapshot`.
 
 ## 2026-09-14 — Showcase draws on rng_v2, CLI, reliability fixes

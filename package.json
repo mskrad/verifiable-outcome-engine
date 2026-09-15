@@ -1,6 +1,6 @@
 {
   "name": "verifiable-outcome-sdk",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "On-chain proof of who won. Commit rules before the draw, anyone verifies from a transaction signature.",
   "license": "MIT",
   "keywords": [

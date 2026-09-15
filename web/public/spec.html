@@ -66,7 +66,7 @@
       <p class="lead">On-chain proof of who won. What a verified result guarantees, how outcomes are resolved, the committed artifact formats, the replay rules and the public API surface.</p>
       <div class="spec-meta-row">
         <span class="spec-meta-pill">solana devnet</span>
-        <span class="spec-meta-pill">SDK 0.8.2</span>
+        <span class="spec-meta-pill">SDK 0.9.0</span>
         <span class="spec-meta-pill">rng_v1 · rng_v2</span>
         <span class="spec-meta-pill">SHA-256</span>
         <span class="spec-meta-pill">replay by signature</span>
@@ -136,7 +136,7 @@
               </div>
               <div class="spec-kv">
                 <div class="spec-kv-label">SDK</div>
-                <div class="spec-kv-value mono">verifiable-outcome-sdk 0.8.2</div>
+                <div class="spec-kv-value mono">verifiable-outcome-sdk 0.9.0</div>
               </div>
             </div>
             <p>A plain Markdown copy of this page for agents and tools lives at <a href="/spec.md"><span class="mono">/spec.md</span></a>, indexed from <a href="/llms.txt"><span class="mono">/llms.txt</span></a>.</p>
@@ -520,7 +520,7 @@ expiry_slot  = target_slots[2] + 480
             <p>Use it when the operator has an interest in the result and must not be able to back out.</p>
 
             <h3>Compact artifacts on rng_v2</h3>
-            <p>Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects the winners itself, so callers pass empty winner arguments; non-empty ones fail with <span class="mono">RngV2CompactArgsMustBeEmpty</span>. The resolution stores <span class="mono">winner_claim_hash</span> as the digest of the winner list, and the list is emitted in <span class="mono">OutcomeResolvedV5</span>. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit <span class="mono">OutcomeResolvedV4</span>. Both must be payout-free. SDK 0.8.2 verifies these draws, and the public draw endpoints resolve through this path.</p>
+            <p>Since 2026-09-09 both rng_v2 lifecycles accept compact formats 1, 2, 3, 5 and 8, not only scale format 7. For compact artifacts the program selects the winners itself, so callers pass empty winner arguments; non-empty ones fail with <span class="mono">RngV2CompactArgsMustBeEmpty</span>. The resolution stores <span class="mono">winner_claim_hash</span> as the digest of the winner list, and the list is emitted in <span class="mono">OutcomeResolvedV5</span>. Scale artifacts keep caller-claimed winners proved by snapshot replay and emit <span class="mono">OutcomeResolvedV4</span>. Both must be payout-free. SDK 0.9.0 verifies these draws, and the public draw endpoints resolve through this path.</p>
 
             <h3>Sortition-by-Claim (v1.4.0)</h3>
             <p>Entrants register <span class="mono">sha256(secret ‖ ticket_id ‖ draw_id)</span> before a deadline. <span class="mono">seal_sortition_draw</span> fixes <span class="mono">omega</span> from three future slot hashes, 75, 90 and 105 slots after the draw was created; registration must close before the first of them. Each entrant claims by revealing the secret and wins when <span class="mono">sha256(secret ‖ omega) &lt; threshold</span>.</p>
@@ -684,7 +684,7 @@ expiry_slot  = target_slots[2] + 480
             <h2>SDK</h2>
             <p><span class="mono">verifiable-outcome-sdk</span> is the TypeScript library for building artifacts and verifying outcomes. It is an ES module for Node 18 and later.</p>
             <div class="terminal">
-              <div class="terminal-body">npm install verifiable-outcome-sdk   <span class="comment"># 0.8.2</span></div>
+              <div class="terminal-body">npm install verifiable-outcome-sdk   <span class="comment"># 0.9.0</span></div>
             </div>
 
             <h3>Verify from a terminal</h3>
@@ -727,7 +727,7 @@ const bytes = buildArtifact({
                 <tbody>
                   <tr><td>Verification</td><td class="mono">verifyOutcome</td></tr>
                   <tr><td>Artifacts</td><td class="mono">buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121</td></tr>
-                  <tr><td>Snapshots and Merkle</td><td class="mono">buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine; after 0.8.2: canonicalSnapshotLine, verifySnapshotMerkleProof, computeSnapshotMerkleRootFromProof, fetchSnapshotCommitment, fetchCommittedSnapshot, snapshotSourceCandidates, SnapshotUnavailableError</td></tr>
+                  <tr><td>Snapshots and Merkle</td><td class="mono">buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine; since 0.9.0: canonicalSnapshotLine, verifySnapshotMerkleProof, computeSnapshotMerkleRootFromProof, fetchSnapshotCommitment, fetchCommittedSnapshot, snapshotSourceCandidates, SnapshotUnavailableError</td></tr>
                   <tr><td>Composite</td><td class="mono">buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact</td></tr>
                   <tr><td>Sortition</td><td class="mono">createSortitionClient, sortitionCreateDrawInline, sortitionRegisterTicketInline, sortitionSealDrawInline, sortitionClaimTicketInline, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers</td></tr>
                   <tr><td>Conditions and slot</td><td>Scoring, artifact encoders and replay helpers for fc7 and SF1.</td></tr>
@@ -797,7 +797,7 @@ const bytes = buildArtifact({
           <li><a href="/protocol-paths">Paths</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
-        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet · SDK 0.8.2</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet · SDK 0.9.0</div>
       </div>
     </div>
   </footer>
