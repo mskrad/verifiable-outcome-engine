@@ -2851,6 +2851,110 @@ async function verifyOutcomeStrict(opts: Required<VerifyOutcomeOptions>): Promis
   };
 }
 
+export type SnapshotCommitment = {
+  signature: string;
+  programId: string;
+  runtimeId: string;
+  resolveId: string;
+  compiledArtifactHash: string;
+  formatVersion: number;
+  formula: string;
+  winnersCount: number;
+  snapshotCount: number;
+  snapshotHash: string;
+  merkleRoot: string | null;
+  snapshotUri: string;
+  rngVersion: number;
+  /** First winner as recorded in the event. */
+  primaryOutcomeId: string;
+  /** Full winner list when the event carries it; null when the event records only winnerClaimHash. */
+  outcomeIds: string[] | null;
+  winnerClaimHash: string | null;
+};
+
+/**
+ * Reads what a snapshot draw committed on-chain — snapshot hash, participant count, Merkle root and
+ * snapshot URI — from the program accounts behind its resolution signature, without the snapshot
+ * file and without the VRE server. Use `merkleRoot` with verifySnapshotMerkleProof.
+ */
+export async function fetchSnapshotCommitment(opts: {
+  signature: string;
+  rpcUrl: string;
+  programId?: string;
+}): Promise<SnapshotCommitment> {
+  if (!opts || !opts.signature) {
+    throw new Error("Provide signature");
+  }
+  if (!opts.rpcUrl) {
+    throw new Error("Provide rpcUrl");
+  }
+  const programId = new PublicKey(opts.programId ?? DEFAULT_PROGRAM_ID);
+  const connection = new anchor.web3.Connection(opts.rpcUrl, { commitment: "confirmed" });
+  const coder = new anchor.BorshCoder(loadIdl() as anchor.Idl);
+
+  const logs = await fetchTransactionLogs(connection, opts.signature);
+  const event = findOutcomeResolvedEvent(logs, programId.toBase58());
+  const header = await fetchDecodedAccount(
+    connection,
+    coder,
+    deriveApprovedArtifactPda(programId, event.compiledArtifactHash),
+    "ApprovedOutcomeArtifact",
+    "ERR_ARTIFACT_HEADER_NOT_FOUND"
+  );
+  const blob = await reconstructArtifactBlob(
+    connection,
+    coder,
+    programId,
+    event.compiledArtifactHash,
+    header
+  );
+  if (!sha256(blob).equals(event.compiledArtifactHash)) {
+    mismatch(
+      "ERR_ARTIFACT_HASH_MISMATCH",
+      "Artifact bytes do not hash to the compiled artifact hash in the event"
+    );
+  }
+
+  const formatVersion = blob.readUInt16LE(4);
+  const parsed =
+    formatVersion === FORMAT_VERSION_V4
+      ? parseArtifactV4(blob)
+      : formatVersion === FORMAT_VERSION_V1_2_SCALE
+        ? parseArtifactV12(blob)
+        : formatVersion === FORMAT_VERSION_V1_2_1_SCALE
+          ? parseArtifactV121(blob)
+          : null;
+  if (!parsed) {
+    throw new Error(`The transaction resolves artifact format ${formatVersion}, not a snapshot artifact`);
+  }
+
+  // Snapshot rng_v2 events carry the first winner plus winner_claim_hash, not the whole list.
+  const outcomeIds = event.outcomeIds.length === parsed.winnersCount
+    ? event.outcomeIds.map((id, index) =>
+        id.subarray(0, event.outcomeIdLens[index] ?? id.length).toString("ascii")
+      )
+    : null;
+
+  return {
+    signature: opts.signature,
+    programId: programId.toBase58(),
+    runtimeId: toHex(event.runtimeId),
+    resolveId: event.resolveId.toString(),
+    compiledArtifactHash: toHex(event.compiledArtifactHash),
+    formatVersion,
+    formula: formulaNameFromArtifactV4(parsed as any),
+    winnersCount: parsed.winnersCount,
+    snapshotCount: parsed.snapshotCount,
+    snapshotHash: parsed.snapshotHash.toString("hex"),
+    merkleRoot: parsed.merkleRoot ? parsed.merkleRoot.toString("hex") : null,
+    snapshotUri: parsed.snapshotUri,
+    rngVersion: event.rngVersion ?? 1,
+    primaryOutcomeId: event.outcomeId.subarray(0, event.outcomeIdLen).toString("ascii"),
+    outcomeIds,
+    winnerClaimHash: event.winnerClaimHash ? event.winnerClaimHash.toString("hex") : null,
+  };
+}
+
 export async function verifyOutcome(opts: VerifyOutcomeOptions): Promise<VerifyResult> {
   if (!opts || typeof opts !== "object") {
     throw new TypeError("verify options must be an object");

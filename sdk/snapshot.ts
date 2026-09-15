@@ -477,6 +477,70 @@ export function buildMerkleProof(
   return proof;
 }
 
+/**
+ * Recomputes the Merkle root from one canonical snapshot line and its proof. Proof nodes run from
+ * the leaf upward; `position` says on which side the sibling sits.
+ */
+export function computeSnapshotMerkleRootFromProof(
+  line: string,
+  proof: SnapshotMerkleProofNode[]
+): Buffer {
+  if (typeof line !== "string" || !line.endsWith("\n")) {
+    throw new TypeError("line must be a canonical snapshot line ending with a newline");
+  }
+  if (!Array.isArray(proof)) {
+    throw new TypeError("proof must be an array");
+  }
+  let node = hashSnapshotLeafLine(line);
+  proof.forEach((step, index) => {
+    if (
+      !step ||
+      (step.position !== "left" && step.position !== "right") ||
+      !/^[0-9a-f]{64}$/i.test(String(step.sibling))
+    ) {
+      throw new TypeError(`proof[${index}] must be { position: "left" | "right", sibling: 32-byte hex }`);
+    }
+    const sibling = Buffer.from(step.sibling, "hex");
+    node =
+      step.position === "left"
+        ? sha256(Buffer.concat([sibling, node]))
+        : sha256(Buffer.concat([node, sibling]));
+  });
+  return node;
+}
+
+/**
+ * Checks that a participant belongs to a committed snapshot without trusting whoever served the
+ * proof: compare against the Merkle root read from the on-chain artifact (fetchSnapshotCommitment).
+ * Pass the canonical `line`, or the `entry` with its `formula`. A malformed proof returns false.
+ */
+export function verifySnapshotMerkleProof(opts: {
+  line?: string;
+  entry?: SnapshotParticipantRecord;
+  formula?: ResolutionFormula;
+  proof: SnapshotMerkleProofNode[];
+  merkleRoot: string | Buffer;
+}): boolean {
+  const root = Buffer.isBuffer(opts.merkleRoot)
+    ? opts.merkleRoot
+    : Buffer.from(String(opts.merkleRoot), "hex");
+  if (root.length !== 32) {
+    throw new TypeError("merkleRoot must be 32 bytes");
+  }
+  let line = opts.line;
+  if (line === undefined) {
+    if (!opts.entry || !opts.formula) {
+      throw new TypeError("pass line, or entry with formula");
+    }
+    line = canonicalSnapshotLine(opts.entry, validateFormula(opts.formula));
+  }
+  try {
+    return computeSnapshotMerkleRootFromProof(line, opts.proof).equals(root);
+  } catch {
+    return false;
+  }
+}
+
 function normalizeSnapshotParticipant(
   raw: FormulaParticipant | SnapshotParticipant,
   index: number,

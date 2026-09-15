@@ -70,7 +70,8 @@
     "resolve:operator": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --loader ts-node/esm scripts/resolve_operator.ts",
     "web": "node web/server.mjs",
     "check:spec": "node scripts/check_spec_sync.mjs",
-    "check:package": "node scripts/check_package_files.mjs"
+    "check:package": "node scripts/check_package_files.mjs",
+    "test:sdk": "TS_NODE_PROJECT=tsconfig.json TS_NODE_TRANSPILE_ONLY=1 node --no-warnings --loader ts-node/esm --test 'tests/sdk/*.test.ts'"
   },
   "dependencies": {
     "@irys/upload": "^0.0.14",

@@ -18,6 +18,9 @@ export {
   buildSnapshotMerkleProofFromFile,
   buildCompactNamedEntryClaimFromArtifactV5,
   hashSnapshotLeafLine,
+  canonicalSnapshotLine,
+  computeSnapshotMerkleRootFromProof,
+  verifySnapshotMerkleProof,
   parseArtifactV12,
   parseArtifactV121,
   parseArtifactV5,
@@ -42,7 +45,8 @@ export {
   COMPOSITE_NORMALIZATION_SCALE,
   MAX_COMPOSITE_FIELDS,
 } from "./composite_rank_desc.js";
-export { verifyOutcome } from "./verify.js";
+export { verifyOutcome, fetchSnapshotCommitment } from "./verify.js";
+export type { SnapshotCommitment } from "./verify.js";
 // OddSol `conditions` mode (fc7/fv9): isolated devnet partner integration, non-canonical.
 // Fixed-point slip scoring + slip_hash + artifact build/parse/replay. See PROTOCOL-INFRA-016.
 export * from "./conditions.js";
