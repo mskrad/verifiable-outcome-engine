@@ -66,7 +66,7 @@ Resolved slots and slot hashes are stored in the resolution account and the even
 | Endpoint | Resolution path |
 |---|---|
 | `POST /api/examples/draw`, `POST /api/partner/draw`, `POST /api/live-raffle` | rng_v2 single phase in one request: commit, `prepare_rng_v2`, wait for target slots, `settle_rng_v2`, replay. |
-| `POST /api/partner/snapshot/finalize` | rng_v1 resolve on a scale snapshot (`resolve_outcome_v4`, `resolve_outcome_v121`). |
+| `POST /api/partner/snapshot/finalize` | rng_v2 single phase on a format 7 snapshot artifact, in the background: publish the snapshot, commit, `prepare_rng_v2`, wait, `settle_rng_v2` with the claimed winners, replay. |
 | `POST /api/partner/sortition/seal`, `POST /api/examples/sortition/seal` | Sortition seal on future slot hashes. |
 | `POST /api/partner/conditions/resolve` | `resolve_conditions`: deterministic scoring against revealed facts. No randomness. |
 
@@ -422,7 +422,8 @@ Header `x-api-key: vresk_…`. Keys are issued on request (https://t.me/maskradi
 | `GET /api/partner/draw/:signature/proof` | ?address= | Scale draw membership proof: included, winner, merkle_root, leaf_hash, proof, proof_status, publication_status, irys_url |
 | `POST /api/partner/snapshot/init` | label?, use_case? | Snapshot session id, valid 24 h |
 | `POST /api/partner/snapshot/chunk` | session_id, chunk_index, participants | ≤ 5,000 participants per chunk, ≤ 2 MB body |
-| `POST /api/partner/snapshot/finalize` | session_id, formula, winners_count, target? | Resolves a scale draw; signature, winners, snapshot binding; Irys publication when configured |
+| `POST /api/partner/snapshot/finalize` | session_id, formula, winners_count, target?, wait? | 202 with `status_url`; the draw runs in the background. `wait: true` answers 200 with the result instead |
+| `GET /api/partner/snapshot/status` | ?session_id= | `{ status: open \| finalizing \| finalized \| failed, stage, result?, error?, retryable? }`; `result` has the signature, winners, `snapshot_uri`, `snapshot_mirror_url`, `merkle_root` and the rng_v2 fields |
 | `POST /api/partner/sortition/draw` | draw_id?, threshold, registration_duration_slots, claim_duration_slots, unclaimed_rule | Creates a sortition draw |
 | `POST /api/partner/sortition/register` | draw_id, ticket_id, commitment | Registers a ticket commitment |
 | `POST /api/partner/sortition/seal` | draw_id | Seals omega from future slot hashes |

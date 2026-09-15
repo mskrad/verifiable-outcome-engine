@@ -1717,6 +1717,10 @@ function writeJsonFile(filePath, value) {
 }
 
 function snapshotSessionDir(sessionId) {
+  // Session ids come from requests; only server-issued UUIDs may name a directory.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(sessionId))) {
+    throw httpError(400, "session_id must be a snapshot session id");
+  }
   return path.join(PARTNER_SNAPSHOT_ROOT_DIR, sessionId);
 }
 
@@ -2596,7 +2600,41 @@ async function handlePartnerSnapshotFinalize(req, res) {
   const rpcUrl = resolveSnapshotRpcUrl();
   const programId = resolveSnapshotProgramId(rpcUrl);
 
-  const meta = loadSnapshotSession(sessionId, partner.key);
+  const meta = loadSnapshotSessionForFinalize(sessionId, partner.key);
+  meta.status = "finalizing";
+  meta.finalize_stage = "building";
+  meta.finalize_started_at_ms = Date.now();
+  meta.finalize_error = null;
+  saveSnapshotSession(meta);
+
+  // Publishing a large snapshot and waiting for future slots can outlast an HTTP request, so the
+  // draw runs in the background; GET /api/partner/snapshot/status reports its progress and result.
+  const job = runSnapshotFinalize({ meta, sessionId, formula, winnersCount, target, rpcUrl, programId })
+    .catch((error) => {
+      markSnapshotFinalizeFailed(sessionId, error);
+      throw error;
+    })
+    .finally(() => snapshotFinalizeJobs.delete(sessionId));
+  snapshotFinalizeJobs.set(sessionId, job);
+
+  if (body.wait === true) {
+    json(res, 200, await job);
+    return;
+  }
+  job.catch(() => {});
+  json(res, 202, {
+    ok: true,
+    session_id: sessionId,
+    status: "finalizing",
+    status_url: `/api/partner/snapshot/status?session_id=${encodeURIComponent(sessionId)}`,
+  });
+}
+
+async function runSnapshotFinalize({ meta, sessionId, formula, winnersCount, target, rpcUrl, programId }) {
+  const setStage = (stage) => {
+    meta.finalize_stage = stage;
+    saveSnapshotSession(meta);
+  };
   const finalized = await finalizeSnapshotSession({
     sessionMeta: meta,
     formula,
@@ -2610,6 +2648,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
 
   // Publish the exact snapshot before anything is committed. Its URI is part of the artifact hash,
   // so it cannot be changed later, and a draw must not point at a copy nobody else can read.
+  setStage("publishing");
   const snapshotBytes = fs.readFileSync(finalized.canonicalPath);
   const mirrorFile = storeMirrorCopy(PARTNER_SNAPSHOT_STORE_DIR, finalized.snapshotHash, snapshotBytes);
   const storage = snapshotStorageProvider();
@@ -2651,6 +2690,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
     target,
   });
 
+  setStage("committing");
   const resolveInline = await loadResolveInlineRngV2();
   const walletPath =
     process.env.PARTNER_SNAPSHOT_WALLET ||
@@ -2726,10 +2766,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
   meta.resolve_id = result.resolveId;
   meta.outcome_id = result.outcome;
   meta.outcome_ids = outcomeIds;
-  saveSnapshotSession(meta);
-  writeSnapshotSignatureIndex(meta);
-
-  json(res, 200, {
+  const response = {
     ok: true,
     standard_version: "1.2.1",
     session_id: sessionId,
@@ -2749,6 +2786,88 @@ async function handlePartnerSnapshotFinalize(req, res) {
     mode: finalized.mode,
     thresholds: snapshotThresholds(),
     ...rngV2ResponseFields(result),
+  };
+  meta.result = response;
+  meta.finalize_stage = "settled";
+  saveSnapshotSession(meta);
+  writeSnapshotSignatureIndex(meta);
+  return response;
+}
+
+const snapshotFinalizeJobs = new Map();
+// Failures before the artifact is committed leave nothing on chain, so the session may finalize again.
+const SNAPSHOT_FINALIZE_RETRYABLE_STAGES = new Set(["building", "publishing"]);
+
+function loadSnapshotSessionForFinalize(sessionId, partnerKey) {
+  const metaPath = snapshotMetaPath(sessionId);
+  if (!fs.existsSync(metaPath)) {
+    throw httpError(404, "snapshot session not found");
+  }
+  const meta = readJsonFile(metaPath);
+  if (meta.partner_key !== partnerKey) {
+    throw httpError(403, "snapshot session belongs to another partner");
+  }
+  if (meta.status === "finalizing" && snapshotFinalizeJobs.has(sessionId)) {
+    throw httpError(409, "snapshot session is already finalizing");
+  }
+  if (meta.status === "finalizing" || meta.status === "failed") {
+    if (!SNAPSHOT_FINALIZE_RETRYABLE_STAGES.has(meta.finalize_stage)) {
+      throw httpError(409, `snapshot session stopped at ${meta.finalize_stage}; start a new session`);
+    }
+    return meta;
+  }
+  if (meta.status && meta.status !== "open") {
+    throw httpError(409, `snapshot session is ${meta.status}`);
+  }
+  return meta;
+}
+
+function markSnapshotFinalizeFailed(sessionId, error) {
+  try {
+    const meta = readJsonFile(snapshotMetaPath(sessionId));
+    const mapped = programErrorResponse(error);
+    meta.status = "failed";
+    meta.finalize_error = {
+      status_code: mapped?.status ?? error?.statusCode ?? 500,
+      error: mapped?.body.error ?? (error?.message || String(error)),
+      ...(mapped ? { error_code: mapped.body.error_code } : {}),
+    };
+    meta.finalize_failed_at_ms = Date.now();
+    saveSnapshotSession(meta);
+  } catch (_) {
+    // the error still reaches the caller that waited, if any
+  }
+}
+
+// GET /api/partner/snapshot/status?session_id= — progress and result of a snapshot draw.
+async function handlePartnerSnapshotStatus(req, res) {
+  const partner = requirePartnerApiKey(req, "/api/partner/snapshot/status");
+  const reqUrl = new URL(req.url || "/", "http://localhost");
+  const sessionId = String(reqUrl.searchParams.get("session_id") || "").trim();
+  if (!sessionId) throw httpError(400, "session_id is required");
+  const metaPath = snapshotMetaPath(sessionId);
+  if (!fs.existsSync(metaPath)) throw httpError(404, "snapshot session not found");
+  const meta = readJsonFile(metaPath);
+  if (meta.partner_key !== partner.key) {
+    throw httpError(403, "snapshot session belongs to another partner");
+  }
+  let status = meta.status || "open";
+  let error = meta.finalize_error || null;
+  if (status === "finalizing" && !snapshotFinalizeJobs.has(sessionId)) {
+    status = "failed";
+    error = { status_code: 500, error: "finalize was interrupted by a server restart" };
+  }
+  json(res, 200, {
+    ok: true,
+    session_id: sessionId,
+    status,
+    stage: meta.finalize_stage || null,
+    participant_count: meta.participant_count ?? 0,
+    chunks_received: meta.chunks_received ?? 0,
+    ...(status === "finalized" ? { result: meta.result ?? null } : {}),
+    ...(status === "failed"
+      ? { error, retryable: SNAPSHOT_FINALIZE_RETRYABLE_STAGES.has(meta.finalize_stage) }
+      : {}),
   });
 }
 
@@ -3254,6 +3373,11 @@ async function handleApi(req, res, pathname) {
 
     if (req.method === "POST" && pathname === "/api/partner/snapshot/finalize") {
       await handlePartnerSnapshotFinalize(req, res);
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/partner/snapshot/status") {
+      await handlePartnerSnapshotStatus(req, res);
       return;
     }
 
