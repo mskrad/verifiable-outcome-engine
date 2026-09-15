@@ -49,8 +49,8 @@
   <header class="page-head">
     <div class="container">
       <span class="eyebrow"><span class="dot"></span> Resolution paths</span>
-      <h1 class="page-title">Five paths, one program.</h1>
-      <p class="lead measure">Replay-by-signature is the default: recompute an outcome from a transaction signature and compare. The paths below are alternatives selected per draw, and they all run on the same canonical devnet program — there is no second, isolated deployment.</p>
+      <h1 class="page-title">Resolution paths, one program.</h1>
+      <p class="lead measure">Draws use single-phase rng_v2: the rules are committed, three future slots are fixed, and the winners come from their hashes. Every path below runs on the same canonical devnet program, and any resolution transaction can be replayed from its signature.</p>
     </div>
   </header>
 
@@ -66,10 +66,16 @@
           <thead><tr><th>Path</th><th>Version</th><th>Status</th><th>What it is</th></tr></thead>
           <tbody>
             <tr>
-              <td class="mono">replay-by-signature</td>
-              <td class="mono">v1.3.2</td>
+              <td class="mono">single phase</td>
+              <td class="mono">v1.2</td>
               <td><span class="badge badge-match">canonical · default</span></td>
-              <td>Recompute an outcome locally from a transaction signature, including the global-Ω resolve. <a href="/verify" class="text-teal">Try it →</a></td>
+              <td><span class="mono">prepare_rng_v2</span> → <span class="mono">settle_rng_v2</span>. Winners from three future slot hashes; used by every draw endpoint. <a href="/examples" class="text-teal">Try it →</a></td>
+            </tr>
+            <tr>
+              <td class="mono">two phase</td>
+              <td class="mono">v1.3.2</td>
+              <td><span class="badge badge-match">canonical · opt-in</span></td>
+              <td><span class="mono">seal_randomness</span> → <span class="mono">attest_winners</span>. Anyone may seal; the operator stakes a bounty and cannot back out.</td>
             </tr>
             <tr>
               <td class="mono">sortition-by-claim</td>
@@ -90,18 +96,24 @@
               <td>Score committed slips (odds × proven facts) into a ranking. The engine proves the ranking; it holds no funds and executes no payout.</td>
             </tr>
             <tr>
+              <td class="mono">operator seed</td>
+              <td class="mono">rng_v1</td>
+              <td><span class="badge badge-pending">legacy</span></td>
+              <td>The operator sets the seed when the runtime is created. Not used by the draw endpoints.</td>
+            </tr>
+            <tr>
               <td class="mono">unicorn-g entropy</td>
               <td class="mono">B8</td>
-              <td><span class="badge badge-pending">implemented · opt-in</span></td>
-              <td>Alternative entropy source: a delay-function output verified on-chain through an embedded Groth16 verifier.</td>
+              <td><span class="badge badge-pending">implemented · not deployed</span></td>
+              <td>Alternative entropy source: a delay-function output verified on-chain through an embedded Groth16 verifier. The canonical program is not built with it.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="callout callout-amber mt-8">
-        <div class="callout-title">Unicorn-G — read before selecting it</div>
-        <p>It is built and it runs on devnet: <span class="mono">seal_randomness_unicorn</span> verifies the proof on-chain, and a forged one is rejected with <span class="mono">InvalidUnicornGProof</span> at the pairing check. Two things keep it opt-in rather than default. The circuit: the Groth16 setup was done against a devnet RSA modulus, and a composite <span class="mono">l</span> still passes the in-circuit primality check. And the replay path: a Unicorn-G draw derives its randomness from the delay-function output rather than from slot hashes, which the public verifier does not implement yet — such a draw does <strong>not</strong> reproduce through <span class="mono">/verify</span> today. Until both land, SlotHashes stays the default and Unicorn-G is selected explicitly, per draw.</p>
+        <div class="callout-title">Unicorn-G — why it is not deployed</div>
+        <p>It is implemented and was measured on devnet in June 2026: <span class="mono">seal_randomness_unicorn</span> verifies the proof on-chain, and a forged one is rejected with <span class="mono">InvalidUnicornGProof</span> at the pairing check. The canonical program is not built with it. Before mainnet it needs the circuit soundness fix and a trusted-setup ceremony.</p>
       </div>
 
       <div class="callout mt-6">
@@ -142,7 +154,7 @@
           <li><a href="/protocol-paths">Paths</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
-        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet</div>
       </div>
     </div>
   </footer>

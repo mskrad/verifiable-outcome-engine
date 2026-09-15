@@ -349,7 +349,7 @@
         <pre class="raw-json sx-out" id="sx-out" role="status" aria-live="polite">Responses appear here.</pre>
 
         <p class="text-faint" style="font-size:12.5px;margin-top:18px;">
-          Sealing cannot be rushed: the draw commits to three slots roughly 40 seconds ahead, and the program refuses to seal until those slot hashes exist. That wait is the guarantee — at registration time nobody, operator included, can know the seed.
+          Sealing cannot be rushed: the draw commits to three slots roughly 40 seconds ahead, and the program refuses to seal until those slot hashes exist. That wait is the point: at registration time the seed does not exist yet. A validator that produces one of those slots keeps limited influence over its hash; the spec puts numbers on it.
         </p>
       </div>
     </div>
@@ -361,12 +361,12 @@
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> More paths</span>
         <h2>Beyond a single call.</h2>
-        <p>The cards above resolve in one request and the console right above this takes four. What is left is one direction that is still on paper, and one entropy source you can select per draw.</p>
+        <p>The cards above resolve in one request and the console right above this takes four. What is left is one direction that is still on paper, and one entropy source that is implemented but not deployed.</p>
       </div>
 
       <div class="feature-grid feature-grid-compact">
         <div class="feature-card">
-          <span class="badge badge-pending ex-chip">implemented · opt-in</span>
+          <span class="badge badge-pending ex-chip">implemented · not deployed</span>
           <h3>Unicorn-G entropy</h3>
           <p>An alternative entropy source for the same draw: the seed arrives with a proof the program verifies on-chain, and a forged one is rejected before anything is sealed. No button here — such a draw does not reproduce through the public verifier yet, so putting it next to the cards above would promise more than it delivers.</p>
           <p class="mt-4"><a href="/protocol-paths" class="text-teal">Read the caveat in full →</a></p>
@@ -397,7 +397,7 @@
           <li><a href="/protocol-paths">Paths</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
-        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet</div>
       </div>
     </div>
   </footer>

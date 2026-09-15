@@ -9,13 +9,13 @@
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:title"       content="VRE Verify · Replay Any Outcome" />
-  <meta property="og:description" content="Paste a transaction signature and replay the result from public Solana RPC data. No trust required." />
+  <meta property="og:description" content="Paste a transaction signature and replay the result from public Solana RPC data: the committed rules and the on-chain randomness give the same winners, or the verifier says why not." />
   <meta property="og:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
   <meta property="og:url"         content="https://verifiableoutcome.online/verify" />
   <meta property="og:site_name"   content="Verifiable Outcome Engine" />
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content="VRE Verify · Replay Any Outcome" />
-  <meta name="twitter:description" content="Paste a transaction signature and replay the result from public Solana RPC data. No trust required." />
+  <meta name="twitter:description" content="Paste a transaction signature and replay the result from public Solana RPC data: the committed rules and the on-chain randomness give the same winners, or the verifier says why not." />
   <meta name="twitter:image"       content="https://verifiableoutcome.online/assets/og-image.jpg" />
 
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
@@ -81,12 +81,10 @@
             <label class="form-label" for="field-cluster">Cluster</label>
             <select id="field-cluster" class="form-select">
               <option value="devnet">devnet</option>
-              <option value="testnet">testnet</option>
-              <option value="localnet">localnet</option>
             </select>
           </div>
           <div>
-            <label class="form-label" for="field-rpc">RPC URL <span class="hint">override</span></label>
+            <label class="form-label" for="field-rpc">RPC URL <span class="hint">the public host replays through its own devnet RPC</span></label>
             <input id="field-rpc" class="form-input" placeholder="https://api.devnet.solana.com" />
           </div>
         </div>
@@ -97,8 +95,8 @@
         </div>
 
         <div class="form-row">
-          <label class="form-label" for="field-sig">Transaction signature <span class="hint">base58 — from a resolve call</span></label>
-          <input id="field-sig" class="form-input form-input-large mono" placeholder="47S5Q3…FHdcF" spellcheck="false" value="47S5Q3xXY1f5i5DWrppGqgNYb29uTCaeJceMcwCAdCBasgPrqe6mosyLvFSfch3EXZm3CWAiRhyEEx8XGx8FHdcF" />
+          <label class="form-label" for="field-sig">Transaction signature <span class="hint">base58 — from a draw response or /play</span></label>
+          <input id="field-sig" class="form-input form-input-large mono" placeholder="MVE6v5…YFAy5H" spellcheck="false" value="MVE6v5ZGeBYYSKqDbp9kpVY85VKgSGXbFgUkh3eh2E1Xh7z2TPW3NZHfx2WSi2ERvVjuZB4LCP3nh1MN1YFAy5H" />
         </div>
 
         <div class="verify-form-actions">
@@ -130,31 +128,31 @@
         <div class="error-codes-grid">
           <div class="error-code error-code-ok">
             <div class="error-code-tag">MATCH</div>
-            <div class="error-code-desc">Replay reproduces the on-chain outcome bit-for-bit. Verification succeeded.</div>
+            <div class="error-code-desc">Replay reproduces the recorded outcome: same rules, same randomness, same winners in the same order.</div>
           </div>
           <div class="error-code error-code-warn">
-            <div class="error-code-tag">PENDING</div>
-            <div class="error-code-desc">Commit found, draw not yet resolved. Try again after the resolution slot.</div>
+            <div class="error-code-tag">ERR_TX_NOT_FOUND_OR_NO_LOGS</div>
+            <div class="error-code-desc">The RPC could not return the transaction or its logs. A fresh transaction can take a few seconds to appear; retry.</div>
           </div>
           <div class="error-code error-code-err">
-            <div class="error-code-tag">RULESET_MISMATCH</div>
-            <div class="error-code-desc">The artifact hash on chain does not match what the verifier reconstructed.</div>
+            <div class="error-code-tag">ERR_EVENT_NOT_FOUND_FOR_PROGRAM</div>
+            <div class="error-code-desc">No resolution event from this program in the transaction. Check that it is the draw transaction and the program ID is right.</div>
           </div>
           <div class="error-code error-code-err">
-            <div class="error-code-tag">NO_COMMIT</div>
-            <div class="error-code-desc">No prior commit was found for this resolve. Outcome is not verifiable.</div>
+            <div class="error-code-tag">ERR_ARTIFACT_HASH_MISMATCH</div>
+            <div class="error-code-desc">The committed rules on-chain do not hash to the value recorded with the result.</div>
           </div>
           <div class="error-code error-code-err">
-            <div class="error-code-tag">REPLAY_DIVERGED</div>
-            <div class="error-code-desc">Kernel replay produced a different winner than the on-chain record.</div>
+            <div class="error-code-tag">ERR_RANDOMNESS_MISMATCH</div>
+            <div class="error-code-desc">The randomness in the event, the resolution account and the recomputation do not agree. Treat the outcome as invalid.</div>
           </div>
           <div class="error-code error-code-warn">
-            <div class="error-code-tag">RPC_UNREACHABLE</div>
-            <div class="error-code-desc">Could not fetch the signature. Try a different RPC endpoint.</div>
+            <div class="error-code-tag">ERR_REPLAY_UNHANDLED</div>
+            <div class="error-code-desc">The verifier hit an unexpected error or an unsupported artifact. On public devnet RPC this can be a temporary rate limit; retry.</div>
           </div>
         </div>
         <div class="mt-6">
-          <a class="btn btn-ghost btn-sm" href="/spec#error-codes">See full reference →</a>
+          <a class="btn btn-ghost btn-sm" href="/spec#verification">See full reference →</a>
         </div>
       </div>
 
@@ -182,7 +180,7 @@
           <li><a href="/protocol-paths">Paths</a></li>
           <li><a href="https://x.com/voutcomeengine" target="_blank" rel="noopener">x.com ↗</a></li>
         </ul>
-        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">W3O1 v1-v3 · solana devnet</div>
+        <div class="text-faint mono" style="font-size:11.5px;letter-spacing:0.08em;">solana devnet</div>
       </div>
     </div>
   </footer>
