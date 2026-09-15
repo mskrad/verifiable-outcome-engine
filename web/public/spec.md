@@ -369,7 +369,7 @@ When the program rejects an instruction the body carries `error_code` (the progr
 |---|---|---|
 | `POST /api/replay` | signature, programId? | Verdict (§04) |
 | `POST /api/timeline` | signature, compiledArtifactHash, programId? | `{ ok, artifact_slot, resolution_slot, gap_slots }` |
-| `GET /api/recent-resolutions` | ?limit= | `{ ok, resolutions: [{ signature, outcome_id, outcome_ids, winners_count, artifact_format_version, resolution_formula, target, verification_result, verification_reason, runtime_id, resolve_id, compiled_artifact_hash, participants_count, commit_slot, resolve_slot, source }] }` |
+| `GET /api/recent-resolutions` | ?limit= | `{ ok, resolutions: [{ signature, outcome_id, outcome_ids, winners_count, artifact_format_version, standard_version, rng_version, resolution_formula, target, verification_result, verification_reason, runtime_id, resolve_id, compiled_artifact_hash, participants_count, snapshot_count, snapshot_hash, snapshot_uri, merkle_root, commit_slot, resolve_slot, updated_utc, source }] }` |
 | `GET /api/blessed-signatures` | | `{ ok, data }` |
 | `GET /api/health` | | `{ ok, program_id, rpc, operator: { mode, program_id }, world_id: { enabled, environment, … }, blessed_signatures_count }` |
 | `GET /api/spec` | | `{ ok, summary, blessed }` |

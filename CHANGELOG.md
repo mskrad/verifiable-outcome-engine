@@ -50,6 +50,13 @@ Versions live on **two orthogonal axes**; don't conflate them:
   `irys://`, `ar://`, then mirrors by hash (`--snapshot-mirror`, `VRE_SNAPSHOT_MIRRORS`) or a local
   file (`--snapshot-file`); every source is checked against `snapshot_hash`. No source →
   `ERR_SNAPSHOT_UNAVAILABLE`. Storage can change without a program upgrade.
+- **Snapshot draws on /play and /verify.** Historical cards show `snapshot · N participants`, the
+  block time and a link to the published list instead of `W3O1 v1` and "devnet evidence".
+  `/verify` adds a Participant snapshot section: hash, Merkle root and committed URI, a download of
+  the list, and a participant check that fetches the proof and verifies it in the browser against
+  the on-chain root, with a download of the proof. `GET /api/recent-resolutions` adds
+  `standard_version`, `rng_version`, `snapshot_count`, `snapshot_hash`, `snapshot_uri`,
+  `merkle_root` and `updated_utc`; `artifact_format_version` is null for snapshot draws.
 - **Fixed in SDK 0.9.1: single-phase snapshot draws were labelled two phase.** The verifier
   mapped every `protocol_revision >= 1` to `standard_version: "1.3.2"`, but the program writes 1
   for two-phase `attest_winners` and 2 for single-phase `settle_rng_v2`. Format 7 draws settled in

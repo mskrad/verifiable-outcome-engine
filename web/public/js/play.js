@@ -577,8 +577,12 @@
     if (entry.source === 'historical') {
       const formula = String(entry.resolution_formula || '').trim();
       const winners = Number(entry.winners_count || 0);
+      const snapshotCount = Number(entry.snapshot_count || 0);
+      const fromList = snapshotCount > 0
+        ? ` from a published list of ${snapshotCount.toLocaleString('en-US')} participants`
+        : '';
       return formula
-        ? `Historical devnet transaction replayed as ${formula}${winners > 1 ? ` with ${winners} winners` : ''}.`
+        ? `Historical devnet transaction replayed as ${formula}${winners > 1 ? ` with ${winners} winners` : ''}${fromList}.`
         : 'Historical devnet transaction replayed from public RPC data.';
     }
     if (entry.notes) return entry.notes;
@@ -597,7 +601,10 @@
     const winnersCount = Number(entry.winners_count || 0);
     const formula = String(entry.resolution_formula || '').trim();
 
-    if (formatVersion > 0) {
+    const snapshotCount = Number(entry.snapshot_count || 0);
+    if (snapshotCount > 0) {
+      badges.push(`<span class="badge badge-neutral">snapshot · ${snapshotCount.toLocaleString('en-US')} participants</span>`);
+    } else if (formatVersion > 0) {
       badges.push(`<span class="badge badge-neutral">W3O1 v${formatVersion}</span>`);
     }
     if (formula) {
@@ -667,8 +674,9 @@
       ? `slot ${artifactSlot} → ${resolutionSlot}`
       : 'timeline unavailable';
     const updated = entry.updated_utc
-      ? new Date(entry.updated_utc).toISOString().replace('T', ' ').slice(0, 19)
-      : 'devnet evidence';
+      ? `${new Date(entry.updated_utc).toISOString().replace('T', ' ').slice(0, 19)} UTC`
+      : '—';
+    const snapshotHash = /^[0-9a-f]{64}$/.test(String(entry.snapshot_hash || '')) ? entry.snapshot_hash : null;
 
     return `
       <article class="sig-card ${isMatch ? 'sig-card-resolved' : 'sig-card-pending'}" data-idx="${idx}">
@@ -706,8 +714,14 @@
           </div>
           <div class="sig-row">
             <span class="sig-row-label">Updated</span>
-            <span class="sig-row-value">${escapeHtml(updated)} UTC</span>
+            <span class="sig-row-value">${escapeHtml(updated)}</span>
           </div>
+          ${snapshotHash ? `
+            <div class="sig-row">
+              <span class="sig-row-label">Participants</span>
+              <span class="sig-row-value">${escapeHtml(Number(entry.snapshot_count || 0).toLocaleString('en-US'))} · <a class="text-teal" href="/sha256/${snapshotHash}.jsonl" target="_blank" rel="noopener">list ↗</a></span>
+            </div>
+          ` : ''}
           <div class="sig-row">
             <span class="sig-row-label">Runtime ID</span>
             <span class="sig-row-value mono">${escapeHtml(window.vreShort(entry.runtime_id || '—', 8, 8))}</span>

@@ -125,6 +125,46 @@ body {
   color: var(--text);
 }
 
+.snapshot-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 14px 0 0;
+  font-size: 12.5px;
+}
+
+.snapshot-facts dt {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.snapshot-facts dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.snapshot-check {
+  margin-top: 18px;
+}
+
+.snapshot-check-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.snapshot-check-row .form-input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .snapshot-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .artifact-summary {
   display: flex;
   gap: 8px;

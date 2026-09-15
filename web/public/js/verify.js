@@ -241,7 +241,7 @@
 
   function renderDetails(r) {
     const details = el('result-details');
-    details.innerHTML = renderOutcome(r) + renderDidIWin(r) + renderRules(r) + renderTimeline(r) + renderLinks(r);
+    details.innerHTML = renderOutcome(r) + renderSnapshot(r) + renderDidIWin(r) + renderRules(r) + renderTimeline(r) + renderLinks(r);
     bindTimelineReload();
   }
 
@@ -282,6 +282,204 @@
         </div>
       </div>
     `;
+  }
+
+  // ---- Snapshot draws: the participant list lives off-chain, committed by hash and Merkle root ----
+
+  const HEX64_RE = /^[0-9a-f]{64}$/;
+  const SNAPSHOT_URI_GATEWAYS = {
+    'irys-devnet:': 'https://devnet.irys.xyz/',
+    'irys:': 'https://gateway.irys.xyz/',
+    'ar:': 'https://arweave.net/',
+  };
+
+  function snapshotInfo(r) {
+    const replay = r?.replay || {};
+    const hash = String(replay.snapshot_hash || '').toLowerCase();
+    if (r?.status !== 'MATCH' || !HEX64_RE.test(hash)) return null;
+    return {
+      hash,
+      count: Number(replay.snapshot_count || 0),
+      uri: String(replay.snapshot_uri || ''),
+      merkleRoot: HEX64_RE.test(String(replay.merkle_root || '').toLowerCase()) ? String(replay.merkle_root).toLowerCase() : null,
+      formula: resolutionFormula(r),
+    };
+  }
+
+  function snapshotSourceUrl(uri) {
+    if (/^https:\/\//i.test(uri)) return uri;
+    const match = /^([a-z][a-z0-9-]*:)\/\/([A-Za-z0-9_-]+)$/.exec(uri);
+    if (!match || !SNAPSHOT_URI_GATEWAYS[match[1]]) return null;
+    return SNAPSHOT_URI_GATEWAYS[match[1]] + match[2];
+  }
+
+  function renderSnapshot(r) {
+    const info = snapshotInfo(r);
+    if (!info) return '';
+    const sourceUrl = snapshotSourceUrl(info.uri);
+    const address = walletState?.status === 'connected' ? walletState.address : '';
+    return `
+      <div class="result-section snapshot-card">
+        <div class="section-head-with-action">
+          <div class="result-section-title">Participant snapshot</div>
+          <div class="artifact-summary artifact-summary-inline">
+            ${info.count > 0 ? `<span class="badge badge-neutral">${escapeHtml(info.count.toLocaleString('en-US'))} participants</span>` : ''}
+            ${info.merkleRoot ? '<span class="badge badge-neutral">Merkle root on-chain</span>' : ''}
+          </div>
+        </div>
+        <dl class="snapshot-facts">
+          <dt>snapshot_hash</dt><dd class="mono">${escapeHtml(info.hash)}</dd>
+          ${info.merkleRoot ? `<dt>merkle_root</dt><dd class="mono">${escapeHtml(info.merkleRoot)}</dd>` : ''}
+          <dt>snapshot_uri</dt><dd class="mono">${escapeHtml(info.uri || '—')}</dd>
+        </dl>
+        <p class="pre-proof-caption">The replay above fetched this list and matched it to <span class="mono">snapshot_hash</span> before recomputing the winners.</p>
+        <div class="flex gap-2 mt-4" style="flex-wrap:wrap;">
+          <a class="btn btn-secondary btn-sm" href="/sha256/${info.hash}.jsonl" download="snapshot-${info.hash.slice(0, 12)}.jsonl">Download list (.jsonl)</a>
+          ${sourceUrl ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">Committed source ↗</a>` : ''}
+        </div>
+        ${info.merkleRoot ? `
+          <form class="snapshot-check" data-snapshot-check autocomplete="off">
+            <label class="form-label" for="snapshot-address">Check a participant</label>
+            <div class="snapshot-check-row">
+              <input id="snapshot-address" name="address" class="form-input mono" placeholder="participant id or wallet address" spellcheck="false" value="${escapeHtml(address)}" />
+              <button class="btn btn-primary btn-sm" type="submit">Check</button>
+            </div>
+          </form>
+          <div id="snapshot-check-result" aria-live="polite"></div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  async function sha256Bytes(bytes) {
+    return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  }
+
+  function hexToBytes(hex) {
+    const out = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < out.length; i += 1) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    return out;
+  }
+
+  function bytesToHex(bytes) {
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Same canonical line as canonicalSnapshotLine() in the SDK.
+  function canonicalSnapshotLine(participant, formula) {
+    if (formula === 'weighted_random') {
+      return `${JSON.stringify({ id: participant.id, order: participant.order, weight: participant.weight ?? 1 })}\n`;
+    }
+    if (formula === 'first_n') {
+      return `${JSON.stringify({ id: participant.id, order: participant.order })}\n`;
+    }
+    return `${JSON.stringify({ id: participant.id, order: participant.order, score: String(participant.score) })}\n`;
+  }
+
+  // Leaf = SHA-256(SHA-256(line)); each proof step hashes the sibling on its stated side.
+  async function merkleRootFromProof(line, proof) {
+    let node = await sha256Bytes(await sha256Bytes(new TextEncoder().encode(line)));
+    for (const step of proof) {
+      if (!step || (step.position !== 'left' && step.position !== 'right') || !HEX64_RE.test(String(step.sibling).toLowerCase())) {
+        throw new Error('malformed proof');
+      }
+      const sibling = hexToBytes(String(step.sibling).toLowerCase());
+      const joined = new Uint8Array(64);
+      joined.set(step.position === 'left' ? sibling : node, 0);
+      joined.set(step.position === 'left' ? node : sibling, 32);
+      node = await sha256Bytes(joined);
+    }
+    return bytesToHex(node);
+  }
+
+  function renderSnapshotCheck(state) {
+    const target = el('snapshot-check-result');
+    if (!target) return;
+    if (state.kind === 'loading') {
+      target.innerHTML = '<div class="did-win-status did-win-status-muted">Fetching the proof…</div>';
+      return;
+    }
+    if (state.kind === 'error') {
+      target.innerHTML = `<div class="did-win-status did-win-status-warn">${escapeHtml(state.message)}</div>`;
+      return;
+    }
+    const titles = {
+      won: 'Selected as a winner',
+      included: 'In the list — not selected',
+      absent: 'Not in the committed list',
+    };
+    const modifier = state.kind === 'won' ? 'did-win-status-won' : 'did-win-status-muted';
+    const copy = state.kind === 'absent'
+      ? 'This server has no entry with that id in the committed list.'
+      : 'Merkle proof checked in your browser against the on-chain root.';
+    target.innerHTML = `
+      <div class="did-win-status ${modifier}">
+        <strong>${escapeHtml(titles[state.kind])}</strong>
+        <span>${escapeHtml(copy)}</span>
+        ${state.download ? '<span><button class="btn btn-ghost btn-sm" type="button" data-snapshot-proof-download>Download proof (.json)</button></span>' : ''}
+      </div>
+    `;
+  }
+
+  let lastSnapshotProof = null;
+
+  async function runSnapshotCheck(address) {
+    const r = lastVerifyResult;
+    const info = snapshotInfo(r);
+    if (!info || !info.merkleRoot) return;
+    const id = String(address || '').trim();
+    if (!id) {
+      renderSnapshotCheck({ kind: 'error', message: 'Enter a participant id or wallet address.' });
+      return;
+    }
+    lastSnapshotProof = null;
+    renderSnapshotCheck({ kind: 'loading' });
+    try {
+      const res = await fetch(`/api/partner/draw/${encodeURIComponent(r.signature)}/proof?address=${encodeURIComponent(id)}`);
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 404) {
+        renderSnapshotCheck({ kind: 'error', message: 'This server keeps no proof index for this draw. Download the list and check it with verifySnapshotMerkleProof from verifiable-outcome-sdk.' });
+        return;
+      }
+      if (!res.ok || !json.ok) throw new Error(json.error || `proof request failed (${res.status})`);
+      if (!json.participant) {
+        renderSnapshotCheck({ kind: 'absent' });
+        return;
+      }
+      const line = canonicalSnapshotLine(json.participant, info.formula);
+      const root = await merkleRootFromProof(line, Array.isArray(json.proof) ? json.proof : []);
+      if (root !== info.merkleRoot) {
+        renderSnapshotCheck({ kind: 'error', message: 'The proof does not lead to the on-chain Merkle root. Do not trust this answer.' });
+        return;
+      }
+      lastSnapshotProof = {
+        signature: r.signature,
+        program_id: r.programId,
+        merkle_root: info.merkleRoot,
+        snapshot_hash: info.hash,
+        formula: info.formula,
+        participant: json.participant,
+        line,
+        proof: json.proof,
+      };
+      const won = selectedOutcomeIds(r).includes(String(json.participant.id));
+      renderSnapshotCheck({ kind: won ? 'won' : 'included', download: true });
+    } catch (err) {
+      renderSnapshotCheck({ kind: 'error', message: err?.message || String(err) });
+    }
+  }
+
+  function downloadSnapshotProof() {
+    if (!lastSnapshotProof) return;
+    const blob = new Blob([`${JSON.stringify(lastSnapshotProof, null, 2)}\n`], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `proof-${String(lastSnapshotProof.participant.id).slice(0, 16).replace(/[^A-Za-z0-9_-]/g, '_')}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function renderDidIWin(r) {
@@ -558,6 +756,16 @@
     });
 
     form.addEventListener('submit', (e) => { e.preventDefault(); runFromForm(); });
+
+    document.addEventListener('submit', (e) => {
+      const check = e.target instanceof HTMLFormElement && e.target.matches('[data-snapshot-check]') ? e.target : null;
+      if (!check) return;
+      e.preventDefault();
+      runSnapshotCheck(check.elements.address?.value);
+    });
+    document.addEventListener('click', (e) => {
+      if (e.target instanceof Element && e.target.closest('[data-snapshot-proof-download]')) downloadSnapshotProof();
+    });
 
     document.addEventListener('click', async (event) => {
       if (event.target.closest('[data-disconnect-wallet]')) {
