@@ -349,7 +349,7 @@ function sendSnapshotMirror(req, res, snapshotHash) {
   }
   res.writeHead(200, {
     ...headers,
-    "content-type": "application/x-ndjson; charset=utf-8",
+    "content-type": "text/plain; charset=utf-8",
     "content-length": fs.statSync(filePath).size,
     "cache-control": "public, max-age=31536000, immutable",
   });

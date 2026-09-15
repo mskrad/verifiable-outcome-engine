@@ -92,7 +92,9 @@ function irysDevnetStorage(env) {
       }
       const receipt = await client.upload(bytes, {
         tags: [
-          { name: "Content-Type", value: "application/x-ndjson" },
+          // text/plain so gateways show the list in a browser instead of downloading it; the hash covers
+          // the bytes only, so the type does not change what the draw commits to.
+          { name: "Content-Type", value: "text/plain; charset=utf-8" },
           { name: "VRE-Snapshot-SHA256", value: snapshotHash },
         ],
       });

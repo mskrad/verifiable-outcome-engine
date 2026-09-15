@@ -313,10 +313,18 @@
     return SNAPSHOT_URI_GATEWAYS[match[1]] + match[2];
   }
 
+  // Irys devnet has no explorer page for uploads; its /tx/<id> JSON names the uploader, the tags
+  // (including VRE-Snapshot-SHA256) and the size.
+  function snapshotReceiptUrl(uri) {
+    const match = /^irys-devnet:\/\/([A-Za-z0-9_-]+)$/.exec(uri);
+    return match ? `https://devnet.irys.xyz/tx/${match[1]}` : null;
+  }
+
   function renderSnapshot(r) {
     const info = snapshotInfo(r);
     if (!info) return '';
     const sourceUrl = snapshotSourceUrl(info.uri);
+    const receiptUrl = snapshotReceiptUrl(info.uri);
     const address = walletState?.status === 'connected' ? walletState.address : '';
     return `
       <div class="result-section snapshot-card">
@@ -335,7 +343,8 @@
         <p class="pre-proof-caption">The replay above fetched this list and matched it to <span class="mono">snapshot_hash</span> before recomputing the winners.</p>
         <div class="flex gap-2 mt-4" style="flex-wrap:wrap;">
           <a class="btn btn-secondary btn-sm" href="/sha256/${info.hash}.jsonl" download="snapshot-${info.hash.slice(0, 12)}.jsonl">Download list (.jsonl)</a>
-          ${sourceUrl ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">Committed source ↗</a>` : ''}
+          ${receiptUrl ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(receiptUrl)}" target="_blank" rel="noopener">Irys receipt ↗</a>` : ''}
+          ${sourceUrl ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener">Raw file ↗</a>` : ''}
         </div>
         ${info.merkleRoot ? `
           <form class="snapshot-check" data-snapshot-check autocomplete="off">

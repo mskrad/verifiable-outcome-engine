@@ -57,6 +57,11 @@ Versions live on **two orthogonal axes**; don't conflate them:
   the on-chain root, with a download of the proof. `GET /api/recent-resolutions` adds
   `standard_version`, `rng_version`, `snapshot_count`, `snapshot_hash`, `snapshot_uri`,
   `merkle_root` and `updated_utc`; `artifact_format_version` is null for snapshot draws.
+- **Snapshot lists open in the browser.** New uploads are tagged `text/plain; charset=utf-8` and the
+  mirror serves the same type, so a list opens as text instead of downloading; the snapshot hash
+  covers the bytes only and is unchanged. Earlier uploads keep their `application/x-ndjson` tag.
+  `/verify` links an **Irys receipt** (`devnet.irys.xyz/tx/<id>`: uploader, tags with
+  `VRE-Snapshot-SHA256`, size) next to the **raw file**; Irys has no explorer page for devnet uploads.
 - **Fixed in SDK 0.9.1: single-phase snapshot draws were labelled two phase.** The verifier
   mapped every `protocol_revision >= 1` to `standard_version: "1.3.2"`, but the program writes 1
   for two-phase `attest_winners` and 2 for single-phase `settle_rng_v2`. Format 7 draws settled in
