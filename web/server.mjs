@@ -119,7 +119,8 @@ const PARTNER_SNAPSHOT_MEDIUM_MAX = Number(
 const PARTNER_SNAPSHOT_STREAMING_MIN = Number(
   process.env.PARTNER_SNAPSHOT_STREAMING_MIN || 100000
 );
-const PARTNER_SNAPSHOT_PAYOUT_LAMPORTS = 3;
+// Snapshot draws resolve on rng_v2, which requires payout-free artifacts.
+const PARTNER_SNAPSHOT_PAYOUT_LAMPORTS = 0;
 const PARTNER_SNAPSHOT_BASE_INPUT_LAMPORTS = 10;
 const PARTNER_SNAPSHOT_MAX_WINNERS = Number(
   process.env.PARTNER_SNAPSHOT_MAX_WINNERS || 10
@@ -1957,7 +1958,7 @@ function buildPartnerSnapshotConfig({
     winnersCount * PARTNER_SNAPSHOT_PAYOUT_LAMPORTS
   );
   return {
-    type: "outcome_standard_v1_2",
+    type: "outcome_standard_v1_2_1",
     formula,
     input_lamports: inputLamports,
     payout_lamports: PARTNER_SNAPSHOT_PAYOUT_LAMPORTS,
@@ -2650,7 +2651,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
     target,
   });
 
-  const resolveInline = await loadResolveInline();
+  const resolveInline = await loadResolveInlineRngV2();
   const walletPath =
     process.env.PARTNER_SNAPSHOT_WALLET ||
       process.env.LIVE_RAFFLE_WALLET ||
@@ -2730,7 +2731,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
 
   json(res, 200, {
     ok: true,
-    standard_version: "1.2",
+    standard_version: "1.2.1",
     session_id: sessionId,
     signature: result.signature,
     outcome_id: result.outcome,
@@ -2747,6 +2748,7 @@ async function handlePartnerSnapshotFinalize(req, res) {
     proof_status: "ready",
     mode: finalized.mode,
     thresholds: snapshotThresholds(),
+    ...rngV2ResponseFields(result),
   });
 }
 

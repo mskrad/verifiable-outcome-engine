@@ -1143,6 +1143,8 @@ export type RngV2PreparedDraw = {
   expirySlot: string;
   prepareSignature: string;
   artifactPath: string;
+  /** Snapshot draws (format 7): where the caller reads the snapshot to claim the winners at settle. */
+  snapshot?: { path: string; formula: string; snapshotHash: string; target?: string };
 };
 
 export type RngV2SettleResult = {
@@ -1191,8 +1193,13 @@ export async function prepareInlineRngV2(
   config: ArtifactConfig,
   opts: ResolveInlineOptions = {}
 ): Promise<RngV2PreparedDraw> {
-  if (SCALE_CONFIG_TYPES.has(String((config as { type?: string }).type))) {
-    throw new Error("rng_v2 inline draws support compact artifacts only; use the snapshot flow for scale draws");
+  const configType = String((config as { type?: string }).type);
+  const isSnapshot = SCALE_CONFIG_TYPES.has(configType);
+  if (isSnapshot && configType !== "outcome_standard_v1_2_1") {
+    throw new Error("rng_v2 snapshot draws use outcome_standard_v1_2_1 (format 7)");
+  }
+  if (isSnapshot && !opts.snapshotPath) {
+    throw new Error("rng_v2 snapshot draws need opts.snapshotPath: the caller claims the winners from the snapshot");
   }
   const rpcUrl = opts.rpcUrl ?? process.env.ANCHOR_PROVIDER_URL ?? DEFAULT_RPC_URL;
   const client = await loadOutcomeClient({
@@ -1251,6 +1258,104 @@ export async function prepareInlineRngV2(
     expirySlot: asBigInt(state.expirySlot).toString(),
     prepareSignature,
     artifactPath: runtime.artifactPath,
+    ...(isSnapshot
+      ? {
+          snapshot: {
+            path: opts.snapshotPath!,
+            formula: String((config as { formula?: string }).formula),
+            snapshotHash: Buffer.from(state.snapshotHash as number[]).toString("hex"),
+            ...((config as { target?: unknown }).target === undefined
+              ? {}
+              : { target: String((config as { target?: unknown }).target) }),
+          },
+        }
+      : {}),
+  };
+}
+
+function u64le(value: bigint): Buffer {
+  const out = Buffer.alloc(8);
+  out.writeBigUInt64LE(value, 0);
+  return out;
+}
+
+// Mirror of rng_v2::resolve_slot_hashes: each target resolves to itself, or to the next produced slot
+// after the previous resolved one, read from the live SlotHashes sysvar.
+async function resolveSlotEvidence(
+  connection: anchor.web3.Connection,
+  targetSlots: bigint[]
+): Promise<{ resolvedSlots: bigint[]; slotHashes: Buffer[] }> {
+  const account = await connection.getAccountInfo(SYSVAR_SLOT_HASHES_PUBKEY, "confirmed");
+  if (!account) throw new Error("SlotHashes sysvar not found");
+  const data = account.data;
+  const entryCount = Number(data.readBigUInt64LE(0));
+  const resolvedSlots: bigint[] = [];
+  const slotHashes: Buffer[] = [];
+  let previous = 0n;
+  for (const target of targetSlots) {
+    let selectedSlot: bigint | null = null;
+    let selectedHash: Buffer | null = null;
+    for (let index = 0; index < entryCount; index += 1) {
+      const start = 8 + index * 40;
+      const slot = data.readBigUInt64LE(start);
+      if (slot <= previous) continue;
+      if (slot === target || (slot > target && (selectedSlot === null || slot < selectedSlot))) {
+        selectedSlot = slot;
+        selectedHash = Buffer.from(data.subarray(start + 8, start + 40));
+        if (slot === target) break;
+      }
+    }
+    if (selectedSlot === null || selectedHash === null) {
+      throw new Error(`no SlotHashes entry at or after slot ${target}`);
+    }
+    resolvedSlots.push(selectedSlot);
+    slotHashes.push(selectedHash);
+    previous = selectedSlot;
+  }
+  return { resolvedSlots, slotHashes };
+}
+
+// Snapshot draws (format 7): the caller claims the winners with the randomness the program derives
+// at settle; replay against the published snapshot proves the claim.
+async function snapshotWinnerClaim(
+  client: OutcomeClient,
+  draw: RngV2PreparedDraw
+): Promise<{ winnerCount: number; winnerClaimHash: number[]; outcomeIdLen: number; outcomeId: number[] }> {
+  const snapshot = draw.snapshot!;
+  const runtimeId = Buffer.from(draw.runtimeId, "hex");
+  const resolveId = BigInt(draw.resolveId);
+  const { resolvedSlots, slotHashes } = await resolveSlotEvidence(
+    client.provider.connection,
+    draw.targetSlots.map((slot) => BigInt(slot))
+  );
+  const parts: Buffer[] = [
+    Buffer.from("VRE_RNG_V2", "ascii"),
+    runtimeId,
+    u64le(resolveId),
+    Buffer.from(draw.artifactHash, "hex"),
+    Buffer.from(snapshot.snapshotHash, "hex"),
+  ];
+  for (let index = 0; index < 3; index += 1) {
+    parts.push(u64le(resolvedSlots[index]), slotHashes[index]);
+  }
+  const seed = sha256(Buffer.concat(parts));
+  const randomness = sha256(
+    Buffer.concat([seed, runtimeId, u64le(resolveId), client.authority.publicKey.toBuffer()])
+  );
+  const claim = await buildSnapshotClaimFromFile({
+    snapshotPath: snapshot.path,
+    formula: snapshot.formula as any,
+    winnersCount: draw.winnersCount,
+    randomness,
+    payoutLamports: 0n,
+    ...(snapshot.target === undefined ? {} : { targetScore: BigInt(snapshot.target) }),
+  });
+  const primary = Buffer.from(claim.outcomeIds[0], "ascii");
+  return {
+    winnerCount: claim.winnersCount,
+    winnerClaimHash: [...claim.winnerClaimHash],
+    outcomeIdLen: primary.length,
+    outcomeId: [...Buffer.concat([primary, Buffer.alloc(64 - primary.length)])],
   };
 }
 
@@ -1281,14 +1386,20 @@ export async function settleInlineRngV2(
   );
 
   // Compact artifact: the program selects the winners, so every winner argument stays empty.
+  // Snapshot artifact: the caller claims them from the snapshot (snapshotWinnerClaim).
+  const claim = draw.snapshot
+    ? await snapshotWinnerClaim(client, draw)
+    : {
+        winnerCount: draw.winnersCount,
+        winnerClaimHash: [...Buffer.alloc(32, 0)],
+        outcomeIdLen: 0,
+        outcomeId: [...Buffer.alloc(64, 0)],
+      };
   const instruction = await (outcomeMethods(client) as any)
     .settleRngV2({
       runtimeId: [...runtimeId],
       resolveId: new BN(draw.resolveId),
-      winnerCount: draw.winnersCount,
-      winnerClaimHash: [...Buffer.alloc(32, 0)],
-      outcomeIdLen: 0,
-      outcomeId: [...Buffer.alloc(64, 0)],
+      ...claim,
       operatorRevealLen: 0,
       operatorReveal: [...Buffer.alloc(32, 0)],
     })
@@ -1387,7 +1498,7 @@ async function waitForSlotAfter(rpcUrl: string, targetSlot: bigint, expirySlot: 
   }
 }
 
-const SETTLE_RETRYABLE = /RngV2TargetSlotNotReady|RngV2SlotHashNotFound|429|blockhash/i;
+const SETTLE_RETRYABLE = /RngV2TargetSlotNotReady|RngV2SlotHashNotFound|no SlotHashes entry|429|blockhash/i;
 
 /**
  * Single-phase rng_v2 draw in one call (Outcome Standard v1.2): commit the rules, prepare
