@@ -1,6 +1,6 @@
 # Verifiable Outcome Engine (VRE)
 
-> On-chain proof of who won. VRE commits outcome rules on Solana before a result exists; anyone recomputes the result from the transaction signature using public RPC data. Solana devnet only. Canonical program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B. SDK verifiable-outcome-sdk 0.8.1 on npm.
+> On-chain proof of who won. VRE commits outcome rules on Solana before a result exists; anyone recomputes the result from the transaction signature using public RPC data. Solana devnet only. Canonical program 6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B. SDK verifiable-outcome-sdk 0.8.2 on npm.
 
 ## Docs
 

@@ -6,7 +6,7 @@ Machine-readable copy of https://verifiableoutcome.online/spec for agents and to
 - Cluster: Solana devnet. Mainnet is planned for this year.
 - Canonical program: `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`
 - Last program deploy: slot 497829503, 2026-09-13
-- SDK: `verifiable-outcome-sdk` 0.8.1 (npm)
+- SDK: `verifiable-outcome-sdk` 0.8.2 (npm)
 - Base URL: `https://verifiableoutcome.online`
 - Conventions: all integers little-endian; hashes are SHA-256; `‖` is byte concatenation.
 
@@ -450,7 +450,7 @@ curl -s -X POST https://verifiableoutcome.online/api/partner/draw \
 <a id="sdk"></a>
 ## 08 · SDK
 
-`verifiable-outcome-sdk` 0.8.1: TypeScript, ES module, Node 18+.
+`verifiable-outcome-sdk` 0.8.2: TypeScript, ES module, Node 18+.
 
 ```bash
 npm install verifiable-outcome-sdk
