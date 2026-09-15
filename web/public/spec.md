@@ -39,7 +39,7 @@ Every path: commit the rules, bind a runtime, resolve, replay.
 
 | Source | Entropy | Operator can / cannot | Status |
 |---|---|---|---|
-| `rng_v1` | `master_seed` set by the operator at runtime creation | Cannot change rules or recorded result. Can compute the result before sending. | Legacy. Still used by scale snapshot draws; not planned for mainnet. |
+| `rng_v1` | `master_seed` set by the operator at runtime creation | Cannot change rules or recorded result. Can compute the result before sending. | Legacy. No public endpoint uses it; not planned for mainnet. |
 | `rng_v2` single phase (v1.2) | Hashes of three future slots fixed at prepare | Cannot predict. Can decline to settle; the unsettled draw stays on-chain and expires. | Canonical. Default. |
 | `rng_v2` two phase (v1.3.2) | Same slot hashes; anyone may seal | Cannot predict and cannot abort; skipping attest forfeits the stake. | Canonical. Opt-in per draw. |
 | Unicorn-G (B8) | VDF output verified with Groth16 | Designed to remove residual validator influence. | Implemented; not deployed to the canonical program. |
@@ -152,7 +152,7 @@ Input: transaction signature and program ID.
 3. Check the artifact hash is equal in event, config, resolution and header; artifact finalized; status allows binding.
 4. Rebuild the artifact from chunk accounts; re-hash.
 5. Recompute randomness: `master_seed` (rng_v1) or recorded slots and slot hashes (rng_v2); check operator reveal against commitment.
-6. Replay winner selection: compact from the on-chain table; scale by fetching the snapshot from its URI and checking hash, count and Merkle root.
+6. Replay winner selection: compact from the on-chain table; scale by fetching the snapshot (committed URI or a hash-addressed mirror, see Snapshot sources in §08) and checking hash, count and Merkle root.
 7. Compare input, output, winner count, winner ids and padding, winner digest, effect digest. All equal: `MATCH / OK`. Otherwise the first failing check's code.
 
 ### HTTP response
@@ -192,7 +192,7 @@ Example from devnet signature `237xT8M5YE9drfMTdJKRCrgbWU6b1pZAB7YPHZkgy8A3pqi8J
 | Always | status, reason, outcome_id, resolve_id, compiled_artifact_hash, runtime_id, program_id |
 | Winners and rules | outcome_ids, winners_count, artifact_format_version, resolution_formula, target, standard_version, entry_count, outcomes[] |
 | rng_v2 | rng_version, target_slots, resolved_slots, slot_hashes, operator_commit_hash, winner_claim_hash, entropy_source, protocol_revision |
-| Scale snapshot | snapshot_hash, snapshot_count, snapshot_uri, merkle_root, irys_url, proof_manifest_url, publication_status |
+| Scale snapshot | snapshot_hash, snapshot_count, snapshot_uri, merkle_root |
 | Conditions | entrant_count, winning_score_sum, winners_digest, facts_ref_root |
 | Slot spin | actor, input_lamports, payout_lamports, raw_win_lamports, reel_stops, randomness, settled_at_slot |
 
@@ -419,7 +419,7 @@ Header `x-api-key: vresk_…`. Keys are issued on request (https://t.me/maskradi
 | Endpoint | Request | Response |
 |---|---|---|
 | `POST /api/partner/draw` | formula, participants, winners_count?, target?, label?, use_case? | `{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot, rng_version, entropy_source, prepare_signature, target_slots, resolved_slots, winner_claim_hash }` |
-| `GET /api/partner/draw/:signature/proof` | ?address= | Scale draw membership proof: included, winner, merkle_root, leaf_hash, proof, proof_status, publication_status, irys_url |
+| `GET /api/partner/draw/:signature/proof` | ?address= | Scale draw membership proof: included, winner, participant, merkle_root, leaf_hash, proof, snapshot_uri, publication_url |
 | `POST /api/partner/snapshot/init` | label?, use_case? | Snapshot session id, valid 24 h |
 | `POST /api/partner/snapshot/chunk` | session_id, chunk_index, participants | ≤ 5,000 participants per chunk, ≤ 2 MB body |
 | `POST /api/partner/snapshot/finalize` | session_id, formula, winners_count, target?, wait? | 202 with `status_url`; the draw runs in the background. `wait: true` answers 200 with the result instead |
@@ -487,12 +487,26 @@ const bytes = buildArtifact({
 |---|---|
 | Verification | verifyOutcome |
 | Artifacts | buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121 |
-| Snapshots and Merkle | buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine |
+| Snapshots and Merkle | buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine; after 0.8.2: canonicalSnapshotLine, verifySnapshotMerkleProof, computeSnapshotMerkleRootFromProof, fetchSnapshotCommitment, fetchCommittedSnapshot, snapshotSourceCandidates, SnapshotUnavailableError |
 | Composite | buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact |
 | Sortition | createSortitionClient, sortitionCreateDrawInline, sortitionRegisterTicketInline, sortitionSealDrawInline, sortitionClaimTicketInline, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers |
 | Conditions and slot | Scoring, artifact encoders and replay helpers for fc7 and SF1 |
 
 Not in the published package: the operator resolve client and the rng_v2 prepare-and-settle client (draws run through the HTTP API). `verifyOutcome` and `vre verify` do not replay sortition transactions; the claim instruction enforces the sortition predicate on-chain.
+
+### Snapshot sources
+
+`snapshot_uri` is opaque to the program. It is part of the hashed artifact, so a draw commits to where the list was published, and the file itself is checked against `snapshot_hash`. The verifier tries, in order:
+
+1. a local copy (`--snapshot-file`);
+2. the committed URI: `https://` as is, `irys-devnet://<id>` through devnet.irys.xyz and gateway.irys.xyz, `irys://` through gateway.irys.xyz, `ar://` through arweave.net and turbo-gateway.com;
+3. mirrors by hash, `<mirror>/sha256/<snapshot_hash>.jsonl`: https://verifiableoutcome.online by default, override with `--snapshot-mirror` or `VRE_SNAPSHOT_MIRRORS`.
+
+A source whose bytes do not hash to `snapshot_hash` is skipped. If no source serves the file, the result is `ERR_SNAPSHOT_UNAVAILABLE`. Moving to other storage needs no program upgrade: new draws commit a different URI, and older draws keep verifying through mirrors. Irys devnet drops uploads after about 60 days; the VRE mirror keeps every snapshot it published.
+
+File format: one JSON object per line, `{"id","order","weight"}` for `weighted_random`, `{"id","order"}` for `first_n`, `{"id","order","score"}` otherwise, each ending in a newline, sorted by id bytes. Leaf = SHA-256(SHA-256(line)); node = SHA-256(left ‖ right), the last node is duplicated on odd levels; a proof is a list of `{ position, sibling }` from the leaf upward, where `position` is the side the sibling sits on. `verifySnapshotMerkleProof` checks a line and proof against the on-chain `merkle_root`.
+
+Measured on devnet on 2026-09-15: 10,001 participants, finalized in 23 s, replayed to MATCH from the committed URI alone. On a local validator, 100,001 participants (8 MB) took 24 s.
 
 <a id="use-cases"></a>
 ## 09 · Use Cases

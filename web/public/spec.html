@@ -159,7 +159,7 @@
               <table class="spec-table">
                 <thead><tr><th>Source</th><th>Where the entropy comes from</th><th>Operator can / cannot</th><th>Status</th></tr></thead>
                 <tbody>
-                  <tr><td class="mono">rng_v1</td><td>A <span class="mono">master_seed</span> set by the operator when the runtime is created.</td><td>Cannot change the rules or the recorded result. <b>Can</b> compute the result before sending the transaction.</td><td>Legacy. Still used by scale snapshot draws; not planned for mainnet.</td></tr>
+                  <tr><td class="mono">rng_v1</td><td>A <span class="mono">master_seed</span> set by the operator when the runtime is created.</td><td>Cannot change the rules or the recorded result. <b>Can</b> compute the result before sending the transaction.</td><td>Legacy. No public endpoint uses it; not planned for mainnet.</td></tr>
                   <tr><td class="mono">rng_v2 · single phase (v1.2)</td><td>Hashes of three Solana slots fixed at prepare, that do not exist yet.</td><td>Cannot predict the result. Can decline to settle after the slots land; an unsettled draw stays on-chain and expires.</td><td>Canonical. Default.</td></tr>
                   <tr><td class="mono">rng_v2 · two phase (v1.3.2)</td><td>Same slot hashes; anyone may seal them in.</td><td>Cannot predict and cannot abort: after seal the outcome is fixed, and skipping attest forfeits the stake.</td><td>Canonical. Opt-in per draw.</td></tr>
                   <tr><td class="mono">Unicorn-G (B8)</td><td>A VDF output verified with Groth16.</td><td>Designed to remove residual validator influence on the seed.</td><td>Implemented; not deployed to the canonical program; see <a href="#paths">§06</a>.</td></tr>
@@ -307,7 +307,7 @@ expiry_slot  = target_slots[2] + 480
               <li>Checks the artifact hash is the same in the event, config, resolution and header, and that the artifact is finalized with a status that allows binding.</li>
               <li>Rebuilds the artifact from its chunk accounts and re-hashes it.</li>
               <li>Recomputes the randomness: from <span class="mono">master_seed</span> for rng_v1, from the recorded slots and slot hashes for rng_v2, checking any operator reveal against its commitment.</li>
-              <li>Replays winner selection. Compact artifacts replay the on-chain table; scale artifacts fetch the snapshot from its URI and check its hash, count and Merkle root.</li>
+              <li>Replays winner selection. Compact artifacts replay the on-chain table; scale artifacts fetch the snapshot from the committed URI or a hash-addressed mirror (see Snapshot sources in §08) and check its hash, count and Merkle root.</li>
               <li>Compares input, output, winner count, winner ids and their padding, winner digest and effect digest. All equal: <span class="mono">MATCH / OK</span>. Otherwise the first failing check is returned as the reason.</li>
             </ol>
 
@@ -350,7 +350,7 @@ expiry_slot  = target_slots[2] + 480
                   <tr><td>Always</td><td class="mono">status, reason, outcome_id, resolve_id, compiled_artifact_hash, runtime_id, program_id</td></tr>
                   <tr><td>Winners and rules</td><td class="mono">outcome_ids, winners_count, artifact_format_version, resolution_formula, target, standard_version, entry_count, outcomes[]</td></tr>
                   <tr><td>rng_v2</td><td class="mono">rng_version, target_slots, resolved_slots, slot_hashes, operator_commit_hash, winner_claim_hash, entropy_source, protocol_revision</td></tr>
-                  <tr><td>Scale snapshot</td><td class="mono">snapshot_hash, snapshot_count, snapshot_uri, merkle_root, irys_url, proof_manifest_url, publication_status</td></tr>
+                  <tr><td>Scale snapshot</td><td class="mono">snapshot_hash, snapshot_count, snapshot_uri, merkle_root</td></tr>
                   <tr><td>Conditions</td><td class="mono">entrant_count, winning_score_sum, winners_digest, facts_ref_root</td></tr>
                   <tr><td>Slot spin</td><td class="mono">actor, input_lamports, payout_lamports, raw_win_lamports, reel_stops, randomness, settled_at_slot</td></tr>
                 </tbody>
@@ -635,7 +635,7 @@ expiry_slot  = target_slots[2] + 480
                 <thead><tr><th>Endpoint</th><th>Request</th><th>Response</th></tr></thead>
                 <tbody>
                   <tr><td class="mono">POST /api/partner/draw</td><td class="mono">formula, participants, winners_count?, target?, label?, use_case?</td><td class="mono">{ ok, signature, outcome_id, outcome_ids, replay_url, artifact_slot, resolution_slot, rng_version, entropy_source, prepare_signature, target_slots, resolved_slots, winner_claim_hash }</td></tr>
-                  <tr><td class="mono">GET /api/partner/draw/:signature/proof</td><td class="mono">?address=</td><td>Membership proof for a scale draw: <span class="mono">included, winner, merkle_root, leaf_hash, proof, proof_status, publication_status, irys_url</span>.</td></tr>
+                  <tr><td class="mono">GET /api/partner/draw/:signature/proof</td><td class="mono">?address=</td><td>Membership proof for a scale draw: <span class="mono">included, winner, participant, merkle_root, leaf_hash, proof, snapshot_uri, publication_url</span>.</td></tr>
                   <tr><td class="mono">POST /api/partner/snapshot/init</td><td class="mono">label?, use_case?</td><td>A snapshot session id, valid for 24 hours.</td></tr>
                   <tr><td class="mono">POST /api/partner/snapshot/chunk</td><td class="mono">session_id, chunk_index, participants</td><td>Up to 5,000 participants per chunk, 2 MB per body.</td></tr>
                   <tr><td class="mono">POST /api/partner/snapshot/finalize</td><td class="mono">session_id, formula, winners_count, target?, wait?</td><td>202 with <span class="mono">status_url</span>; the draw runs in the background. <span class="mono">wait: true</span> answers 200 with the result instead.</td></tr>
@@ -727,7 +727,7 @@ const bytes = buildArtifact({
                 <tbody>
                   <tr><td>Verification</td><td class="mono">verifyOutcome</td></tr>
                   <tr><td>Artifacts</td><td class="mono">buildArtifact, buildArtifactV4, buildArtifactV5, buildArtifactV12, buildArtifactV121, parseArtifactV5, parseArtifactV12, parseArtifactV121</td></tr>
-                  <tr><td>Snapshots and Merkle</td><td class="mono">buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine</td></tr>
+                  <tr><td>Snapshots and Merkle</td><td class="mono">buildSnapshotHash, buildSnapshotManifest, buildWinnerClaimHash, buildMerkleLevels, buildMerkleProof, buildSnapshotMerkleProofFromFile, hashSnapshotLeafLine; after 0.8.2: canonicalSnapshotLine, verifySnapshotMerkleProof, computeSnapshotMerkleRootFromProof, fetchSnapshotCommitment, fetchCommittedSnapshot, snapshotSourceCandidates, SnapshotUnavailableError</td></tr>
                   <tr><td>Composite</td><td class="mono">buildCompositeRankDescArtifact, parseCompositeRankDescArtifact, replayCompositeRankDescArtifact</td></tr>
                   <tr><td>Sortition</td><td class="mono">createSortitionClient, sortitionCreateDrawInline, sortitionRegisterTicketInline, sortitionSealDrawInline, sortitionClaimTicketInline, sortitionCommitment, sortitionWins, sortitionThresholdFromProbability, build*SortitionInstruction helpers</td></tr>
                   <tr><td>Conditions and slot</td><td>Scoring, artifact encoders and replay helpers for fc7 and SF1.</td></tr>
@@ -735,6 +735,17 @@ const bytes = buildArtifact({
               </table>
             </div>
             <p>The operator resolve client and the rng_v2 prepare-and-settle client are not in the published package: draws run through the HTTP API. <span class="mono">verifyOutcome</span> and <span class="mono">vre verify</span> do not replay sortition transactions; the claim instruction enforces the sortition predicate on-chain.</p>
+
+            <h3>Snapshot sources</h3>
+            <p><span class="mono">snapshot_uri</span> is opaque to the program. It is part of the hashed artifact, so a draw commits to where the list was published, and the file itself is checked against <span class="mono">snapshot_hash</span>. The verifier tries, in order:</p>
+            <ol>
+              <li>a local copy (<span class="mono">--snapshot-file</span>);</li>
+              <li>the committed URI: <span class="mono">https://</span> as is, <span class="mono">irys-devnet://&lt;id&gt;</span> through devnet.irys.xyz and gateway.irys.xyz, <span class="mono">irys://</span> through gateway.irys.xyz, <span class="mono">ar://</span> through arweave.net and turbo-gateway.com;</li>
+              <li>mirrors by hash, <span class="mono">&lt;mirror&gt;/sha256/&lt;snapshot_hash&gt;.jsonl</span>: https://verifiableoutcome.online by default, override with <span class="mono">--snapshot-mirror</span> or <span class="mono">VRE_SNAPSHOT_MIRRORS</span>.</li>
+            </ol>
+            <p>A source whose bytes do not hash to <span class="mono">snapshot_hash</span> is skipped. If no source serves the file, the result is <span class="mono">ERR_SNAPSHOT_UNAVAILABLE</span>. Moving to other storage needs no program upgrade: new draws commit a different URI, and older draws keep verifying through mirrors. Irys devnet drops uploads after about 60 days; the VRE mirror keeps every snapshot it published.</p>
+            <p>File format: one JSON object per line, <span class="mono">{{"id","order","weight"}}</span> for <span class="mono">weighted_random</span>, <span class="mono">{{"id","order"}}</span> for <span class="mono">first_n</span>, <span class="mono">{{"id","order","score"}}</span> otherwise, each ending in a newline, sorted by id bytes. Leaf = SHA-256(SHA-256(line)); node = SHA-256(left ‖ right), the last node is duplicated on odd levels; a proof is a list of <span class="mono">{{ position, sibling }}</span> from the leaf upward, where <span class="mono">position</span> is the side the sibling sits on. <span class="mono">verifySnapshotMerkleProof</span> checks a line and proof against the on-chain <span class="mono">merkle_root</span>.</p>
+            <p>Measured on devnet on 2026-09-15: 10,001 participants, finalized in 23 s, replayed to MATCH from the committed URI alone. On a local validator, 100,001 participants (8 MB) took 24 s.</p>
           </section>
 
           <!-- ============================================================ 09 -->

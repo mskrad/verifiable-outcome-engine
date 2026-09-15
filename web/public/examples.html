@@ -361,7 +361,7 @@
       <div class="section-heading">
         <span class="eyebrow"><span class="dot"></span> More paths</span>
         <h2>Beyond a single call.</h2>
-        <p>The cards above resolve in one request and the console right above this takes four. What is left is one direction that is still on paper, and one entropy source that is implemented but not deployed.</p>
+        <p>The cards above resolve in one request and the console right above this takes four. What is left: draws over lists too large for one request, and one entropy source that is implemented but not deployed.</p>
       </div>
 
       <div class="feature-grid feature-grid-compact">
@@ -372,9 +372,10 @@
           <p class="mt-4"><a href="/protocol-paths" class="text-teal">Read the caveat in full →</a></p>
         </div>
         <div class="feature-card">
-          <span class="badge badge-pending ex-chip">not shipped</span>
+          <span class="badge ex-chip">partner API</span>
           <h3>Merkle-committed snapshots</h3>
-          <p>Commit a participant snapshot as a single root and hand every winner an inclusion proof, so a draw over hundreds of thousands of addresses stays one on-chain artifact. Designed, not shipped.</p>
+          <p>Upload the participant list in chunks; the server publishes it, commits its hash, Merkle root and address on-chain, and draws on future slot hashes. Anyone replays the draw from the published list and checks any address with an inclusion proof against the on-chain root. Measured on devnet with 10,001 participants in 23 s. No button here: it needs a partner key.</p>
+          <p class="mt-4"><a href="/spec#api" class="text-teal">Snapshot endpoints →</a></p>
         </div>
       </div>
     </div>

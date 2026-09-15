@@ -143,6 +143,36 @@ the same on-chain artifact, so it can be much older than the draw.
 | 429 | another draw on this key started less than 10 s ago (`retry_after_ms`) |
 | 504 | devnet did not finish within 55 s; retry |
 
+### More than 100 participants
+
+The snapshot endpoints take up to 5,000 participants per chunk and commit the whole list as a
+hash and a Merkle root:
+
+```bash
+curl -s -X POST https://verifiableoutcome.online/api/partner/snapshot/init \
+  -H "content-type: application/json" -H "x-api-key: vresk_YOUR_KEY" -d '{"label":"season 3"}'
+# → { "session_id": "…" }
+
+curl -s -X POST https://verifiableoutcome.online/api/partner/snapshot/chunk \
+  -H "content-type: application/json" -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{"session_id":"…","chunk_index":0,"participants":[{"id":"wallet-1","weight":3},{"id":"wallet-2","weight":1}]}'
+
+curl -s -X POST https://verifiableoutcome.online/api/partner/snapshot/finalize \
+  -H "content-type: application/json" -H "x-api-key: vresk_YOUR_KEY" \
+  -d '{"session_id":"…","formula":"weighted_random","winners_count":3}'
+# → 202 { "status": "finalizing", "status_url": "/api/partner/snapshot/status?session_id=…" }
+```
+
+Poll `status_url` until `status` is `finalized` (about 25 s for 10,000 participants); `result`
+holds the signature, winners, `snapshot_uri` and `merkle_root`. The list is published before the
+draw is committed, so anyone can replay the signature. Each participant checks their entry with
+`GET /api/partner/draw/<signature>/proof?address=<id>` and `verifySnapshotMerkleProof` against the
+`merkle_root` on-chain.
+
+On devnet the list goes to Irys devnet, which drops uploads after about 60 days; VRE keeps a copy
+at `https://verifiableoutcome.online/sha256/<snapshot_hash>.jsonl`, and the verifier falls back to
+it by hash.
+
 ---
 
 ## Part 3 — Sortition-by-Claim

@@ -18,8 +18,8 @@ Versions live on **two orthogonal axes**; don't conflate them:
   - **Scale** (V1.2 / V1.2.1, fmt 6/7): **Merkle snapshot**, only the root on-chain →
     **large** draws (thousands–millions).
 - **Randomness (`rng_version`) — about SECURITY.**
-  - **rng_v1** — operator `master_seed` (grindable). **Legacy, retained** (still used by scale snapshot draws;
-    public compact draws moved to rng_v2 on 2026-09-13).
+  - **rng_v1** — operator `master_seed` (grindable). **Legacy, retained** (public compact draws moved
+    to rng_v2 on 2026-09-13, snapshot draws on 2026-09-15).
   - **rng_v2** — future Solana SlotHash (unpredictable). **Current.** Two lifecycles:
     - **v1.2** single-phase `settle_rng_v2` — one settle; unpredictable, not no-abort. The default
       for draws, where the operator declining to settle is visible and leaves the draw to expire.
@@ -39,6 +39,19 @@ Versions live on **two orthogonal axes**; don't conflate them:
   with raw simulation text.
 - **Docs** rewritten for partners: README, INTEGRATION.md, /build, /verify reason codes, /spec
   statuses, runbooks, security policy and roadmap.
+- **Public snapshot draws.** `POST /api/partner/snapshot/finalize` publishes the participant list
+  before the draw is committed (Irys devnet, plus a hash-addressed copy at
+  `/sha256/<snapshot_hash>.jsonl`), commits hash, count, Merkle root and URI in a format 7
+  artifact and resolves on rng_v2 single phase in the background; poll
+  `GET /api/partner/snapshot/status`. Snapshot draws no longer use rng_v1 and run on the canonical
+  program. Measured on devnet: 10,001 participants finalized in 23 s and replayed to MATCH from the
+  committed URI alone; on a local validator 100,001 participants took 24 s.
+- **Verifier reads snapshots from anywhere.** Committed URI schemes `https://`, `irys-devnet://`,
+  `irys://`, `ar://`, then mirrors by hash (`--snapshot-mirror`, `VRE_SNAPSHOT_MIRRORS`) or a local
+  file (`--snapshot-file`); every source is checked against `snapshot_hash`. No source →
+  `ERR_SNAPSHOT_UNAVAILABLE`. Storage can change without a program upgrade.
+- **SDK** (after 0.8.2): `verifySnapshotMerkleProof`, `computeSnapshotMerkleRootFromProof`,
+  `canonicalSnapshotLine`, `fetchSnapshotCommitment`, `fetchCommittedSnapshot`.
 
 ## 2026-09-14 — Showcase draws on rng_v2, CLI, reliability fixes
 
@@ -73,7 +86,7 @@ Versions live on **two orthogonal axes**; don't conflate them:
   `POST /api/partner/draw` and `POST /api/live-raffle` commit the rules, prepare, wait for the
   target slots, settle and replay inside the request. Responses keep their fields and add
   `rng_version`, `entropy_source`, `prepare_signature`, `target_slots`, `resolved_slots` and
-  `winner_claim_hash`. Draw artifacts are payout-free. Scale snapshot draws stay on rng_v1.
+  `winner_claim_hash`. Draw artifacts are payout-free. Scale snapshot draws stayed on rng_v1 until 2026-09-15.
 - **Deployed** to `6QtLot…` at slot `497829503` (upgrade `3hPmXzi3…`); the four blessed
   signatures of the time (rng_v1) still replayed to MATCH.
 
