@@ -11,7 +11,7 @@ Status: devnet. Mainnet is planned for this year.
 
 - Spec: [verifiableoutcome.online/spec](https://verifiableoutcome.online/spec) · Markdown for agents: [spec.md](https://verifiableoutcome.online/spec.md), [llms.txt](https://verifiableoutcome.online/llms.txt)
 - Integration guide: [INTEGRATION.md](./INTEGRATION.md)
-- Feedback and API keys: Telegram [t.me/maskradiation](https://t.me/maskradiation)
+- Feedback and API keys: Telegram [t.me/maskradiator](https://t.me/maskradiator)
 
 ## Verify a result
 
@@ -64,7 +64,7 @@ curl -s -X POST https://verifiableoutcome.online/api/examples/draw \
   -d '{"formula":"weighted_random","winners_count":1,"participants":[{"id":"alice"},{"id":"bob"},{"id":"carol"}]}'
 ```
 
-With a partner key (ask in [Telegram](https://t.me/maskradiation); one draw per 10 s per key):
+With a partner key (ask in [Telegram](https://t.me/maskradiator); one draw per 10 s per key):
 
 ```bash
 curl -s -X POST https://verifiableoutcome.online/api/partner/draw \

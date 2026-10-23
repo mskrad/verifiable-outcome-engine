@@ -18,7 +18,7 @@ check the result from the transaction signature.
 
 ## Now
 
-- Hackathon participants try the partner API; feedback in Telegram [t.me/maskradiation](https://t.me/maskradiation).
+- Hackathon participants try the partner API; feedback in Telegram [t.me/maskradiator](https://t.me/maskradiator).
 - Readable 4xx errors with program error names across partner endpoints.
 
 ## Next

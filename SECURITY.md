@@ -18,7 +18,7 @@ In scope:
 
 Report security issues privately to
 [hello@verifiableoutcome.online](mailto:hello@verifiableoutcome.online) or in Telegram
-[t.me/maskradiation](https://t.me/maskradiation).
+[t.me/maskradiator](https://t.me/maskradiator).
 
 Include the affected component, reproduction steps, transaction signatures or logs, expected and
 actual impact, and a suggested mitigation if you have one.

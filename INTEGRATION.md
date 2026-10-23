@@ -4,7 +4,7 @@ How to verify VRE results and how to run draws, sortition and conditions rounds 
 canonical devnet program `6QtLot4uztCfjUuPreoiYPc3e1gH2fg6pq8hKYyvCP6B`.
 
 Reference with every field and error code: [verifiableoutcome.online/spec](https://verifiableoutcome.online/spec).
-Questions, feedback and API keys: Telegram [t.me/maskradiation](https://t.me/maskradiation).
+Questions, feedback and API keys: Telegram [t.me/maskradiator](https://t.me/maskradiator).
 
 | You want to | You need | Part |
 |---|---|---|
@@ -63,7 +63,7 @@ HTTP: `POST https://verifiableoutcome.online/api/replay` with `{"signature": "<S
 
 ### Get a key
 
-Ask in Telegram: [t.me/maskradiation](https://t.me/maskradiation). Send the key in the `x-api-key`
+Ask in Telegram: [t.me/maskradiator](https://t.me/maskradiator). Send the key in the `x-api-key`
 header. To try without a key, `POST /api/examples/draw` takes the same body and returns the same
 response, limited to one draw per 15 s per IP.
 

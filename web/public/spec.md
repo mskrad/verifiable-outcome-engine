@@ -414,7 +414,7 @@ With `requireWorldId`, the caller sends a World ID 4.0 proof; the server verifie
 
 ### Partner API
 
-Header `x-api-key: vresk_…`. Keys are issued on request (https://t.me/maskradiation) and stored server-side. Draws also require `draw_enabled` on the key.
+Header `x-api-key: vresk_…`. Keys are issued on request (https://t.me/maskradiator) and stored server-side. Draws also require `draw_enabled` on the key.
 
 | Endpoint | Request | Response |
 |---|---|---|
