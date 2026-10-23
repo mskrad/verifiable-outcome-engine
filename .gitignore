@@ -76,3 +76,5 @@ programs/outcome/tests/fixtures/*
 
 # Локальный леджер валидатора (каталог называется test-ledger-local)
 test-ledger*/
+
+.taste-skill/
