@@ -520,8 +520,8 @@
       const wallets = window.vreWallet?.listWallets?.() || [];
       const buttons = wallets.length > 1
         ? wallets.map((wallet) => `
-            <button class="btn btn-secondary btn-sm" type="button" data-connect-wallet="${escapeHtml(wallet.name)}">
-              ${wallet.icon ? `<img src="${escapeHtml(wallet.icon)}" alt="" width="16" height="16" style="vertical-align:-3px;margin-right:6px;border-radius:4px;" />` : ''}${escapeHtml(wallet.name)}
+            <button class="btn btn-secondary btn-sm wallet-btn" type="button" data-connect-wallet="${escapeHtml(wallet.name)}">
+              ${wallet.icon ? `<img src="${escapeHtml(wallet.icon)}" alt="" width="16" height="16" />` : ''}${escapeHtml(wallet.name)}
             </button>`).join('')
         : '<button class="btn btn-secondary btn-sm" type="button" data-connect-wallet>Connect wallet</button>';
       return `

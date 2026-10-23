@@ -439,8 +439,8 @@
       return '<button class="btn btn-primary btn-lg" type="button" data-live-raffle-connect>Connect wallet <span aria-hidden>→</span></button>';
     }
     return wallets.map((wallet) => `
-      <button class="btn btn-primary btn-lg" type="button" data-live-raffle-connect="${escapeHtml(wallet.name)}">
-        ${wallet.icon ? `<img src="${escapeHtml(wallet.icon)}" alt="" width="18" height="18" style="vertical-align:-4px;margin-right:8px;border-radius:5px;" />` : ''}${escapeHtml(wallet.name)} <span aria-hidden>→</span>
+      <button class="btn btn-ghost btn-lg wallet-btn" type="button" data-live-raffle-connect="${escapeHtml(wallet.name)}">
+        ${wallet.icon ? `<img src="${escapeHtml(wallet.icon)}" alt="" width="18" height="18" />` : ''}${escapeHtml(wallet.name)} <span aria-hidden>→</span>
       </button>`).join('');
   }
 
