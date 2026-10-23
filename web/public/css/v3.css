@@ -33,6 +33,7 @@
   --v-err-soft: rgba(255, 110, 110, 0.1);
   --v-err-line: rgba(255, 110, 110, 0.35);
 
+  --v-code-string: #cfd0d5;
   --v-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --v-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --v-container: 1200px;
@@ -247,9 +248,13 @@ h1, h2, h3 { font-weight: 500; }
 .terminal { background: var(--v-bg-raised); border: 1px solid var(--v-line-2); border-radius: 12px; box-shadow: none; }
 .terminal-head { background: none; border-bottom: 1px solid var(--v-line-1); color: var(--v-text-3); font-size: 12px; }
 .terminal-dots, .terminal-dot { display: none !important; }
-.terminal .comment { color: var(--v-text-3); }
-.terminal .prompt { color: var(--v-text-2); }
-.terminal .ok { color: var(--v-ok); }
+.terminal-body { color: var(--v-text-2); }
+.terminal-body .key { color: var(--v-text-1); font-weight: 500; }
+.terminal-body .ok { color: var(--v-code-string); }
+.terminal-body .num { color: var(--v-text-1); }
+.terminal-body .comment { color: var(--v-text-3); font-style: normal; }
+.terminal-body .prompt { color: var(--v-text-3); }
+.terminal-body .out { color: var(--v-text-2); }
 code:not(pre code) { font-family: var(--font-mono); }
 
 .form-label { font-size: 12px; letter-spacing: 0.01em; text-transform: none; color: var(--v-text-3); margin-bottom: 8px; }
@@ -398,8 +403,8 @@ footer { margin-top: 96px; padding: 40px 0 48px; border-top: 1px solid var(--v-l
 .vcode pre { margin: 0; padding: 18px 20px; font: 13px/1.75 var(--font-mono); color: var(--v-text-2); white-space: pre-wrap; word-break: break-word; transition: opacity 180ms ease, filter 180ms ease; }
 .vcode pre.swap { opacity: 0; filter: blur(3px); }
 .tok-c { color: var(--v-text-3); }
-.tok-k { color: var(--v-text-1); }
-.tok-s { color: #c9d1dc; }
+.tok-k { color: var(--v-text-1); font-weight: 500; }
+.tok-s { color: var(--v-code-string); }
 .vout { border-radius: 0 12px 12px 0; background: var(--v-bg-sunken); box-shadow: inset 0 0 0 1px var(--v-line-2); padding: 22px; font: 13px/1.85 var(--font-mono); color: var(--v-text-2); }
 .vout .d { color: var(--v-text-3); }
 .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--v-bg-sunken); box-shadow: inset 0 0 0 1px var(--v-line-1); position: relative; }
