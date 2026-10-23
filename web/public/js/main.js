@@ -6,6 +6,7 @@
   'use strict';
 
   const root = document.documentElement;
+  const SITE_PALETTE = 'mono';
 
   function initTheme() {
     // The site ships one appearance. Clear anything a previous build's design-system
@@ -14,7 +15,8 @@
       try { localStorage.removeItem(key); } catch (_) { /* private mode */ }
     });
     root.setAttribute('data-theme', 'dark');
-    root.removeAttribute('data-palette');
+    if (SITE_PALETTE === 'mono') root.removeAttribute('data-palette');
+    else root.setAttribute('data-palette', SITE_PALETTE);
     root.removeAttribute('data-display');
     root.removeAttribute('data-density');
   }

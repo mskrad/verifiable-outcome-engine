@@ -1,0 +1,239 @@
+/* Live runtime compatibility layer on top of the VRE 2026 theme */
+
+:root {
+  --bg-surface: var(--surface-1);
+  --bg-surface-2: var(--surface-2);
+  --border: var(--hairline);
+  --border-strong: var(--hairline-2);
+  --text-dim: var(--text-2);
+  --text-faint: var(--text-3);
+  --radius-sm: var(--r-xs);
+  --radius: var(--r);
+  --radius-lg: var(--r-lg);
+}
+
+body {
+  background-attachment: fixed;
+}
+
+.sig-card-heading {
+  display: grid;
+  gap: 8px;
+}
+
+.sig-card-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.sig-card-status {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.badge-neutral {
+  background: var(--surface-1);
+  color: var(--text-2);
+  border: 1px solid var(--hairline);
+}
+
+.outcome-selected {
+  padding: 20px;
+  background: var(--teal-soft);
+  border: 1px solid var(--teal-glow);
+  border-radius: var(--r);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.outcome-id {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--teal);
+}
+
+.outcome-winner {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.did-win-card {
+  border-color: var(--teal-glow);
+}
+
+.did-win-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.did-win-copy {
+  color: var(--text-2);
+  font-size: 13.5px;
+  margin-top: -8px;
+}
+
+.wallet-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--hairline-2);
+  border-radius: var(--r-xs);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--teal);
+  overflow-wrap: anywhere;
+}
+
+.did-win-status {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--r-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13.5px;
+}
+
+.did-win-status-won {
+  background: var(--teal-soft);
+  border: 1px solid var(--teal-glow);
+  color: var(--text);
+}
+
+.did-win-status-muted {
+  background: var(--surface-1);
+  border: 1px solid var(--hairline);
+  color: var(--text-2);
+}
+
+.did-win-status-warn {
+  background: var(--amber-soft);
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  color: var(--text);
+}
+
+.snapshot-facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 14px 0 0;
+  font-size: 12.5px;
+}
+
+.snapshot-facts dt {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.snapshot-facts dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.snapshot-check {
+  margin-top: 18px;
+}
+
+.snapshot-check-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.snapshot-check-row .form-input {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .snapshot-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.artifact-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.artifact-summary-inline {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.widget-demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.widget-live-card {
+  min-height: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at top left, rgba(20, 241, 149, 0.12), transparent 36%),
+    var(--surface-glass);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 64px 24px;
+  color: var(--text-2);
+  font-size: 14px;
+  border: 1px dashed var(--hairline-2);
+  border-radius: var(--r);
+  background: var(--surface-1);
+}
+
+#vre-toast {
+  z-index: 1000;
+}
+
+@media (max-width: 800px) {
+  .widget-demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .sig-card-status {
+    justify-items: start;
+  }
+
+  .result-section {
+    padding: 16px;
+  }
+
+  .did-win-head {
+    align-items: stretch;
+  }
+
+  .did-win-head .btn,
+  .live-raffle-actions,
+  .live-raffle-actions .btn,
+  .live-raffle-head .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .artifact-summary-inline {
+    justify-content: flex-start;
+  }
+}

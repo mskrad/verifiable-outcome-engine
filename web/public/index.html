@@ -23,6 +23,7 @@
 
   <link rel="icon" type="image/svg+xml" href="/assets/VRE_logo_icon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
+  <script>document.documentElement.classList.add('js')</script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -61,227 +62,127 @@
   </nav>
 
   <main id="main" tabindex="-1">
+    <div class="v3-atmos" aria-hidden="true"></div>
 
-  <header class="hero">
-    <div class="container">
-      <div class="hero-inner">
+    <section class="v3-hero v3-wrap" aria-labelledby="hero-title">
+      <div class="v3-hero-top">
+        <h1 id="hero-title" class="hero-display rise">On-chain proof<br><span class="v3-dim">of who won.</span></h1>
         <div>
-          <span class="eyebrow"><span class="dot"></span> Live on Solana devnet</span>
-
-          <h1 class="hero-title">
-            On-chain proof<br/>
-            <span class="iri">of who won.</span>
-          </h1>
-
-          <p class="hero-lead">
-            Trust is a resource. VRE helps you earn it: commit rules on-chain
-            before the draw — anyone replays the result from a transaction
-            signature and verifies it themselves.
-          </p>
-
-          <div class="hero-cta">
-            <a href="/play" class="btn btn-primary btn-lg">Try Demo <span aria-hidden>→</span></a>
-            <a href="/verify" class="btn btn-secondary btn-lg">Verify a Signature</a>
-            <a href="/build" class="btn btn-ghost btn-lg">Build with VRE →</a>
+          <p class="v3-lead rise" style="--i:1">VRE is a Solana program and SDK for verifiable draws. Rules are committed before the randomness exists; anyone recomputes the winner from the transaction signature.</p>
+          <div class="v3-actions rise" style="--i:2">
+            <a class="btn btn-primary" href="/verify">Verify a signature <span aria-hidden="true">→</span></a>
+            <a class="btn btn-ghost" href="/build">Read the docs</a>
           </div>
-
-          <div class="ticker" aria-hidden="true">
-            <span class="ticker-dot"></span>
-            <span style="color:var(--text-3);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;flex-shrink:0;">Devnet · Verified</span>
-            <div class="ticker-track">
-              <div class="ticker-track-inner">
-                <span><b>MVE6v5…FAy5H</b> raffle · weighted_random · match</span>
-                <span><b>KQdZCB…56Qfk</b> rewards selection · weighted_random · match</span>
-                <span><b>3GEUW1…kYAD8</b> trading competition · rank_desc · match</span>
-                <span><b>4XywhA…xXmqz</b> prediction market · closest_to · match</span>
-                <span><b>MVE6v5…FAy5H</b> raffle · weighted_random · match</span>
-                <span><b>KQdZCB…56Qfk</b> rewards selection · weighted_random · match</span>
-                <span><b>3GEUW1…kYAD8</b> trading competition · rank_desc · match</span>
-                <span><b>4XywhA…xXmqz</b> prediction market · closest_to · match</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="hero-visual">
-          <figure class="flow-stage">
-            <figcaption class="flow-head">
-              <span>outcome</span>
-              <span class="flow-head-id">rt_164bb2e4</span>
-              <span class="flow-head-net">devnet</span>
-            </figcaption>
-
-            <ol class="flow-track">
-              <li class="flow-node">
-                <div class="flow-label">
-                  <span class="flow-label-name">commit</span>
-                  <span class="flow-label-meta">artifact 11d30b3b · weighted_random</span>
-                </div>
-                <span class="flow-status">locked</span>
-              </li>
-              <li class="flow-node">
-                <div class="flow-label">
-                  <span class="flow-label-name">settle</span>
-                  <span class="flow-label-meta">slots 498 395 156 · 172 · 173 · winner 3nafSu…TMFR9</span>
-                </div>
-                <span class="flow-status">drawn</span>
-              </li>
-              <li class="flow-node" data-state="last">
-                <div class="flow-label">
-                  <span class="flow-label-name">replay</span>
-                  <span class="flow-label-meta">MVE6v5…FAy5H · from public RPC</span>
-                </div>
-                <span class="flow-status">rerun</span>
-              </li>
-            </ol>
-
-            <div class="flow-verdict">
-              <svg class="flow-verdict-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-              <div>
-                <div class="flow-verdict-title">match</div>
-                <div class="flow-verdict-meta">recomputed from public RPC data — same winner, byte for byte</div>
-              </div>
-            </div>
-          </figure>
+          <div class="copy-field rise" style="--i:3"><span><b>$</b> npm i verifiable-outcome-sdk</span><button class="copy" type="button" data-copy="npm i verifiable-outcome-sdk">Copy</button></div>
         </div>
       </div>
 
-      <div class="hero-meta hero-meta-wide">
-        <div class="hero-meta-item">
-          <strong>+8 · +16 · +24</strong>
-          future slots per draw
+      <figure class="inst rise" style="--i:4" aria-label="Replay of the showcase raffle on Solana devnet, slot by slot">
+        <div class="inst-head">
+          <div><span class="t">raffle · weighted_random</span><span class="extra"> &nbsp; 7 participants &nbsp; sig MVE6v5…FAy5H</span></div>
+          <div class="phase"><span class="v3-dot idle" id="phase-dot"></span><span id="phase-label">rules committed</span></div>
         </div>
-        <div class="hero-meta-item">
-          <strong>Open verification SDK</strong>
-          audit the engine yourself
-        </div>
-        <div class="hero-meta-item">
-          <strong>0 oracles</strong>
-          public RPC is the source
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <section id="features">
-    <div class="container">
-      <div class="section-heading">
-        <span class="eyebrow"><span class="dot"></span> Why VRE</span>
-        <h2>Commit rules. Anyone verifies.</h2>
-        <p>Rules are locked on-chain before the draw. After resolution, anyone — users, auditors, regulators — can replay the outcome from a transaction signature and confirm it matches.</p>
-      </div>
-
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></div>
-          <h3>Rules locked before the draw</h3>
-          <p>Participant list, weights, and selection function are committed on-chain <em>before</em> resolution. No retroactive edits.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></div>
-          <h3>Independently replayable</h3>
-          <p>Any observer replays the outcome from public RPC data. Deterministic. Reproducible. No privileged access.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M7 4.5 17 19.5"/></svg></div>
-          <h3>One npm package</h3>
-          <p>Draw over HTTP with a partner key; check any result with <span class="mono">vre verify</span> or <span class="mono">verifyOutcome()</span> from the same package. Node 18+.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94L8.54 18.46a2.12 2.12 0 0 1-3-3l6.99-6.99a6 6 0 0 1 7.94-7.94L16.7 4.3a1 1 0 0 0-2 0z"/></svg></div>
-          <h3>Drop-in for any dApp</h3>
-          <p>Raffles, rewards, leaderboards, loot tables, ticket draws and prediction slips. Use-case-neutral primitives, not a closed box.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section style="padding-top:0;">
-    <div class="container">
-      <div class="section-heading">
-        <span class="eyebrow"><span class="dot"></span> Use cases</span>
-        <h2>Same engine. Four live proofs.</h2>
-        <p>Every example below is a real transaction on Solana devnet. Their signatures are on <a href="/play" class="text-teal">/play</a>; paste any into <a href="/verify" class="text-teal">/verify</a>.</p>
-        <p class="mt-4"><a href="/examples" class="text-teal">See all examples →</a></p>
-      </div>
-
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(20,241,149,0.12); color: var(--teal); border-color: rgba(20,241,149,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v2a2 2 0 0 0 0 4v2a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-2a2 2 0 0 0 0-4z"/><path d="M13 5v2M13 11v2M13 17v2"/></svg></div>
-          <h3>Rewards selection</h3>
-          <p>Raffles and airdrops share one primitive: pick one or N recipients from a committed weighted address list.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(168,85,247,0.12); color: #c084fc; border-color: rgba(168,85,247,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M19 12H5"/><path d="M7.5 8a2.5 2.5 0 1 1 0-5C9 3 12 4.5 12 8c0-3.5 3-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg></div>
-          <h3>Trading competition</h3>
-          <p>Native <span class="mono">rank_desc</span> formula. Highest committed scores win, with deterministic tie-break by input order.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(251,191,36,0.12); color: var(--amber); border-color: rgba(251,191,36,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h12"/></svg></div>
-          <h3>Prediction market</h3>
-          <p>Native <span class="mono">closest_to</span> formula. Predictions nearest the committed target win and replay exposes <span class="mono">target</span> and scores.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon" style="background: rgba(45,212,191,0.12); color: #2dd4bf; border-color: rgba(45,212,191,0.32);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><path d="M8 16h.01M16 16h.01"/></svg></div>
-          <h3>Loot</h3>
-          <p>Weighted outcome tables with the same replay flow: every slot and weight is committed before the draw.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section style="padding-top:0;">
-    <div class="container">
-      <div class="section-heading">
-        <span class="eyebrow"><span class="dot"></span> Flow</span>
-        <h2>Commit, settle, verify.</h2>
-        <p>Three on-chain events. Anyone can reproduce every step from public data.</p>
-      </div>
-
-      <div class="terminal">
-        <div class="terminal-head">
-          <div class="terminal-dots"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-          <span>solana devnet</span>
-        </div>
-        <div class="terminal-body"><span class="comment"># 1. Send participants — the rules are committed on-chain first</span>
-<span class="prompt">$</span> curl -X POST https://verifiableoutcome.online/api/partner/draw -H "x-api-key: …" -d @raffle.json
-  <span class="out">→ artifact 11d30b3b… committed</span>
-<span class="comment"># 2. prepare_rng_v2 fixes three future slots; settle_rng_v2 picks winners from their hashes</span>
-  <span class="out">→ target_slots: 498395156, 498395164, 498395172</span>
-  <span class="out">→ outcome_id: 3nafSu…TMFR9</span>
-<span class="comment"># 3. Anyone — not you — verifies. Public RPC is the source of truth.</span>
-<span class="prompt">$</span> npx -p verifiable-outcome-sdk vre verify --sig MVE6v5…FAy5H
-  <span class="ok">✓ MATCH / OK</span>
-  <span class="out">  rules committed before the randomness existed</span>
-  <span class="out">  replay of public data reproduces the same winner</span></div>
-      </div>
-
-      <p class="text-faint mt-6" style="max-width:640px;font-size:13px;">
-        Every signature is reproducible from an RPC endpoint and the artifact hash.
-        The operator cannot change the rules after the commit or know the winners before the target slots exist. What each path does not prove is in the <a href="/spec#overview" class="text-teal">spec</a>.
-      </p>
-    </div>
-  </section>
-
-  <section style="padding-top:0;">
-    <div class="container">
-      <div class="card glass-strong" style="padding: 64px 48px; text-align: center; border-radius: var(--r-xl); position: relative; overflow: hidden;">
-        <div style="position:absolute;inset:-30%;background:radial-gradient(circle at 30% 30%, var(--teal-glow), transparent 50%), radial-gradient(circle at 70% 70%, var(--violet-glow), transparent 50%);filter:blur(80px);pointer-events:none;"></div>
-        <div style="position:relative;z-index:1;">
-          <span class="eyebrow"><span class="dot"></span> Get started</span>
-          <h2 style="margin: 18px 0 14px;">Commit rules, then verify.</h2>
-          <p class="lead" style="max-width: 56ch; margin: 0 auto 32px;">
-            Any outcome. Independently verifiable. Start with a devnet signature today; mainnet is planned for this year.
-          </p>
-          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-            <a href="/play" class="btn btn-primary btn-lg">Try the demo <span aria-hidden>→</span></a>
-            <a href="/build" class="btn btn-secondary btn-lg">Read the SDK docs</a>
+        <div class="ribbon-wrap"><div class="ribbon" id="ribbon"><div class="playhead" id="playhead"></div></div></div>
+        <div class="inst-body">
+          <div class="inst-log" id="log"></div>
+          <div class="parts">
+            <div class="parts-head"><span>participant</span><span>weight</span></div>
+            <div id="parts"></div>
+            <div class="verdict" id="verdict"><span id="verdict-t">replay from public RPC</span><span class="v3-status" id="verdict-tag">pending</span></div>
           </div>
         </div>
+      </figure>
+
+      <div class="facts">
+        <div class="fact rise"><div class="v v3-mono">+8 · +16 · +24</div><div class="k">future slots fixed at prepare</div></div>
+        <div class="fact rise" style="--i:1"><div class="v">0 oracles</div><div class="k">entropy from SlotHashes</div></div>
+        <div class="fact rise" style="--i:2"><div class="v">1.9 s</div><div class="k">replay from public RPC</div></div>
+        <div class="fact rise" style="--i:3"><div class="v">10,001</div><div class="k">participants, tested on devnet</div></div>
       </div>
-    </div>
-  </section>
+    </section>
+
+    <section class="v3-sec v3-wrap" aria-labelledby="flow-title">
+      <div class="v3-sec-head">
+        <h2 id="flow-title" class="v3-h2 rise">Commit, prepare, settle, replay.</h2>
+        <p class="rise" style="--i:1">The rules go on-chain first; the randomness comes from blocks that do not exist yet. The operator cannot change the rules after the commit or know the winner before the target slots exist.</p>
+      </div>
+      <div class="proto">
+        <span class="pulse" aria-hidden="true"></span>
+        <div class="proto-step rise"><div class="knot"></div><h3>Commit</h3><p>Participants, weights and formula are stored on-chain under a SHA-256 artifact hash and bound to a runtime.</p><code>finalize_compiled_artifact</code></div>
+        <div class="proto-step rise" style="--i:1"><div class="knot"></div><h3>Prepare</h3><p>Opens the draw and fixes three target slots 8, 16 and 24 ahead, in three different leader groups.</p><code>prepare_rng_v2 · +8 · +16 · +24</code></div>
+        <div class="proto-step rise" style="--i:2"><div class="knot"></div><h3>Settle</h3><p>Reads the three slot hashes from SlotHashes, hashes them with the rules into a seed and writes the winners.</p><code>settle_rng_v2</code></div>
+        <div class="proto-step rise" style="--i:3"><div class="knot"></div><h3>Replay</h3><p>Anyone rebuilds the artifact from chain data, recomputes the seed from the recorded slot hashes and gets the same winners.</p><code>vre verify --sig …</code></div>
+      </div>
+    </section>
+
+    <section class="v3-sec v3-wrap" aria-labelledby="formulas-title">
+      <div class="v3-sec-head">
+        <h2 id="formulas-title" class="v3-h2 rise">Four formulas.<br>One replay.</h2>
+        <p class="rise" style="--i:1">Each tile is a real devnet draw from 14 September 2026. Every one replays to MATCH. More runnable scenarios are on <a href="/examples" style="color:var(--v-text-1);text-decoration:underline;text-underline-offset:3px">Examples</a>.</p>
+      </div>
+      <div class="bento">
+        <article class="tile rise"><div class="viz" aria-hidden="true"><div class="b w" style="height:70%"><em>3naf</em></div><div class="b" style="height:70%"><em>5Rbv</em></div><div class="b" style="height:70%"><em>5a38</em></div><div class="b" style="height:70%"><em>9Kpw</em></div><div class="b" style="height:70%"><em>ABKK</em></div><div class="b" style="height:70%"><em>Aip3</em></div><div class="b" style="height:70%"><em>BKo2</em></div></div><div><h3>Weighted random <span>raffle</span></h3><p>One winner from seven wallets of equal weight: <span class="v3-mono">3nafSu…TMFR9</span>.</p></div></article>
+        <article class="tile rise" style="--i:1"><div class="viz" aria-hidden="true"><div class="b" style="height:70%"><em>3naf</em></div><div class="b w" style="height:70%"><em>5Rbv</em></div><div class="b w" style="height:70%"><em>5a38</em></div><div class="b" style="height:70%"><em>9Kpw</em></div><div class="b w" style="height:70%"><em>ABKK</em></div><div class="b" style="height:70%"><em>Aip3</em></div><div class="b" style="height:70%"><em>BKo2</em></div></div><div><h3>Multiple winners <span>rewards</span></h3><p>Three distinct recipients from the same seven wallets, in a fixed order.</p></div></article>
+        <article class="tile rise" style="--i:2"><div class="viz" aria-hidden="true"><div class="b" style="height:64%"><em>alice 1200</em></div><div class="b" style="height:48%"><em>bob 900</em></div><div class="b w" style="height:80%"><em>carol 1500</em></div></div><div><h3>Highest score <span>rank_desc</span></h3><p>Top committed score wins; ties go to input order. Winner: trader-carol.</p></div></article>
+        <article class="tile rise" style="--i:3"><div class="viz line" aria-hidden="true"><div class="axis"><span class="mark w lft" style="left:14%"><span>alice<br>22,449</span></span><span class="mark t" style="left:22%"><span>target 22,450</span></span><span class="mark w rgt" style="left:30%"><span>carol<br>22,451</span></span><span class="mark" style="left:86%"><span>bob 22,460</span></span></div></div><div><h3>Closest to target <span>closest_to</span></h3><p>Nearest guesses win. Alice and Carol are one away each; both take a place.</p></div></article>
+      </div>
+    </section>
+
+    <section class="v3-sec v3-wrap" aria-labelledby="verify-title">
+      <div class="v3-sec-head">
+        <h2 id="verify-title" class="v3-h2 rise">Verify from anywhere.</h2>
+        <p class="rise" style="--i:1">The same check from a terminal, your own code or HTTP. No key, no wallet, no sign-up.</p>
+      </div>
+      <div class="vdemo rise">
+        <div class="vcode">
+          <div class="vcode-head"><div class="seg" role="tablist" aria-label="Verification method" id="vtabs"><span class="seg-ind"></span><button type="button" role="tab" aria-selected="true" data-t="cli">Terminal</button><button type="button" role="tab" aria-selected="false" data-t="ts">TypeScript</button><button type="button" role="tab" aria-selected="false" data-t="http">HTTP</button></div><button class="copy" type="button" id="vcopy">Copy</button></div>
+          <pre id="vcode"></pre>
+        </div>
+        <div class="vout" aria-label="Verifier output for the showcase raffle">
+<div><span class="v3-status ok">MATCH</span> <span class="d">/</span> OK</div>
+<div><span class="d">program  </span> 6QtLot…CP6B</div>
+<div><span class="d">artifact </span> 11d30b3b…b032</div>
+<div><span class="d">formula  </span> weighted_random</div>
+<div><span class="d">slots    </span> 498395156 · 172 · 173</div>
+<div><span class="d">hashes   </span> F7JaN3cs… · EWiiX8op… · CEUi62U4…</div>
+<div><span class="d">winner   </span> 3nafSu…TMFR9</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="v3-sec v3-wrap" aria-labelledby="draws-title">
+      <div class="v3-sec-head">
+        <h2 id="draws-title" class="v3-h2 rise">Draws you can check today.</h2>
+        <p class="rise" style="--i:1">Showcase draws on the canonical devnet program. Open any one in the verifier; all signatures are on <a href="/play" style="color:var(--v-text-1);text-decoration:underline;text-underline-offset:3px">Demo</a>.</p>
+      </div>
+      <div class="v3-table rise">
+        <table>
+          <thead><tr><th>draw</th><th class="hide-sm">formula</th><th>signature</th><th class="hide-sm">winner</th><th>replay</th></tr></thead>
+          <tbody>
+            <tr><td>Raffle</td><td class="hide-sm"><span class="v3-mono">weighted_random</span></td><td><a class="v3-mono" href="/verify?sig=MVE6v5ZGeBYYSKqDbp9kpVY85VKgSGXbFgUkh3eh2E1Xh7z2TPW3NZHfx2WSi2ERvVjuZB4LCP3nh1MN1YFAy5H">MVE6v5…FAy5H</a></td><td class="hide-sm"><span class="v3-mono">3nafSu…TMFR9</span></td><td><span class="v3-status ok">MATCH</span></td></tr>
+            <tr><td>Rewards</td><td class="hide-sm"><span class="v3-mono">weighted_random ×3</span></td><td><a class="v3-mono" href="/verify?sig=KQdZCBaDAt7VekWAAyvZDcfiwmQ9BXbyyw1z5oMjMzEnGvRJhQHV1WijQGvkwSiQcaLWTXQUrUBriuGGqD56Qfk">KQdZCB…56Qfk</a></td><td class="hide-sm"><span class="v3-mono">ABKKER…dHZqY +2</span></td><td><span class="v3-status ok">MATCH</span></td></tr>
+            <tr><td>Competition</td><td class="hide-sm"><span class="v3-mono">rank_desc</span></td><td><a class="v3-mono" href="/verify?sig=3GEUW1ZTGSAjkVExXupEwojqL7Wx6srSU48FeqtKAJGvWEGHcnWaMqEAeKnptrwkDeNuiWpU2MVQWYW6o1dkYAD8">3GEUW1…kYAD8</a></td><td class="hide-sm"><span class="v3-mono">trader-carol</span></td><td><span class="v3-status ok">MATCH</span></td></tr>
+            <tr><td>Prediction</td><td class="hide-sm"><span class="v3-mono">closest_to</span></td><td><a class="v3-mono" href="/verify?sig=4XywhAqU84x3me5vGpGsoE85VsE1YPDqzyzfEM1jVYdXXRYsq8MWjREjZEgFA6Z8hp57yGsZDfKDNFTCZzpxXmqz">4XywhA…xXmqz</a></td><td class="hide-sm"><span class="v3-mono">alice, carol</span></td><td><span class="v3-status ok">MATCH</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="v3-sec v3-wrap" aria-labelledby="proves-title">
+      <div class="v3-sec-head">
+        <h2 id="proves-title" class="v3-h2 rise">What a MATCH proves.</h2>
+        <p class="rise" style="--i:1">And what it does not. The full boundary for every path is in the <a href="/spec#overview" style="color:var(--v-text-1);text-decoration:underline;text-underline-offset:3px">spec</a>.</p>
+      </div>
+      <div class="guar">
+        <div class="g rise"><h3><span class="v3-dot"></span>Proves</h3><ul><li>The rules did not change: participants, weights, formula and winner count are the exact bytes committed on-chain.</li><li>The winners follow from the rules and the recorded randomness, in the same order.</li><li>Event, resolution account and replay agree on inputs, outputs and winner ids.</li></ul></div>
+        <div class="g rise" style="--i:1"><h3><span class="v3-dot idle"></span>Does not prove</h3><ul><li>That the list was fair or complete when committed, only that it did not change after.</li><li>That the operator could not foresee the result on every path. That depends on the randomness source.</li><li>That a prize was paid. Payout is the integrator’s step.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="v3-wrap v3-cta" aria-labelledby="cta-title">
+      <div><h2 id="cta-title" class="v3-h2">Run a draw on devnet.</h2><p>Partner keys come from the team. Verifying needs nothing. Mainnet is planned for this year.</p></div>
+      <div class="v3-actions" style="margin-top:0"><a class="btn btn-primary" href="/build#access">Get an API key <span aria-hidden="true">→</span></a><a class="btn btn-ghost" href="/spec">Read the spec</a></div>
+    </section>
   </main>
 
   <footer>
@@ -307,5 +208,6 @@
   </footer>
 
   <script src="/js/main.js"></script>
+  <script src="/js/landing.js"></script>
 </body>
 </html>
