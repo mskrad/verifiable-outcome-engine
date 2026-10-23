@@ -540,7 +540,7 @@
 
     const result = didIWin(state.address, r);
     const labels = {
-      won: ['🎉 You won!', 'Your connected address was selected.'],
+      won: ['You won', 'Your connected address was selected.'],
       'in-draw-not-selected': ['You were in this draw — not selected', 'Your address was eligible, but another outcome was selected.'],
       'not-in-draw': ['Your address was not in this draw', 'This wallet address is not in the committed outcome list.'],
     };

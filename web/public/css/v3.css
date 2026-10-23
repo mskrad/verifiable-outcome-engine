@@ -135,6 +135,9 @@ h1, h2, h3 { font-weight: 500; }
 .section-heading h2, section h2 { letter-spacing: -0.035em; }
 .lead { color: var(--v-text-2); }
 .iri { background: none !important; -webkit-background-clip: border-box; background-clip: border-box; color: var(--v-text-3) !important; animation: none !important; }
+.flow-head, .flow-status, .flow-verdict-title, .result-section-title, .rules-table th, .error-table th, .sig-meta-label, .spec-toc-title, .callout-title, .timeline-stop-label, .countdown-label, .lr-stat-label, .sig-card-label, .sig-status, .verify-detail-label, .verify-raw-title, .step-tag, .code-pair-tag, .spec-meta-pill, .spec-toc-label, .spec-table th, .spec-kv-label {
+  text-transform: none; letter-spacing: 0.01em; font-family: var(--font-mono);
+}
 .text-teal { color: var(--v-text-1); }
 .text-dim { color: var(--v-text-2); }
 .text-faint { color: var(--v-text-3); }
@@ -197,6 +200,8 @@ h1, h2, h3 { font-weight: 500; }
 .badge-pending { background: var(--v-warn-soft); color: var(--v-warn); box-shadow: inset 0 0 0 1px var(--v-warn-line); }
 .status-pill { padding: 0; background: none; border: 0; border-radius: 0; font-size: 12.5px; text-transform: none; letter-spacing: 0; color: var(--v-text-3); }
 .error-code-ok, .error-code-ok .error-code-tag { color: var(--v-ok); }
+.did-win-status-warn, .did-win-status-muted { display: block; }
+.did-win-status-warn a { margin: 0 2px; }
 .did-win-status-won, .outcome-selected { background: var(--v-ok-soft); border-color: var(--v-ok-line); }
 .outcome-id, .wallet-pill { color: var(--v-ok); }
 .live-raffle-success { color: var(--v-ok); }
@@ -225,7 +230,7 @@ code:not(pre code) { font-family: var(--font-mono); }
 .empty-state { border-radius: 12px; border-color: var(--v-line-2); background: var(--v-bg-raised); }
 .ticker, .ticker-track { display: none !important; }
 
-footer { margin-top: 140px; padding: 40px 0 48px; border-top: 1px solid var(--v-line-1); color: var(--v-text-3); font-size: 14px; }
+footer { margin-top: 96px; padding: 40px 0 48px; border-top: 1px solid var(--v-line-1); color: var(--v-text-3); font-size: 14px; }
 .footer-brand .nav-brand-mark { width: 22px !important; height: 22px !important; }
 .footer-links a { color: var(--v-text-2); }
 .footer-links a:hover { color: var(--v-text-1); }
@@ -397,3 +402,4 @@ footer { margin-top: 140px; padding: 40px 0 48px; border-top: 1px solid var(--v-
   .playhead, .seg-ind { transition: none; }
   .log-line { transform: none; filter: none; }
 }
+.spec-kv-value { overflow-wrap: break-word; word-break: normal; }

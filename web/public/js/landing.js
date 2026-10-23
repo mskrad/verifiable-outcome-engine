@@ -93,7 +93,7 @@
     const at = (ms, fn) => setTimeout(fn, ms);
     const run = () => {
       running = true; reset(); phase('idle', 'rules committed');
-      line('earlier', 'artifact <b>11d30b3b…</b> committed · runtime 164bb2e4 bound');
+      line(BASE + '120', 'artifact <b>11d30b3b…</b> committed · runtime 164bb2e4 bound');
       let t = 500;
       for (let s = FIRST; s <= LAST; s++) { const slot = s; at(t, () => { move(slot); step(slot); }); t += TICK; }
       at(t + 300, () => phase('warn', 'settling'));

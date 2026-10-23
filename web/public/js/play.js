@@ -381,7 +381,7 @@
     if (state === 'result') {
       const did = data.did || 'not-in-draw';
       const title = did === 'won'
-        ? '🎉 You won!'
+        ? 'You won'
         : did === 'not-in-draw'
         ? 'Your address was not in this draw'
         : 'Not selected this time';
