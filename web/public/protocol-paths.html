@@ -123,6 +123,38 @@
     </div>
   </section>
 
+  <section class="v3-sec v3-wrap" aria-labelledby="sortition-scene-title">
+    <div class="v3-sec-head">
+      <h2 id="sortition-scene-title" class="v3-h2">Sortition by claim.</h2>
+      <p>A panel, a jury or a whitelist chosen from sealed tickets. Nobody knows who is selected until the selected person claims, and the operator never holds the secrets.</p>
+    </div>
+    <div class="vx-scene" data-vx="sortition">
+        <ol class="vx-steps">
+          <li class="vx-st" data-i="0"><span class="vx-fill"></span><h3>Sealed tickets</h3><p>Each entrant registers a hash of a secret only they know. Nobody, the operator included, can tell what is inside.</p><code>register · sha256(secret ‖ ticket ‖ draw)</code></li>
+          <li class="vx-st" data-i="1"><span class="vx-fill"></span><h3>Omega from future slots</h3><p>Registration closes first. Then three slot hashes, 75, 90 and 105 slots after creation, fix one number: omega.</p><code>seal_sortition_draw</code></li>
+          <li class="vx-st" data-i="2"><span class="vx-fill"></span><h3>Every ticket gets a point</h3><p>The secret and omega place each ticket on a line. Only its owner can compute where.</p><code>point = sha256(secret ‖ omega)</code></li>
+          <li class="vx-st" data-i="3"><span class="vx-fill"></span><h3>Winners claim</h3><p>Points below the threshold win. They show up only when their owner claims; the rest stay sealed.</p><code>claim_sortition_ticket · ~8,200 CU</code></li>
+        </ol>
+        <div><div class="vx-panel" data-vx-panel></div><div class="vx-cap">Illustration: threshold set for 10 expected winners of 100. Simulated over 200 draws × 100 tickets: mean 9.7.</div></div>
+    </div>
+  </section>
+
+  <section class="v3-sec v3-wrap" aria-labelledby="unicorn-scene-title">
+    <div class="v3-sec-head">
+      <h2 id="unicorn-scene-title" class="v3-h2">Unicorn-G entropy.</h2>
+      <p>For draws where even the slot leader must not be able to steer the result. <span class="v3-status warn">implemented · not deployed</span></p>
+    </div>
+    <div class="vx-scene is-flip" data-vx="unicorn">
+      <ol class="vx-steps">
+        <li class="vx-st" data-i="0"><span class="vx-fill"></span><h3>Slot hashes in</h3><p>Three future slot hashes are mixed into one input, u.</p><code>u ← SlotHashes</code></li>
+        <li class="vx-st" data-i="1"><span class="vx-fill"></span><h3>A delay nobody can skip</h3><p>A VDF is a long chain of sequential squarings. Extra machines do not finish it sooner, so no one knows the output while it could still be changed.</p><code>y = VDF(u)</code></li>
+        <li class="vx-st" data-i="2"><span class="vx-fill"></span><h3>A 256-byte proof</h3><p>A Groth16 proof shows that the Wesolowski check for u and y passes.</p><code>π · 256 bytes</code></li>
+        <li class="vx-st" data-i="3"><span class="vx-fill"></span><h3>Checked in one transaction</h3><p>The program verifies the proof on-chain and takes randomness from y. A forged proof is rejected.</p><code>247,476 CU · InvalidUnicornGProof</code></li>
+      </ol>
+      <div><div class="vx-panel" data-vx-panel></div><div class="vx-cap">Measured on devnet, June 2026. The canonical program is not built with this feature; mainnet needs a circuit fix and a trusted setup.</div></div>
+    </div>
+  </section>
+
   <!-- Console lives on /examples, where everything runnable is collected -->
   <section>
     <div class="container">
@@ -160,5 +192,6 @@
   </footer>
 
   <script src="/js/main.js"></script>
+  <script src="/js/scenes.js"></script>
 </body>
 </html>

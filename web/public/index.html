@@ -115,6 +115,22 @@
       </div>
     </section>
 
+    <section class="v3-sec v3-wrap" aria-labelledby="device-title">
+      <div class="v3-sec-head">
+        <h2 id="device-title" class="v3-h2 rise">What your users see.</h2>
+        <p class="rise" style="--i:1">VRE runs behind your app. Every result arrives with a transaction signature, and one tap opens the proof.</p>
+      </div>
+      <div class="vx-demo" data-vx="device">
+        <ol class="vx-steps">
+          <li class="vx-st" data-i="0"><span class="vx-fill"></span><h3>Entries close</h3><p>The participant list and the formula are committed on-chain. From here nobody can edit them.</p><code>artifact 11d30b3b… · 7 entries</code></li>
+          <li class="vx-st" data-i="1"><span class="vx-fill"></span><h3>Future blocks decide</h3><p>The draw waits for slots +8, +16 and +24. Their hashes do not exist yet, so nobody knows the winner.</p><code>slots 156 · 172 · 173 (164 had no block)</code></li>
+          <li class="vx-st" data-i="2"><span class="vx-fill"></span><h3>A winner, with a signature</h3><p>Your app shows the winner and the transaction that recorded it.</p><code>MVE6v5…FAy5H</code></li>
+          <li class="vx-st" data-i="3"><span class="vx-fill"></span><h3>Anyone checks</h3><p>One tap replays the draw from public RPC data. No account, and no need to trust you.</p><code>MATCH / OK</code></li>
+        </ol>
+        <div><div data-vx-panel></div><div class="vx-caption">Example app. Draw data: devnet signature MVE6v5…FAy5H</div></div>
+      </div>
+    </section>
+
     <section class="v3-sec v3-wrap" aria-labelledby="formulas-title">
       <div class="v3-sec-head">
         <h2 id="formulas-title" class="v3-h2 rise">Four formulas.<br>One replay.</h2>
@@ -209,5 +225,6 @@
 
   <script src="/js/main.js"></script>
   <script src="/js/landing.js"></script>
+  <script src="/js/scenes.js"></script>
 </body>
 </html>

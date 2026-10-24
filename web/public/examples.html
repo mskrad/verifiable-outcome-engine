@@ -309,6 +309,16 @@
         <p>The cards above resolve in one call. This one takes four: create the draw, register a ticket commitment, seal against slot hashes that do not exist yet, then claim. Same public demo endpoint, same operator signing server-side — no key here either.</p>
       </div>
 
+      <div class="vx-scene" data-vx="sortition" style="margin: 8px 0 56px;">
+        <ol class="vx-steps">
+          <li class="vx-st" data-i="0"><span class="vx-fill"></span><h3>Sealed tickets</h3><p>Each entrant registers a hash of a secret only they know. Nobody, the operator included, can tell what is inside.</p><code>register · sha256(secret ‖ ticket ‖ draw)</code></li>
+          <li class="vx-st" data-i="1"><span class="vx-fill"></span><h3>Omega from future slots</h3><p>Registration closes first. Then three slot hashes, 75, 90 and 105 slots after creation, fix one number: omega.</p><code>seal_sortition_draw</code></li>
+          <li class="vx-st" data-i="2"><span class="vx-fill"></span><h3>Every ticket gets a point</h3><p>The secret and omega place each ticket on a line. Only its owner can compute where.</p><code>point = sha256(secret ‖ omega)</code></li>
+          <li class="vx-st" data-i="3"><span class="vx-fill"></span><h3>Winners claim</h3><p>Points below the threshold win. They show up only when their owner claims; the rest stay sealed.</p><code>claim_sortition_ticket · ~8,200 CU</code></li>
+        </ol>
+        <div><div class="vx-panel" data-vx-panel></div><div class="vx-cap">Illustration: threshold set for 10 expected winners of 100. Simulated over 200 draws × 100 tickets: mean 9.7.</div></div>
+      </div>
+
       <div class="card">
         <div class="form-row sx-grid">
           <div>
@@ -404,6 +414,7 @@
   </footer>
 
   <script src="/js/main.js"></script>
+  <script src="/js/scenes.js"></script>
   <script src="/widget.js" defer></script>
   <script>
   (function () {
